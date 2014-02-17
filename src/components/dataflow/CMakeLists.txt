@@ -22,7 +22,7 @@ add_hpx_pseudo_dependencies(components.dataflow
                             dataflow_component)
 
 ################################################################################
-if(${BOOST_MINOR_VERSION} GREATER 50) 
+if(${Boost_MINOR_VERSION} GREATER 50) 
   # add headers to preprocessing
   hpx_partial_preprocess_header(
       "hpx/components/dataflow/dataflow.hpp"

@@ -88,27 +88,27 @@ macro(build_boost_libname BOOST_RAW_NAME)
   elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "SunPro")
     set(BOOST_COMPILER_VERSION "-sw")
   elseif(MINGW)
-    if(${BOOST_MAJOR_VERSION}.${BOOST_MINOR_VERSION} VERSION_LESS 1.34)
+    if(${BOOST_MAJOR_VERSION}.${Boost_MINOR_VERSION} VERSION_LESS 1.34)
       set(BOOST_COMPILER_VERSION "-mgw") # no GCC version encoding prior to 1.34
     else()
       set(BOOST_COMPILER_VERSION "-mgw${BOOST_COMPILER_VERSION_NUMBER}")
     endif()
   elseif(UNIX AND CMAKE_COMPILER_IS_GNUCXX)
-    if(${BOOST_MAJOR_VERSION}.${BOOST_MINOR_VERSION} VERSION_LESS 1.34)
+    if(${BOOST_MAJOR_VERSION}.${Boost_MINOR_VERSION} VERSION_LESS 1.34)
       set(BOOST_COMPILER_VERSION "-gcc") # no GCC version encoding prior to 1.34
     else()
       # Determine which version of GCC we have.
       if(APPLE)
-        if(BOOST_MINOR_VERSION)
-          if(${BOOST_MINOR_VERSION} GREATER 35)
+        if(Boost_MINOR_VERSION)
+          if(${Boost_MINOR_VERSION} GREATER 35)
             # In Boost 1.36.0 and newer, the mangled compiler name used
             # on Mac OS X/Darwin is "xgcc".
             set(BOOST_COMPILER_VERSION "-xgcc${BOOST_COMPILER_VERSION_NUMBER}")
-          else(${BOOST_MINOR_VERSION} GREATER 35)
+          else(${Boost_MINOR_VERSION} GREATER 35)
             # In Boost <= 1.35.0, there is no mangled compiler name for the Mac OS X/Darwin version of GCC.
             set(BOOST_COMPILER_VERSION "")
-          endif(${BOOST_MINOR_VERSION} GREATER 35)
-        else(BOOST_MINOR_VERSION)
+          endif(${Boost_MINOR_VERSION} GREATER 35)
+        else(Boost_MINOR_VERSION)
           # We don't know the Boost version, so assume it's pre-1.36.0.
           set(BOOST_COMPILER_VERSION "")
         endif()

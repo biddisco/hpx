@@ -99,7 +99,7 @@ macro(get_boost_version)
   set(BOOST_VERSION_STR "")
   set(BOOST_VERSION_NUM 0)
   set(BOOST_MAJOR_VERSION 0)
-  set(BOOST_MINOR_VERSION 0)
+  set(Boost_MINOR_VERSION 0)
   set(BOOST_PATCH_VERSION 0)
 
   file(READ "${BOOST_VERSION_HPP}" BOOST_VERSION_HPP_CONTENTS)
@@ -111,7 +111,7 @@ macro(get_boost_version)
 
   if(NOT "${BOOST_VERSION_NUM}" STREQUAL "0")
     math(EXPR BOOST_MAJOR_VERSION "${BOOST_VERSION_NUM} / 100000")
-    math(EXPR BOOST_MINOR_VERSION "${BOOST_VERSION_NUM} / 100 % 1000")
+    math(EXPR Boost_MINOR_VERSION "${BOOST_VERSION_NUM} / 100 % 1000")
     math(EXPR BOOST_PATCH_VERSION "${BOOST_VERSION_NUM} % 100")
   else()
     hpx_error("boost.version" "Invalid Boost version ${BOOST_VERSION_NUM}, expected format MMRRPP (i.e. 104800)")
@@ -125,15 +125,15 @@ macro(get_boost_version)
     CACHE STRING "Boost version (unsigned integer version)." FORCE)
   set(BOOST_MAJOR_VERSION "${BOOST_MAJOR_VERSION}"
     CACHE STRING "Boost major version (M)." FORCE)
-  set(BOOST_MINOR_VERSION "${BOOST_MINOR_VERSION}"
+  set(Boost_MINOR_VERSION "${Boost_MINOR_VERSION}"
     CACHE STRING "Boost minor version (mm)." FORCE)
   set(BOOST_PATCH_VERSION "${BOOST_PATCH_VERSION}"
     CACHE STRING "Boost patch version (p)." FORCE)
   mark_as_advanced(FORCE BOOST_VERSION_HPP BOOST_VERSION BOOST_VERSION_NUM
-    BOOST_MAJOR_VERSION BOOST_MINOR_VERSION BOOST_PATCH_VERSION)
+    BOOST_MAJOR_VERSION Boost_MINOR_VERSION BOOST_PATCH_VERSION)
 
   set(BOOST_VERSION_STR
-    "${BOOST_MAJOR_VERSION}.${BOOST_MINOR_VERSION}.${BOOST_PATCH_VERSION}"
+    "${BOOST_MAJOR_VERSION}.${Boost_MINOR_VERSION}.${BOOST_PATCH_VERSION}"
     CACHE STRING "Boost version (M.mm.p string version)." FORCE)
 
   hpx_info("boost.version" "Boost version is ${BOOST_VERSION_STR}.")

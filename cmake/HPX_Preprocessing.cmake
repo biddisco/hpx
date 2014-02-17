@@ -21,14 +21,14 @@ hpx_option(HPX_AUTOMATIC_PREPROCESSING BOOL "True if the automatic header prepro
 set(HPX_PREPROCESS_HEADERS CACHE INTERNAL "" FORCE)
 set(HPX_PREPROCESS_INCLUDE_DIRS CACHE INTERNAL "" FORCE)
 
-if(NOT (HPX_AUTOMATIC_PREPROCESSING AND ${BOOST_MINOR_VERSION} GREATER 50))
+if(NOT (HPX_AUTOMATIC_PREPROCESSING AND ${Boost_MINOR_VERSION} GREATER 50))
     macro(hpx_partial_preprocess_header file)
     endmacro()
     macro(hpx_setup_partial_preprocess_headers)
     endmacro()
 else()
     if(NOT BOOSTWAVE_FOUND)
-        hpx_warn("preprocessing" "Boost.Wave is unavailable, automatic preprocessing of header files is disabled. This feature is only needed if you change headers that need to be preprocessed. Set BOOST_ROOT or BOOSTWAVE_ROOT pointing to your Boost.Wave Installation")
+        hpx_warn("preprocessing" "Boost.Wave is unavailable, automatic preprocessing of header files is disabled. This feature is only needed if you change headers that need to be preprocessed. Set Boost_ROOT or BOOSTWAVE_ROOT pointing to your Boost.Wave Installation")
     endif()
 
     macro(hpx_partial_preprocess_header file)

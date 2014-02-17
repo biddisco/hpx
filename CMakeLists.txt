@@ -79,8 +79,8 @@ endif()
 # reconfigure Boost library information if configuration type has been
 # changed since last configure
 if(CMAKE_BUILD_TYPE AND NOT (CMAKE_BUILD_TYPE STREQUAL CMAKE_CONFIGURATION_TYPES))
-  set(BOOST_VERSION_SEARCHED OFF CACHE INTERNAL "Found Boost version" FORCE)
-  set(BOOST_SEARCHED OFF CACHE INTERNAL "Found Boost libraries" FORCE)
+  set(Boost_VERSION_SEARCHED OFF CACHE INTERNAL "Found Boost version" FORCE)
+  set(Boost_SEARCHED OFF CACHE INTERNAL "Found Boost libraries" FORCE)
 endif()
 
 ################################################################################
@@ -98,19 +98,31 @@ endif()
 
 # This cmake module will snag the Boost version we'll be using (which we need
 # to know to specify the Boost libraries that we want to look for)
-find_package(HPX_BoostVersion)
+#------------------------------------------------------------------------------
+# Boost
+#------------------------------------------------------------------------------
+find_package( Boost 1.54.0 REQUIRED 
+                    date_time
+                    filesystem
+                    program_options
+                    regex
+                    serialization
+                    system
+                    thread
 
-if(NOT BOOST_VERSION_FOUND)
-  hpx_error("boost" "Failed to locate Boost.")
+serialization filesystem)
+include_directories(${Boost_INCLUDE_DIR})
+if(Boost_FOUND)
+  message("Boost found version ${Boost_VERSION}")
 endif()
 
-if(${BOOST_MINOR_VERSION} LESS 49)
-  hpx_error("boost" "HPX requires Boost V1.49.0 or higher (current version is: V${BOOST_MAJOR_VERSION}.${BOOST_MINOR_VERSION}.${BOOST_PATCH_VERSION}).")
-endif()
+INCLUDE_DIRECTORIES( ${Boost_INCLUDE_DIR} )
+LINK_DIRECTORIES(${Boost_LIBRARY_DIR})
+
 
 ###############################################################################
 # Boost libraries which are always used from the installed version
-set(BOOST_LIBRARIES date_time
+set(Boost_LIBRARIES date_time
                     filesystem
                     program_options
                     regex
@@ -119,7 +131,7 @@ set(BOOST_LIBRARIES date_time
                     thread)
 
 # Decide whether to use Boost.Context for coroutine implementation
-if(${BOOST_MINOR_VERSION} GREATER 50)
+if(${Boost_MINOR_VERSION} GREATER 50)
   set(use_generic_coroutine_context OFF)
 
   if(APPLE)
@@ -141,26 +153,26 @@ endif()
 ################################################################################
 hpx_include_directories(${hpx_SOURCE_DIR})
 hpx_include_directories(${CMAKE_BINARY_DIR})
-if(${BOOST_MINOR_VERSION} LESS 53)
+if(${Boost_MINOR_VERSION} LESS 53)
   hpx_include_directories(${hpx_SOURCE_DIR}/external/atomic)
 else()
-  set(BOOST_LIBRARIES ${BOOST_LIBRARIES} atomic)
+  set(Boost_LIBRARIES ${Boost_LIBRARIES} atomic)
 endif()
-set(BOOST_LIBRARIES ${BOOST_LIBRARIES} chrono)
+set(Boost_LIBRARIES ${Boost_LIBRARIES} chrono)
 if(HPX_USE_GENERIC_COROUTINE_CONTEXT)
-  if(${BOOST_MINOR_VERSION} GREATER 50)
+  if(${Boost_MINOR_VERSION} GREATER 50)
     hpx_add_config_define(HPX_HAVE_GENERIC_CONTEXT_COROUTINES)
-    set(BOOST_LIBRARIES ${BOOST_LIBRARIES} context)
+    set(Boost_LIBRARIES ${Boost_LIBRARIES} context)
   else()
-    hpx_error("boost_version" "Boost V1.51.0 or higher is required to use the Boost.Context library.")
+    hpx_error("Boost_version" "Boost V1.51.0 or higher is required to use the Boost.Context library.")
   endif()
 endif()
-if(${BOOST_MINOR_VERSION} LESS 53)
+if(${Boost_MINOR_VERSION} LESS 53)
   hpx_include_directories(${hpx_SOURCE_DIR}/external/lockfree)
 endif()
 hpx_include_directories(${hpx_SOURCE_DIR}/external/cache)
 hpx_include_directories(${hpx_SOURCE_DIR}/external/endian)
-if(${BOOST_MINOR_VERSION} LESS 49)
+if(${Boost_MINOR_VERSION} LESS 49)
   hpx_include_directories(${hpx_SOURCE_DIR}/external/serialization)
 endif()
 
@@ -217,26 +229,26 @@ endif()
 # ships
 find_package(HPX_Boost)
 
-hpx_include_sys_directories(${BOOST_INCLUDE_DIR})
-hpx_link_sys_directories(${BOOST_LIBRARY_DIR})
+hpx_include_sys_directories(${Boost_INCLUDE_DIR})
+hpx_link_sys_directories(${Boost_LIBRARY_DIR})
 
 if(NOT MSVC)
-  set(hpx_LIBRARIES ${BOOST_FOUND_LIBRARIES})
+  set(hpx_LIBRARIES ${Boost_FOUND_LIBRARIES})
 endif()
 
 # Boost preprocessor definitions
-hpx_add_config_define(BOOST_PARAMETER_MAX_ARITY 7)
+hpx_add_config_define(Boost_PARAMETER_MAX_ARITY 7)
 hpx_add_config_define(HPX_COROUTINE_ARG_MAX 1)
 if(NOT MSVC)
   hpx_add_config_define(HPX_COROUTINE_NO_SEPARATE_CALL_SITES)
 endif()
 hpx_add_config_define(HPX_LOG_NO_TSS)
 hpx_add_config_define(HPX_LOG_NO_TS)
-hpx_add_config_define(BOOST_BIGINT_HAS_NATIVE_INT64)
+hpx_add_config_define(Boost_BIGINT_HAS_NATIVE_INT64)
 
 # Disable usage of std::atomics in lockfree
-if(${BOOST_MINOR_VERSION} LESS 53)
-  hpx_add_config_define(BOOST_NO_0X_HDR_ATOMIC)
+if(${Boost_MINOR_VERSION} LESS 53)
+  hpx_add_config_define(Boost_NO_0X_HDR_ATOMIC)
 endif()
 
 ################################################################################
@@ -329,7 +341,7 @@ endif()
 # Decide whether to use shared memory based parcelport (starting with
 # Boost V1.52)
 ################################################################################
-if(${BOOST_MINOR_VERSION} GREATER 51)
+if(${Boost_MINOR_VERSION} GREATER 51)
   hpx_option(HPX_HAVE_PARCELPORT_IPC BOOL "Enable parcelport based on shared memory (default: OFF)." OFF ADVANCED)
   if(HPX_HAVE_PARCELPORT_IPC)
     hpx_add_config_define(HPX_HAVE_PARCELPORT_IPC)
@@ -827,7 +839,7 @@ if(MSVC)
     set(CMAKE_${language}_FLAGS_RELWITHDEBINFO
         "${CMAKE_${language}_FLAGS_RELWITHDEBINFO} -DNDEBUG -DHPX_DISABLE_ASSERTS")
     set(CMAKE_${language}_FLAGS_MINSIZEREL
-        "${CMAKE_${language}_FLAGS_MINSIZEREL} -DNDEBUG -DBOOST_DISABLE ASSERTS")
+        "${CMAKE_${language}_FLAGS_MINSIZEREL} -DNDEBUG -DBoost_DISABLE ASSERTS")
     set(CMAKE_${language}_FLAGS_RELEASE
         "${CMAKE_${language}_FLAGS_RELEASE} -DNDEBUG -DHPX_DISABLE_ASSERTS")
   endforeach()
@@ -1021,7 +1033,7 @@ if(MSVC)
     hpx_option(HPX_HAVE_CXX11_DECLTYPE BOOL "Compiler supports C++11 decltype keyword (default: ON)." ON ADVANCED)
     if(HPX_HAVE_CXX11_DECLTYPE)
       hpx_add_config_define(HPX_HAVE_CXX11_DECLTYPE)
-      hpx_add_config_define(BOOST_RESULT_OF_USE_DECLTYPE)
+      hpx_add_config_define(Boost_RESULT_OF_USE_DECLTYPE)
     endif()
 
     if(MSVC12)
@@ -1052,7 +1064,7 @@ if(MSVC)
     hpx_option(HPX_HAVE_CXX11_UNIQUE_PTR BOOL "Compiler supports C++11 std::unique_ptr (default: ON)." ON ADVANCED)
     if(HPX_HAVE_CXX11_UNIQUE_PTR)
       hpx_add_config_define(HPX_HAVE_CXX11_STD_UNIQUE_PTR)
-      hpx_add_config_define(BOOST_LOCKFREE_HAVE_CXX11_UNIQUE_PTR)
+      hpx_add_config_define(Boost_LOCKFREE_HAVE_CXX11_UNIQUE_PTR)
     endif()
 
     hpx_option(HPX_HAVE_CXX11_STD_TUPLE BOOL "Compiler supports C++11 (movable) std::tuple (default: ON)." ON ADVANCED)
@@ -1133,11 +1145,11 @@ if(MSVC)
   # Boost
   ##############################################################################
   # We auto-link Boost on Windows, so don't specify boost libraries explicitly
-  set(BOOST_FOUND_LIBRARIES "")
-  set(BOOST_serialization_LIBRARY "")
+  set(Boost_FOUND_LIBRARIES "")
+  set(Boost_serialization_LIBRARY "")
 
-  hpx_add_config_define(BOOST_USE_WINDOWS_H)
-  hpx_add_config_define(BOOST_SERIALIZATION_DYN_LINK)
+  hpx_add_config_define(Boost_USE_WINDOWS_H)
+  hpx_add_config_define(Boost_SERIALIZATION_DYN_LINK)
   if(NOT HPX_USE_GENERIC_COROUTINE_CONTEXT)
     hpx_add_config_define(HPX_HAVE_FIBER_BASED_COROUTINES)
   endif()
@@ -1232,7 +1244,7 @@ else()
     hpx_check_for_cxx11_auto(HPX_HAVE_CXX11_AUTO DEFINITIONS HPX_HAVE_CXX11_AUTO)
 
     hpx_check_for_cxx11_decltype(HPX_HAVE_CXX11_DECLTYPE
-      DEFINITIONS HPX_HAVE_CXX11_DECLTYPE BOOST_RESULT_OF_USE_DECLTYPE)
+      DEFINITIONS HPX_HAVE_CXX11_DECLTYPE Boost_RESULT_OF_USE_DECLTYPE)
 
     hpx_check_for_cxx11_alias_templates(HPX_HAVE_CXX11_ALIAS_TEMPLATES
       DEFINITIONS HPX_HAVE_CXX11_ALIAS_TEMPLATES)
@@ -1242,7 +1254,7 @@ else()
 
     hpx_check_for_cxx11_std_unique_ptr(HPX_HAVE_CXX11_STD_UNIQUE_PTR
       DEFINITIONS HPX_HAVE_CXX11_STD_UNIQUE_PTR
-                  BOOST_LOCKFREE_HAVE_CXX11_STD_UNIQUE_PTR)
+                  Boost_LOCKFREE_HAVE_CXX11_STD_UNIQUE_PTR)
 
     if(NOT HPX_UTIL_TUPLE)
       hpx_check_for_cxx11_std_tuple(HPX_HAVE_CXX11_STD_TUPLE
@@ -1453,7 +1465,7 @@ else()
 
   if(HPX_CXX_FLAG_MCX16)
     hpx_add_config_define(HPX_HAVE_GNU_SYNC_16)
-    hpx_add_config_define(BOOST_ATOMIC_HAVE_GNU_SYNC_16) # for the gnu code
+    hpx_add_config_define(Boost_ATOMIC_HAVE_GNU_SYNC_16) # for the gnu code
   endif()
 
   # __attribute__ ((aligned(16))) should align a variable to a 16-byte, however,
@@ -1462,7 +1474,7 @@ else()
   # Instead, they'll just silently use the maximum, which can be problematic.
   hpx_check_for_gnu_aligned_16(HPX_GNU_ALIGNED_16
     DEFINITIONS HPX_HAVE_GNU_ALIGNED_16
-                BOOST_ATOMIC_HAVE_GNU_ALIGNED_16) # for the gnu code
+                Boost_ATOMIC_HAVE_GNU_ALIGNED_16) # for the gnu code
 
   # __uint128_t and __int128_t are a nifty, albeit undocumented, GNU extension
   # that's been supported in GCC (4.1ish and up) and clang-linux for a while
@@ -1470,12 +1482,12 @@ else()
   # for use with cmpxchg16b
   hpx_check_for_gnu_128bit_integers(HPX_GNU_128BIT_INTEGERS
     DEFINITIONS HPX_HAVE_GNU_128BIT_INTEGERS
-                BOOST_ATOMIC_HAVE_GNU_128BIT_INTEGERS) # for integral casts
+                Boost_ATOMIC_HAVE_GNU_128BIT_INTEGERS) # for integral casts
 
   # we use movdqa for atomic 128bit loads and stores
   hpx_cpuid("sse2" HPX_SSE2
     DEFINITIONS HPX_HAVE_SSE2
-                BOOST_ATOMIC_HAVE_SSE2)
+                Boost_ATOMIC_HAVE_SSE2)
 
   if(HPX_SSE2)
     hpx_use_flag_if_available(-msse2 LANGUAGES CXX C Fortran)
@@ -1611,7 +1623,7 @@ if(HPX_BUILD_DOCUMENTATION)
   add_subdirectory(docs)
 endif()
 
-if(${BOOST_MINOR_VERSION} GREATER 50)
+if(${Boost_MINOR_VERSION} GREATER 50)
   add_subdirectory(preprocess)
 endif()
 
@@ -1759,7 +1771,7 @@ if(NOT HPX_NO_INSTALL)
     FILES_MATCHING PATTERN "*.hpp"
     PATTERN ".git" EXCLUDE)
 
-  if(${BOOST_MINOR_VERSION} LESS 49)
+  if(${Boost_MINOR_VERSION} LESS 49)
     # Install Boost.Serialization patch for older Boost versions only
     install(
       DIRECTORY external/serialization/boost
@@ -1779,7 +1791,7 @@ if(NOT HPX_NO_INSTALL)
       PATTERN ".git" EXCLUDE)
   endif()
 
-  if(${BOOST_MINOR_VERSION} LESS 53)
+  if(${Boost_MINOR_VERSION} LESS 53)
     # Install Boost.Atomic library for older Boost versions only
     install(
       DIRECTORY external/atomic/boost
@@ -1789,7 +1801,7 @@ if(NOT HPX_NO_INSTALL)
       PATTERN ".git" EXCLUDE)
   endif()
 
-  if(${BOOST_MINOR_VERSION} LESS 53)
+  if(${Boost_MINOR_VERSION} LESS 53)
     # Install Boost.Lockfree library for older Boost versions only
     install(
       DIRECTORY external/lockfree/boost
@@ -1922,16 +1934,16 @@ endforeach()
 list(REMOVE_DUPLICATES external_include_directories)
 list(REMOVE_DUPLICATES external_include_flags)
 
-set(boost_library_info "")
+set(Boost_library_info "")
 
-foreach(library ${BOOST_LIBRARIES})
+foreach(library ${Boost_LIBRARIES})
   string(TOUPPER ${library} library_uc)
-  string(REGEX REPLACE "([ ()])" "\\\\\\1" "BOOST_${library_uc}_LIBRARY" "${BOOST_${library_uc}_LIBRARY}")
-  set(boost_library_info
-    "${boost_library_info}set(HPX_BOOST_${library_uc}_LIBRARY ${BOOST_${library_uc}_LIBRARY})\n")
+  string(REGEX REPLACE "([ ()])" "\\\\\\1" "Boost_${library_uc}_LIBRARY" "${Boost_${library_uc}_LIBRARY}")
+  set(Boost_library_info
+    "${Boost_library_info}set(HPX_Boost_${library_uc}_LIBRARY ${Boost_${library_uc}_LIBRARY})\n")
 # FIXME: this doesn't work when used in external projects
-#  set(boost_library_info
-#    "${boost_library_info}    CACHE FILEPATH \"Boost ${library} shared library.\")\n")
+#  set(Boost_library_info
+#    "${Boost_library_info}    CACHE FILEPATH \"Boost ${library} shared library.\")\n")
 endforeach()
 
 set(external_definitions "")
