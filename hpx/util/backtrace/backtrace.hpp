@@ -23,7 +23,7 @@
 // if they want just this one to be dynamically linked:
 #if defined(BOOST_ALL_DYN_LINK) || defined(HPX_BACKTRACE_DYN_LINK)
 // export if this is our own source, otherwise import:
-#ifdef HPX_BACKTRACE_SOURCE
+#ifdef hpx_EXPORTS
 # define HPX_BACKTRACE_DECL BOOST_SYMBOL_EXPORT
 #else
 # define HPX_BACKTRACE_DECL BOOST_SYMBOL_IMPORT
