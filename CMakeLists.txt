@@ -1178,8 +1178,6 @@ if(MSVC)
 
   hpx_add_config_define(BOOST_USE_WINDOWS_H)
   hpx_add_config_define(BOOST_SERIALIZATION_DYN_LINK)
-  hpx_add_definitions(-DBOOST_ALL_DYN_LINK)
-
   if(NOT HPX_USE_GENERIC_COROUTINE_CONTEXT)
     hpx_add_config_define(HPX_HAVE_FIBER_BASED_COROUTINES)
   endif()

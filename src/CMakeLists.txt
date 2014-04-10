@@ -291,17 +291,17 @@ else()
 endif()
 
 set(hpx_serialization_lib_dependencies
-  ${hpx_MALLOC_LIBRARY} )
+  ${hpx_MALLOC_LIBRARY})
 
-#if(NOT MSVC)
+if(NOT MSVC)
   set(hpx_serialization_lib_dependencies
       ${hpx_serialization_lib_dependencies}
       ${BOOST_SYSTEM_LIBRARY}
       ${BOOST_SERIALIZATION_LIBRARY})
-#endif()
+endif()
 
 target_link_libraries(hpx_serialization
-  ${hpx_serialization_lib_dependencies} )
+  ${hpx_serialization_lib_dependencies})
 
 hpx_get_target_file(name hpx_serialization)
 
