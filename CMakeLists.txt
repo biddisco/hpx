@@ -358,6 +358,7 @@ endif()
 ################################################################################
 # Decide whether to use MPI based parcelport
 ################################################################################
+include(${CMAKE_CURRENT_SOURCE_DIR}/BGAS-MVAPICH.cmake)
 if("${HPX_PLATFORM_UC}" STREQUAL "BLUEGENEQ")
   hpx_option(HPX_HAVE_PARCELPORT_MPI BOOL "Enable parcelport based on MPI (default: ON)." ON ADVANCED)
 else()
