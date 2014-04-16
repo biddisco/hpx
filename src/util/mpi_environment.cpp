@@ -28,11 +28,11 @@ namespace hpx { namespace util
         bool detect_mpi_environment(util::runtime_configuration const& cfg,
             char const* default_env)
         {
-#if defined(__bgq__)
+//#if defined(__bgq__)
             // If running on BG/Q, we can safely assume to always run in an
             // MPI environment
-            return true;
-#else
+//            return true;
+//#else
             std::string mpi_environment_strings = cfg.get_entry(
                 "hpx.parcel.mpi.env", default_env);
 
@@ -44,10 +44,13 @@ namespace hpx { namespace util
             for(tokenizer::iterator it = tokens.begin(); it != tokens.end(); ++it)
             {
                 char *env = std::getenv(it->c_str());
-                if(env) return true;
+                if(env) {
+                  std::cout << " Found MPI environment" << std::endl;
+                  return true;
+                }
             }
             return false;
-#endif
+//#endif
         }
 
         int get_cfg_entry(command_line_handling& cfg, std::string const& str,
@@ -95,6 +98,18 @@ namespace hpx { namespace util
         // was disabled.
         if (!detail::detect_mpi_environment(cfg.rtcfg_, HPX_PARCELPORT_MPI_ENV) &&
             detail::get_cfg_entry(cfg, "hpx.parcel.tcp.enable", 1))
+        {
+            // explicitly disable mpi if not run by mpirun
+            cfg.rtcfg_.add_entry("hpx.parcel.mpi.enable", "0");
+
+            enabled_ = false;
+            return;
+        }
+
+        // if mpi is detected, but we are running with ibverbs enabled
+        // then disable mpi
+        if (detail::detect_mpi_environment(cfg.rtcfg_, HPX_PARCELPORT_MPI_ENV) &&
+            detail::get_cfg_entry(cfg, "hpx.parcel.ibverbs.enable", 1))
         {
             // explicitly disable mpi if not run by mpirun
             cfg.rtcfg_.add_entry("hpx.parcel.mpi.enable", "0");
@@ -239,7 +254,7 @@ namespace hpx { namespace util
         }
 
         // Report error, if the application was run using mpirun or similar but no
-        // prcelport other then MPI is enabled.
+        // parcelport other then MPI is enabled.
         if (detail::detect_mpi_environment(cfg.rtcfg_, "PMI_RANK,OMPI_COMM_WORLD_SIZE") &&
             detail::get_cfg_entry(cfg, "hpx.parcel.tcp.enable", 0) == 0 &&
             detail::get_cfg_entry(cfg, "hpx.parcel.ipc.enable", 0) == 0 &&
