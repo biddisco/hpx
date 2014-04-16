@@ -83,9 +83,10 @@ namespace hpx { namespace util
     std::string get_executable_prefix(char const* argv0)
     {
         using boost::filesystem::path;
-        path p(get_executable_filename(argv0));
+return "";        
+//path p(get_executable_filename(argv0));
 
-        return p.parent_path().parent_path().string();
+//        return p.parent_path().parent_path().string();
     }
 
     std::string get_executable_filename(char const* argv0)
