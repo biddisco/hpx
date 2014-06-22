@@ -1,4 +1,4 @@
-//  Copyright (c) 2011-2012 Bryce Adelstein-Lelbach
+//  Copyright (c) 2011-2014 Bryce Adelstein-Lelbach
 //  Copyright (c) 2007-2012 Hartmut Kaiser
 //  Copyright (c)      2013 Thomas Heller
 //  Copyright (c)      2013 Patricia Grubel
@@ -9,7 +9,7 @@
 #ifndef HPX_TESTS_PERFORMANCE_WORKER_HPP
 #define HPX_TESTS_PERFORMANCE_WORKER_HPP
 
-#include <hpx/config.hpp>
+//#include <hpx/config.hpp>
 #include <hpx/util/hardware/timestamp.hpp>
 #include <hpx/util/high_resolution_clock.hpp>
 #include <boost/cstdint.hpp>

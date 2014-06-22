@@ -125,9 +125,9 @@ if(${BOOST_MINOR_VERSION} GREATER 50)
   if(APPLE)
     set(use_generic_coroutine_context ON)
   endif()
-  #if("${HPX_PLATFORM_UC}" STREQUAL "BLUEGENEQ")
-  #  set(use_generic_coroutine_context ON)
-  #endif()
+  if("${HPX_PLATFORM_UC}" STREQUAL "BLUEGENEQ" AND ${BOOST_MINOR_VERSION} GREATER 55)
+    set(use_generic_coroutine_context ON)
+  endif()
 
   if (use_generic_coroutine_context)
     hpx_option(HPX_USE_GENERIC_COROUTINE_CONTEXT BOOL "Use Boost.Context as the underlying coroutines context switch implementation (default: ON)." ON ADVANCED)
@@ -192,6 +192,9 @@ else()
     "64" ADVANCED)
 endif()
 
+if (NOT DEFINED LIB)
+  set(LIB "lib")
+endif(NOT DEFINED LIB)
 ###############################################################################
 if(UNIX)
   hpx_link_directories("${CMAKE_BINARY_DIR}/lib/hpx")
@@ -464,7 +467,7 @@ hpx_include(SetOutputPaths)
 # RPATH configuration
 ################################################################################
 if(NOT MSVC)
-  set(HPX_RPATH "${CMAKE_INSTALL_PREFIX}/lib/hpx:${CMAKE_BINARY_DIR}/lib/hpx"
+  set(HPX_RPATH "${CMAKE_INSTALL_PREFIX}/${LIB}/hpx:${CMAKE_BINARY_DIR}/lib/hpx"
       CACHE STRING "Base RPATH for linking" FORCE)
 endif()
 
@@ -600,7 +603,7 @@ else()
 endif()
 
 hpx_option(HPX_THREAD_MAINTAIN_QUEUE_WAITTIME BOOL
-  "Enable collecting queue wait times for threads (default: ON)" ON ADVANCED)
+  "Enable collecting queue wait times for threads (default: OFF)" OFF ADVANCED)
 if(HPX_THREAD_MAINTAIN_QUEUE_WAITTIME)
   hpx_add_config_define(HPX_THREAD_MAINTAIN_QUEUE_WAITTIME 1)
 else()
@@ -608,8 +611,8 @@ else()
 endif()
 
 hpx_option(HPX_THREAD_MAINTAIN_IDLE_RATES BOOL
-    "Enable measuring the percentage of overhead times spent in the scheduler (default: ON)"
-    ON ADVANCED)
+    "Enable measuring the percentage of overhead times spent in the scheduler (default: OFF)"
+    OFF ADVANCED)
 if(HPX_THREAD_MAINTAIN_IDLE_RATES)
   hpx_add_config_define(HPX_THREAD_MAINTAIN_IDLE_RATES 1)
   hpx_option(HPX_THREAD_MAINTAIN_CREATION_AND_CLEANUP_RATES BOOL
@@ -642,13 +645,13 @@ else()
   hpx_add_config_define(HPX_THREAD_MAINTAIN_STEALING_COUNTS 0)
 endif()
 
-hpx_option(HPX_THREAD_MAINTAIN_THREAD_DATA BOOL
+hpx_option(HPX_THREAD_MAINTAIN_LOCAL_STORAGE BOOL
   "Enable thread local storage for all HPX threads (default: ON)"
   ON ADVANCED)
-if(HPX_THREAD_MAINTAIN_THREAD_DATA)
-  hpx_add_config_define(HPX_THREAD_MAINTAIN_THREAD_DATA 1)
+if(HPX_THREAD_MAINTAIN_LOCAL_STORAGE)
+  hpx_add_config_define(HPX_THREAD_MAINTAIN_LOCAL_STORAGE 1)
 else()
-  hpx_add_config_define(HPX_THREAD_MAINTAIN_THREAD_DATA 0)
+  hpx_add_config_define(HPX_THREAD_MAINTAIN_LOCAL_STORAGE 0)
 endif()
 
 
@@ -976,6 +979,7 @@ if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
       set(HPX_MALLOC_DEFAULT "tbbmalloc")
   else()
     set(HPX_MALLOC_DEFAULT "TCMalloc")
+#    set(HPX_MALLOC_DEFAULT "jemalloc")
   endif()
 else()
   set(HPX_MALLOC_DEFAULT "system")
@@ -1006,7 +1010,7 @@ if(MSVC)
   set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -d2Zi+")
 
   # VS2013 and above know how to do link time constant data segment folding
-  # VS2013 update 2 and above know how to remove debug information for 
+  # VS2013 update 2 and above know how to remove debug information for
   # non-referenced functions and data (-Zc:inline)
   if(MSVC12)
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Zc:inline")
@@ -1242,7 +1246,6 @@ else()
     hpx_option(HPX_PIE BOOL "Compile executables as shared objects" ON ADVANCED)
   endif()
 
-
   # This is necessary to ensure that our executables are ELF DYN objects.
   if(HPX_PIE)
     hpx_use_flag_if_available(-rdynamic LANGUAGES CXX C Fortran)
@@ -1383,8 +1386,6 @@ else()
       # visibility is broken for gcc 4.7.x
       set(enable_visibility_hidden OFF)
     elseif("${HPX_PLATFORM_UC}" STREQUAL "ANDROID")
-      set(enable_visibility_hidden OFF)
-    elseif("${HPX_PLATFORM_UC}" STREQUAL "BLUEGENEQ")
       set(enable_visibility_hidden OFF)
     endif()
 
@@ -1542,14 +1543,14 @@ else()
   hpx_option(HPX_DISABLE_AUTOMATIC_SERIALIZATION_REGISTRATION BOOL
       "Disable automatic registration with Boost.Serialization (Default: Off)" Off ADVANCED)
 
-  ##############################################################################
+  #############################################################################
   # Macro definitions for system headers
-  ##############################################################################
+  #############################################################################
   hpx_add_definitions(-D_GNU_SOURCE)
 
-  ##############################################################################
+  #############################################################################
   # System libraries
-  ##############################################################################
+  #############################################################################
   if(NOT ${CMAKE_SYSTEM_NAME} MATCHES "FreeBSD")
     set(hpx_RUNTIME_LIBRARIES ${hpx_RUNTIME_LIBRARIES} dl)
   endif()
@@ -1586,9 +1587,9 @@ if(HPX_HAVE_CXX11_ALIAS_TEMPLATES)
   endif()
 endif()
 
-################################################################################
+###############################################################################
 # Target specification
-################################################################################
+###############################################################################
 # Recurse into some subdirectories. This does not actually cause another cmake
 # executable to run. The same process will walk through the project's entire
 # directory structure.
@@ -1608,7 +1609,14 @@ endif()
 add_plugin_modules()
 
 ###############################################################################
-hpx_option(HPX_BUILD_TESTS BOOL "Build HPX tests (default: ON)" ON ADVANCED)
+find_package(PythonInterp)
+
+if(NOT PYTHONINTERP_FOUND)
+    hpx_warn("hpx.tests" "Tests have been disabled because python was not found")
+    hpx_option(HPX_BUILD_TESTS BOOL "Build HPX tests (default: OFF)" OFF ADVANCED)
+else()
+    hpx_option(HPX_BUILD_TESTS BOOL "Build HPX tests (default: ON)" ON ADVANCED)
+endif()
 
 if(HPX_BUILD_TESTS)
   hpx_option(HPX_BUILD_TESTS_BENCHMARKS BOOL "Build HPX benchmark tests (default: ON)" ON ADVANCED)
@@ -1621,7 +1629,7 @@ if(HPX_BUILD_TESTS)
   include(CTest)
 
   add_custom_command(TARGET tests POST_BUILD
-    COMMAND ctest --output-on-failure)
+    COMMAND ctest --output-on-failure --timeout 100)
 
   include_directories(tests)
   add_subdirectory(tests)
@@ -1645,9 +1653,11 @@ if(HPX_BUILD_TOOLS)
   add_subdirectory(tools)
 endif()
 
-hpx_option(HPX_BUILD_DOCUMENTATION BOOL "The HPX documentation toolchain is available (default OFF)." OFF)
+hpx_option(HPX_BUILD_DOCUMENTATION BOOL
+    "The HPX documentation toolchain is available (default OFF)." OFF)
 if(HPX_BUILD_DOCUMENTATION)
-  hpx_option(HPX_BUILD_DOCUMENTATION_SINGLEPAGE BOOL "The HPX documentation should be build as a single page HTML (default OFF)." OFF)
+  hpx_option(HPX_BUILD_DOCUMENTATION_SINGLEPAGE BOOL
+      "The HPX documentation should be build as a single page HTML (default OFF)." OFF)
   add_subdirectory(docs)
 endif()
 
@@ -1660,6 +1670,7 @@ endif()
 ################################################################################
 list(SORT HPX_CONFIG_DEFINITIONS)
 list(REMOVE_DUPLICATES HPX_CONFIG_DEFINITIONS)
+
 set(hpx_config_defines "\n")
 foreach(def ${HPX_CONFIG_DEFINITIONS})
     if("${def}" STREQUAL "HPX_PREFIX" AND NOT MSVC)
@@ -1672,6 +1683,11 @@ endforeach()
 
 configure_file("${hpx_SOURCE_DIR}/cmake/templates/config_defines.hpp.in"
                "${CMAKE_BINARY_DIR}/hpx/config/defines.hpp"
+               @ONLY)
+
+# Configure hpxrun.py
+configure_file("${hpx_SOURCE_DIR}/cmake/templates/hpxrun.py.in"
+               "${CMAKE_BINARY_DIR}/bin/hpxrun.py"
                @ONLY)
 
 ################################################################################
@@ -1750,15 +1766,25 @@ if(NOT HPX_NO_INSTALL)
 
   if(UNIX)
     file(GLOB scripts "${CMAKE_SOURCE_DIR}/python/scripts/*.py")
+    execute_process(
+      COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/python/scripts")
+
     foreach(script ${scripts})
       get_filename_component(script_name ${script} NAME)
       get_filename_component(script_name_we ${script} NAME_WE)
-      install(CODE
-        "set(bindir \"${CMAKE_INSTALL_PREFIX}/bin/\")
-         execute_process(
-           COMMAND \"\${CMAKE_COMMAND}\" -E create_symlink
-                   \"${script_name}\" \"${script_name_we}\"
-           WORKING_DIRECTORY \"\${bindir}\")")
+
+      #make copy, so that we have intact symlink in CMAKE_BINARY_DIR
+      execute_process(
+        COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${script}" "${script_name}"
+        WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/python/scripts")
+
+      execute_process(
+        COMMAND "${CMAKE_COMMAND}" -E create_symlink "${script_name}" "${script_name_we}"
+        WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/python/scripts")
+
+      install(
+        FILES "${CMAKE_BINARY_DIR}/python/scripts/${script_name_we}"
+        DESTINATION "bin")
     endforeach()
   endif()
 
@@ -1769,13 +1795,19 @@ if(NOT HPX_NO_INSTALL)
     FILES_MATCHING PATTERN "*.py"
     PATTERN ".git" EXCLUDE)
 
+  execute_process(
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/python")
+
+  # make symlink, so that we have intact hpx symlink in CMAKE_BINARY_DIR
+  execute_process(
+    COMMAND "${CMAKE_COMMAND}" -E create_symlink "${CMAKE_SOURCE_DIR}/python/hpx" "hpx-${HPX_VERSION}"
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/python")
+
   # create a symlink in share pointing to the latest HPX installation
-  install(CODE
-    "set(sharedir \"${CMAKE_INSTALL_PREFIX}/share/\")
-     execute_process(
-     COMMAND \"\${CMAKE_COMMAND}\" -E create_symlink
-             \"hpx-${HPX_VERSION}\" \"hpx\"
-     WORKING_DIRECTORY \"\${sharedir}\")")
+  execute_process(
+    COMMAND "${CMAKE_COMMAND}" -E create_symlink "hpx-${HPX_VERSION}" "hpx"
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/python")
+  install(DIRECTORY "${CMAKE_BINARY_DIR}/python/hpx" DESTINATION "share")
 
   install( # Install external dependencies
     DIRECTORY external/cache/boost
@@ -1959,7 +1991,8 @@ endforeach()
 # Make list unique
 list(REMOVE_DUPLICATES external_definitions)
 
-set(cmake_dir cmake-${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
+set(CMAKE_DIR "cmake-${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}"
+    CACHE STRING "directory (in share), where to put FindHPX cmake module")
 
 if(MSVC)
   set(output_dir "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}")
@@ -1980,12 +2013,12 @@ if(MSVC AND HPX_LINK_FLAG_TARGET_PROPERTIES)
 endif()
 
 configure_file("${hpx_SOURCE_DIR}/cmake/templates/FindHPX.cmake.in"
-               "${output_dir}/share/${cmake_dir}/Modules/FindHPX.cmake"
+               "${output_dir}/share/${CMAKE_DIR}/Modules/FindHPX.cmake"
                ESCAPE_QUOTES @ONLY)
 
 if(NOT HPX_NO_INSTALL)
-  install(FILES "${output_dir}/share/${cmake_dir}/Modules/FindHPX.cmake"
-          DESTINATION "share/${cmake_dir}/Modules")
+  install(FILES "${output_dir}/share/${CMAKE_DIR}/Modules/FindHPX.cmake"
+          DESTINATION "share/${CMAKE_DIR}/Modules")
 endif()
 
 if(NOT ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug"))
@@ -2008,18 +2041,18 @@ endif()
 if(NOT HPX_NO_INSTALL)
   if(NOT ("${CMAKE_BUILD_TYPE}" STREQUAL "Debug"))
     install(FILES "${output_dir}/lib/pkgconfig/hpx_application.pc"
-            DESTINATION lib/pkgconfig)
+            DESTINATION ${LIB}/pkgconfig)
     install(FILES "${output_dir}/lib/pkgconfig/hpx_component.pc"
-            DESTINATION lib/pkgconfig)
+            DESTINATION ${LIB}/pkgconfig)
   else()
     install(FILES "${output_dir}/lib/pkgconfig/hpx_application_debug.pc"
-            DESTINATION lib/pkgconfig)
+            DESTINATION ${LIB}/pkgconfig)
     install(FILES "${output_dir}/lib/pkgconfig/hpx_component_debug.pc"
-            DESTINATION lib/pkgconfig)
+            DESTINATION ${LIB}/pkgconfig)
   endif()
 endif()
 
 # Create a symlink in share pointing to the latest HPX installation
-execute_process(COMMAND
-  "${CMAKE_COMMAND}" -E create_symlink "hpx-${HPX_VERSION}" "hpx"
+execute_process(
+  COMMAND "${CMAKE_COMMAND}" -E create_symlink "hpx-${HPX_VERSION}" "hpx"
   WORKING_DIRECTORY "${output_dir}/share")

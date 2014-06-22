@@ -27,8 +27,9 @@
 #include <hpx/traits/action_decorate_function.hpp>
 #include <hpx/traits/action_decorate_continuation.hpp>
 #include <hpx/traits/action_schedule_thread.hpp>
-#include <hpx/traits/type_size.hpp>
+#include <hpx/traits/future_traits.hpp>
 #include <hpx/traits/is_future.hpp>
+#include <hpx/traits/type_size.hpp>
 #include <hpx/runtime/get_lva.hpp>
 #include <hpx/runtime/threads/thread_helpers.hpp>
 #include <hpx/runtime/threads/thread_init_data.hpp>
@@ -40,19 +41,21 @@
 #include <hpx/util/register_locks.hpp>
 #include <hpx/util/decay.hpp>
 #include <hpx/util/detail/count_num_args.hpp>
+#include <hpx/util/detail/serialization_registration.hpp>
 #include <hpx/util/static.hpp>
 #include <hpx/lcos/async_fwd.hpp>
+#include <hpx/lcos/future.hpp>
 
 #if defined(HPX_HAVE_SECURITY)
 #include <hpx/traits/action_capability_provider.hpp>
 #endif
 
 #include <boost/version.hpp>
-#include <boost/fusion/include/vector.hpp>
 #include <boost/fusion/include/at.hpp>
-#include <boost/fusion/include/size.hpp>
-#include <boost/fusion/include/for_each.hpp>
 #include <boost/fusion/include/at_c.hpp>
+#include <boost/fusion/include/for_each.hpp>
+#include <boost/fusion/include/size.hpp>
+#include <boost/fusion/include/transform_view.hpp>
 #include <boost/ref.hpp>
 #include <boost/foreach.hpp>
 #include <boost/serialization/access.hpp>
@@ -133,6 +136,12 @@ namespace hpx { namespace actions
         struct remote_action_result
         {
             typedef Result type;
+        };
+
+        template <>
+        struct remote_action_result<void>
+        {
+            typedef util::unused_type type;
         };
 
         template <typename Result>
@@ -249,7 +258,7 @@ namespace hpx { namespace actions
         /// \note This \a get_thread_function will be invoked to retrieve the
         ///       thread function for an action which has to be invoked without
         ///       continuations.
-        virtual HPX_STD_FUNCTION<threads::thread_function_type>
+        virtual threads::thread_function_type
             get_thread_function(naming::address::address_type lva) = 0;
 
         /// The \a get_thread_function constructs a proper thread function for
@@ -267,7 +276,7 @@ namespace hpx { namespace actions
         /// \note This \a get_thread_function will be invoked to retrieve the
         ///       thread function for an action which has to be invoked with
         ///       continuations.
-        virtual HPX_STD_FUNCTION<threads::thread_function_type>
+        virtual threads::thread_function_type
             get_thread_function(continuation_type& cont,
                 naming::address::address_type lva) = 0;
 
@@ -405,6 +414,9 @@ namespace hpx { namespace actions
     template <typename Action>
     struct transfer_action : base_action
     {
+        HPX_MOVABLE_BUT_NOT_COPYABLE(transfer_action);
+
+    public:
         typedef typename Action::component_type component_type;
         typedef typename Action::derived_type derived_type;
         typedef typename Action::result_type result_type;
@@ -510,7 +522,7 @@ namespace hpx { namespace actions
         /// \note This \a get_thread_function will be invoked to retrieve the
         ///       thread function for an action which has to be invoked without
         ///       continuations.
-        HPX_STD_FUNCTION<threads::thread_function_type>
+        threads::thread_function_type
         get_thread_function(naming::address::address_type lva)
         {
             return derived_type::construct_thread_function(lva,
@@ -532,7 +544,7 @@ namespace hpx { namespace actions
         /// \note This \a get_thread_function will be invoked to retrieve the
         ///       thread function for an action which has to be invoked with
         ///       continuations.
-        HPX_STD_FUNCTION<threads::thread_function_type>
+        threads::thread_function_type
         get_thread_function(continuation_type& cont,
             naming::address::address_type lva)
         {
@@ -823,7 +835,7 @@ namespace hpx { namespace actions
     ///////////////////////////////////////////////////////////////////////////
     /// \tparam Component         component type
     /// \tparam Result            return type
-    /// \tparam Arguments         arguments (fusion vector)
+    /// \tparam Arguments         arguments (tuple)
     /// \tparam Derived           derived action class
     template <typename Component, typename Result,
         typename Arguments, typename Derived>
@@ -843,7 +855,7 @@ namespace hpx { namespace actions
 
         ///////////////////////////////////////////////////////////////////////
         template <typename Func, typename Arguments_>
-        static HPX_STD_FUNCTION<threads::thread_function_type>
+        static threads::thread_function_type
         construct_continuation_thread_function_void(
             continuation_type cont, Func && func, Arguments_ && args)
         {
@@ -854,7 +866,7 @@ namespace hpx { namespace actions
         }
 
         template <typename Func, typename Arguments_>
-        static HPX_STD_FUNCTION<threads::thread_function_type>
+        static threads::thread_function_type
         construct_continuation_thread_function(
             continuation_type cont, Func && func, Arguments_ && args)
         {
@@ -928,7 +940,7 @@ namespace hpx { namespace actions
 #if defined(HPX_HAVE_CXX11_DECLTYPE)
 #  define HPX_TYPEOF(x)       decltype(x)
 #  define HPX_TYPEOF_TPL(x)   decltype(x)
-#elif defined(HPX_GCC_VERSION) && (HPX_GCC_VERSION <= 40400)
+#elif defined(HPX_GCC44_WORKAROUND)
 #  define HPX_TYPEOF(x)       __typeof__(x)
 #  define HPX_TYPEOF_TPL(x)   __typeof__(x)
 #else

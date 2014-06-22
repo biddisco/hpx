@@ -16,7 +16,10 @@
 #include <boost/thread/barrier.hpp>
 #include <boost/cstdint.hpp>
 #include <boost/format.hpp>
+#include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/program_options.hpp>
+
+char const* benchmark_name = "Delay Baseline";
 
 using boost::program_options::variables_map;
 using boost::program_options::options_description;
@@ -27,11 +30,24 @@ using boost::program_options::notify;
 
 using hpx::util::high_resolution_timer;
 
+using std::cout;
+
 ///////////////////////////////////////////////////////////////////////////////
 boost::uint64_t threads = 1;
 boost::uint64_t tasks = 500000;
 boost::uint64_t delay = 5;
 bool header = true;
+
+///////////////////////////////////////////////////////////////////////////////
+std::string format_build_date(std::string timestamp)
+{
+    boost::gregorian::date d = boost::gregorian::from_us_string(timestamp);
+
+    char const* fmt = "%02i-%02i-%04i";
+
+    return boost::str(boost::format(fmt)
+                     % d.month().as_number() % d.day() % d.year());
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 void print_results(
@@ -41,25 +57,46 @@ void print_results(
     )
 {
     if (header)
-        std::cout << "Tasks,Specified Task Length (microseconds),"
-                     "Average Walltime (seconds),"
-                     "Average Task Length (microseconds)\n";
+    {
+        cout << "# BENCHMARK: " << benchmark_name << "\n";
+
+        cout << "# VERSION: " << format_build_date(__DATE__) << "\n"
+             << "#\n";
+
+        // Note that if we change the number of fields above, we have to
+        // change the constant that we add when printing out the field # for
+        // performance counters below (e.g. the last_index part).
+        cout <<
+                "## 0:DELAY:Delay [micro-seconds] - Independent Variable\n"
+                "## 1:TASKS:# of Tasks - Independent Variable\n"
+                "## 2:OSTHRDS:OS-threads - Independent Variable\n"
+                "## 3:WTIME_THR:Total Walltime/Thread [micro-seconds]\n"
+                ;
+    }
 
     std::string const tasks_str = boost::str(boost::format("%lu,") % tasks);
     std::string const delay_str = boost::str(boost::format("%lu,") % delay);
 
-    std::cout << ( boost::format("%-21s %-21s %10.12g %10.12g\n")
-                 % tasks_str % delay_str % sum_ % mean_);
+    cout << ( boost::format("%lu %lu %lu %.14g\n")
+            % delay % tasks % threads % mean_);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void invoke_n_workers(
-    boost::barrier& b
-  , double& elapsed
+void invoke_n_workers_nowait(
+    double& elapsed
   , boost::uint64_t workers
     )
 {
-    b.wait();
+    // Warmup.
+    for (boost::uint64_t i = 0; i < tasks; ++i)
+    {
+        worker_timed(delay);
+    }
+
+    for (boost::uint64_t i = 0; i < tasks; ++i)
+    {
+        worker_timed(delay);
+    }
 
     // Start the clock.
     high_resolution_timer t;
@@ -72,6 +109,17 @@ void invoke_n_workers(
     elapsed = t.elapsed();
 }
 
+void invoke_n_workers(
+    boost::barrier& b
+  , double& elapsed
+  , boost::uint64_t workers
+    )
+{
+    b.wait();
+
+    invoke_n_workers_nowait(elapsed, workers);
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 int app_main(
     variables_map& vm
@@ -80,20 +128,27 @@ int app_main(
     if (0 == tasks)
         throw std::invalid_argument("error: count of 0 tasks specified\n");
 
-    std::vector<double> elapsed(threads);
+    std::vector<double> elapsed(threads - 1);
     boost::thread_group workers;
-    boost::barrier b(threads);
+    boost::barrier b(threads - 1);
 
-    for (boost::uint32_t i = 0; i != threads; ++i)
+    for (boost::uint32_t i = 0; i != threads - 1; ++i)
+    {
         workers.add_thread(new boost::thread(invoke_n_workers,
             boost::ref(b), boost::ref(elapsed[i]), tasks));
-
-    workers.join_all();
+    }
 
     double total_elapsed = 0;
 
+    invoke_n_workers_nowait(total_elapsed, tasks);
+
+    workers.join_all();
+
     for (boost::uint64_t i = 0; i < elapsed.size(); ++i)
+    {
+        //cout << i << " " << elapsed[i] << "\n"; 
         total_elapsed += elapsed[i];
+    }
 
     // Print out the results.
     print_results(vm, total_elapsed / double(threads)

@@ -31,13 +31,16 @@ namespace hpx
         naming::id_type service_target(
             agas::stubs::primary_namespace::get_service_instance(gid.get_gid())
           , naming::id_type::unmanaged);
+        typedef
+            typename hpx::actions::extract_action<Action>::remote_result_type
+        remote_result_type;
         typedef agas::server::primary_namespace::service_action action_type;
         using util::placeholders::_2;
-        return async_continue<action_type>(
+        return detail::async_continue_r<action_type, remote_result_type>(
             service_target, req
           , util::functional::async_continuation(
                 util::bind<Action>(
-                    util::bind(util::functional::extract_locality(), _2)
+                    util::bind(util::functional::extract_locality(), _2, gid)
                    )
                 ));
     }
@@ -85,13 +88,16 @@ namespace hpx
         naming::id_type service_target(
             agas::stubs::primary_namespace::get_service_instance(gid.get_gid())
           , naming::id_type::unmanaged);
+        typedef
+            typename hpx::actions::extract_action<Action>::remote_result_type
+        remote_result_type;
         typedef agas::server::primary_namespace::service_action action_type;
         using util::placeholders::_2;
-        return async_continue<action_type>(
+        return detail::async_continue_r<action_type, remote_result_type>(
             service_target, req
           , util::functional::async_continuation(
                 util::bind<Action>(
-                    util::bind(util::functional::extract_locality(), _2)
+                    util::bind(util::functional::extract_locality(), _2, gid)
                   , std::forward<Arg0>( arg0 ))
                 ));
     }
@@ -139,13 +145,16 @@ namespace hpx
         naming::id_type service_target(
             agas::stubs::primary_namespace::get_service_instance(gid.get_gid())
           , naming::id_type::unmanaged);
+        typedef
+            typename hpx::actions::extract_action<Action>::remote_result_type
+        remote_result_type;
         typedef agas::server::primary_namespace::service_action action_type;
         using util::placeholders::_2;
-        return async_continue<action_type>(
+        return detail::async_continue_r<action_type, remote_result_type>(
             service_target, req
           , util::functional::async_continuation(
                 util::bind<Action>(
-                    util::bind(util::functional::extract_locality(), _2)
+                    util::bind(util::functional::extract_locality(), _2, gid)
                   , std::forward<Arg0>( arg0 ) , std::forward<Arg1>( arg1 ))
                 ));
     }
@@ -193,13 +202,16 @@ namespace hpx
         naming::id_type service_target(
             agas::stubs::primary_namespace::get_service_instance(gid.get_gid())
           , naming::id_type::unmanaged);
+        typedef
+            typename hpx::actions::extract_action<Action>::remote_result_type
+        remote_result_type;
         typedef agas::server::primary_namespace::service_action action_type;
         using util::placeholders::_2;
-        return async_continue<action_type>(
+        return detail::async_continue_r<action_type, remote_result_type>(
             service_target, req
           , util::functional::async_continuation(
                 util::bind<Action>(
-                    util::bind(util::functional::extract_locality(), _2)
+                    util::bind(util::functional::extract_locality(), _2, gid)
                   , std::forward<Arg0>( arg0 ) , std::forward<Arg1>( arg1 ) , std::forward<Arg2>( arg2 ))
                 ));
     }
@@ -247,13 +259,16 @@ namespace hpx
         naming::id_type service_target(
             agas::stubs::primary_namespace::get_service_instance(gid.get_gid())
           , naming::id_type::unmanaged);
+        typedef
+            typename hpx::actions::extract_action<Action>::remote_result_type
+        remote_result_type;
         typedef agas::server::primary_namespace::service_action action_type;
         using util::placeholders::_2;
-        return async_continue<action_type>(
+        return detail::async_continue_r<action_type, remote_result_type>(
             service_target, req
           , util::functional::async_continuation(
                 util::bind<Action>(
-                    util::bind(util::functional::extract_locality(), _2)
+                    util::bind(util::functional::extract_locality(), _2, gid)
                   , std::forward<Arg0>( arg0 ) , std::forward<Arg1>( arg1 ) , std::forward<Arg2>( arg2 ) , std::forward<Arg3>( arg3 ))
                 ));
     }
@@ -301,13 +316,16 @@ namespace hpx
         naming::id_type service_target(
             agas::stubs::primary_namespace::get_service_instance(gid.get_gid())
           , naming::id_type::unmanaged);
+        typedef
+            typename hpx::actions::extract_action<Action>::remote_result_type
+        remote_result_type;
         typedef agas::server::primary_namespace::service_action action_type;
         using util::placeholders::_2;
-        return async_continue<action_type>(
+        return detail::async_continue_r<action_type, remote_result_type>(
             service_target, req
           , util::functional::async_continuation(
                 util::bind<Action>(
-                    util::bind(util::functional::extract_locality(), _2)
+                    util::bind(util::functional::extract_locality(), _2, gid)
                   , std::forward<Arg0>( arg0 ) , std::forward<Arg1>( arg1 ) , std::forward<Arg2>( arg2 ) , std::forward<Arg3>( arg3 ) , std::forward<Arg4>( arg4 ))
                 ));
     }
@@ -355,13 +373,16 @@ namespace hpx
         naming::id_type service_target(
             agas::stubs::primary_namespace::get_service_instance(gid.get_gid())
           , naming::id_type::unmanaged);
+        typedef
+            typename hpx::actions::extract_action<Action>::remote_result_type
+        remote_result_type;
         typedef agas::server::primary_namespace::service_action action_type;
         using util::placeholders::_2;
-        return async_continue<action_type>(
+        return detail::async_continue_r<action_type, remote_result_type>(
             service_target, req
           , util::functional::async_continuation(
                 util::bind<Action>(
-                    util::bind(util::functional::extract_locality(), _2)
+                    util::bind(util::functional::extract_locality(), _2, gid)
                   , std::forward<Arg0>( arg0 ) , std::forward<Arg1>( arg1 ) , std::forward<Arg2>( arg2 ) , std::forward<Arg3>( arg3 ) , std::forward<Arg4>( arg4 ) , std::forward<Arg5>( arg5 ))
                 ));
     }
@@ -409,13 +430,16 @@ namespace hpx
         naming::id_type service_target(
             agas::stubs::primary_namespace::get_service_instance(gid.get_gid())
           , naming::id_type::unmanaged);
+        typedef
+            typename hpx::actions::extract_action<Action>::remote_result_type
+        remote_result_type;
         typedef agas::server::primary_namespace::service_action action_type;
         using util::placeholders::_2;
-        return async_continue<action_type>(
+        return detail::async_continue_r<action_type, remote_result_type>(
             service_target, req
           , util::functional::async_continuation(
                 util::bind<Action>(
-                    util::bind(util::functional::extract_locality(), _2)
+                    util::bind(util::functional::extract_locality(), _2, gid)
                   , std::forward<Arg0>( arg0 ) , std::forward<Arg1>( arg1 ) , std::forward<Arg2>( arg2 ) , std::forward<Arg3>( arg3 ) , std::forward<Arg4>( arg4 ) , std::forward<Arg5>( arg5 ) , std::forward<Arg6>( arg6 ))
                 ));
     }
@@ -463,13 +487,16 @@ namespace hpx
         naming::id_type service_target(
             agas::stubs::primary_namespace::get_service_instance(gid.get_gid())
           , naming::id_type::unmanaged);
+        typedef
+            typename hpx::actions::extract_action<Action>::remote_result_type
+        remote_result_type;
         typedef agas::server::primary_namespace::service_action action_type;
         using util::placeholders::_2;
-        return async_continue<action_type>(
+        return detail::async_continue_r<action_type, remote_result_type>(
             service_target, req
           , util::functional::async_continuation(
                 util::bind<Action>(
-                    util::bind(util::functional::extract_locality(), _2)
+                    util::bind(util::functional::extract_locality(), _2, gid)
                   , std::forward<Arg0>( arg0 ) , std::forward<Arg1>( arg1 ) , std::forward<Arg2>( arg2 ) , std::forward<Arg3>( arg3 ) , std::forward<Arg4>( arg4 ) , std::forward<Arg5>( arg5 ) , std::forward<Arg6>( arg6 ) , std::forward<Arg7>( arg7 ))
                 ));
     }
@@ -517,13 +544,16 @@ namespace hpx
         naming::id_type service_target(
             agas::stubs::primary_namespace::get_service_instance(gid.get_gid())
           , naming::id_type::unmanaged);
+        typedef
+            typename hpx::actions::extract_action<Action>::remote_result_type
+        remote_result_type;
         typedef agas::server::primary_namespace::service_action action_type;
         using util::placeholders::_2;
-        return async_continue<action_type>(
+        return detail::async_continue_r<action_type, remote_result_type>(
             service_target, req
           , util::functional::async_continuation(
                 util::bind<Action>(
-                    util::bind(util::functional::extract_locality(), _2)
+                    util::bind(util::functional::extract_locality(), _2, gid)
                   , std::forward<Arg0>( arg0 ) , std::forward<Arg1>( arg1 ) , std::forward<Arg2>( arg2 ) , std::forward<Arg3>( arg3 ) , std::forward<Arg4>( arg4 ) , std::forward<Arg5>( arg5 ) , std::forward<Arg6>( arg6 ) , std::forward<Arg7>( arg7 ) , std::forward<Arg8>( arg8 ))
                 ));
     }
@@ -571,13 +601,16 @@ namespace hpx
         naming::id_type service_target(
             agas::stubs::primary_namespace::get_service_instance(gid.get_gid())
           , naming::id_type::unmanaged);
+        typedef
+            typename hpx::actions::extract_action<Action>::remote_result_type
+        remote_result_type;
         typedef agas::server::primary_namespace::service_action action_type;
         using util::placeholders::_2;
-        return async_continue<action_type>(
+        return detail::async_continue_r<action_type, remote_result_type>(
             service_target, req
           , util::functional::async_continuation(
                 util::bind<Action>(
-                    util::bind(util::functional::extract_locality(), _2)
+                    util::bind(util::functional::extract_locality(), _2, gid)
                   , std::forward<Arg0>( arg0 ) , std::forward<Arg1>( arg1 ) , std::forward<Arg2>( arg2 ) , std::forward<Arg3>( arg3 ) , std::forward<Arg4>( arg4 ) , std::forward<Arg5>( arg5 ) , std::forward<Arg6>( arg6 ) , std::forward<Arg7>( arg7 ) , std::forward<Arg8>( arg8 ) , std::forward<Arg9>( arg9 ))
                 ));
     }

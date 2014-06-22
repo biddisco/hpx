@@ -41,12 +41,10 @@ namespace hpx { namespace util
             typename boost::enable_if<traits::is_future<T> >::type
         >
         {
-            typedef typename lcos::detail::future_traits<T>::type value_type;
+            typedef typename traits::future_traits<T>::type value_type;
             typedef typename boost::is_void<value_type>::type is_void;
 
-            typedef typename boost::mpl::if_<
-                is_void, void, value_type
-            >::type type;
+            typedef typename traits::future_traits<T>::result_type type;
 
             template <typename Future>
             static type call(Future& future, /*is_void=*/boost::mpl::false_)
@@ -75,7 +73,7 @@ namespace hpx { namespace util
         >
         {
             typedef typename T::value_type future_type;
-            typedef typename lcos::detail::future_traits<future_type>::type value_type;
+            typedef typename traits::future_traits<future_type>::type value_type;
             typedef typename boost::is_void<value_type>::type is_void;
 
             typedef typename boost::mpl::if_<

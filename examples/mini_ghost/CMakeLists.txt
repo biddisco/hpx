@@ -8,13 +8,14 @@ if(HPX_HAVE_CXX11_LAMBDAS)
   #    DEPENDENCIES iostreams_component
   #                 mini_ghost_component
   #                 distributing_factory_component)
+  add_definitions(-DHPX_LIMIT=10)
 
   # add mini_ghost executable
   add_hpx_executable(mini_ghost
     MODULE mini_ghost
     AUTOGLOB
     ${mini_ghost_FLAGS}
-    FOLDER "Examples/Mini Ghost")
+    FOLDER "Examples/MiniGhost")
 
   # add a custom target for this example
   add_hpx_pseudo_target(examples.mini_ghost.mini_ghost)

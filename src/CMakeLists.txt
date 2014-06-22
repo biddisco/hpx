@@ -312,7 +312,7 @@ set_property(TARGET hpx_serialization APPEND
   "HPX_COROUTINE_EXPORTS")
 
 if(NOT HPX_NO_INSTALL)
-  hpx_library_install(hpx_serialization lib/hpx)
+  hpx_library_install(hpx_serialization ${LIB}/hpx)
 endif()
 
 ################################################################################
@@ -398,12 +398,12 @@ set_property(TARGET hpx APPEND
   "HPX_DLL_STRING=\"${name}\""
   "HPX_COMPONENT_NAME=hpx"
   "HPX_EXPORTS"
-  "HPX_LIMIT=4"
+  "HPX_LIMIT=5"
   "HPX_ENABLE_ASSERT_HANDLER"
   "HPX_COROUTINE_EXPORTS") # Do we still need this?
 
 if(NOT HPX_NO_INSTALL)
-  hpx_library_install(hpx lib/hpx)
+  hpx_library_install(hpx ${LIB}/hpx)
 endif()
 
 ################################################################################
@@ -419,7 +419,7 @@ endif()
 set_property(TARGET hpx_init APPEND
   PROPERTY COMPILE_DEFINITIONS
   "HPX_APPLICATION_EXPORTS"
-  "HPX_LIMIT=4"
+  "HPX_LIMIT=5"
   "HPX_ENABLE_ASSERT_HANDLER")
 
 if(MSVC)
@@ -436,7 +436,7 @@ endif()
 set_property(TARGET hpx_init PROPERTY FOLDER "Core")
 
 if(NOT HPX_NO_INSTALL)
-  hpx_archive_install(hpx_init lib/hpx)
+  hpx_archive_install(hpx_init ${LIB}/hpx)
 endif()
 
 set(HPX_CONFIG_DEFINITIONS ${HPX_CONFIG_DEFINITIONS} PARENT_SCOPE)

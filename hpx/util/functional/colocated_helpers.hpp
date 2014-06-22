@@ -12,6 +12,8 @@
 #include <hpx/util/result_of.hpp>
 #include <hpx/util/decay.hpp>
 
+#include <boost/format.hpp>
+
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx { namespace util { namespace functional
 {
@@ -20,8 +22,20 @@ namespace hpx { namespace util { namespace functional
     {
         typedef naming::id_type result_type;
 
-        naming::id_type operator()(agas::response const& rep) const
+        extract_locality() {}
+
+        naming::id_type operator()(agas::response const& rep,
+            naming::id_type const& id) const
         {
+            if (rep.get_status() != success)
+            {
+                HPX_THROW_EXCEPTION(rep.get_status(),
+                    "extract_locality::operator()",
+                    boost::str(boost::format(
+                        "could not resolve colocated locality for id(%1%)"
+                    ) % id));
+                return naming::invalid_id;
+            }
             return naming::get_id_from_locality_id(rep.get_locality_id());
         }
     };

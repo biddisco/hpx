@@ -415,7 +415,7 @@ namespace hpx { namespace threads
         util::backtrace const* set_backtrace(thread_id_type const& id, util::backtrace const* bt = 0);
 #endif
 
-#if HPX_THREAD_MAINTAIN_THREAD_DATA
+#if HPX_THREAD_MAINTAIN_LOCAL_STORAGE
         /// The get_thread_data function is part of the thread related
         /// API. It queries the currently stored thread specific data pointer.
         ///
@@ -519,7 +519,7 @@ namespace hpx { namespace threads
             return used_processing_units_;
         }
 
-        // Return the executor associated with th egiven thread
+        // Return the executor associated with the given thread
         executor get_executor(thread_id_type const& id, error_code& ec) const;
 
     private:
@@ -528,8 +528,10 @@ namespace hpx { namespace threads
             performance_counters::counter_info const& info, error_code& ec);
         naming::gid_type thread_counts_counter_creator(
             performance_counters::counter_info const& info, error_code& ec);
+#if HPX_THREAD_MAINTAIN_IDLE_RATES
         naming::gid_type idle_rate_counter_creator(
             performance_counters::counter_info const& info, error_code& ec);
+#endif
 #if HPX_THREAD_MAINTAIN_QUEUE_WAITTIME
         naming::gid_type thread_wait_time_counter_creator(
             performance_counters::counter_info const& info, error_code& ec);

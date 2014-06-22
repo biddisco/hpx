@@ -7,6 +7,7 @@
 #ifndef HPX_COROUTINE_STACKLESS_COROUTINE_HPP_20130724
 #define HPX_COROUTINE_STACKLESS_COROUTINE_HPP_20130724
 
+#include <hpx/util/unique_function.hpp>
 #include <hpx/util/coroutine/coroutine.hpp>
 #include <hpx/util/coroutine/detail/coroutine_traits.hpp>
 #include <hpx/util/detail/reset_function.hpp>
@@ -81,7 +82,7 @@ namespace hpx { namespace util { namespace coroutines
 #if HPX_THREAD_MAINTAIN_PHASE_INFORMATION
           , phase_(0)
 #endif
-#if HPX_THREAD_MAINTAIN_THREAD_DATA
+#if HPX_THREAD_MAINTAIN_LOCAL_STORAGE
           , thread_data_(0)
 #endif
           , target_(std::move(target))
@@ -94,7 +95,7 @@ namespace hpx { namespace util { namespace coroutines
 #if HPX_THREAD_MAINTAIN_PHASE_INFORMATION
           , phase_(rhs.phase_)
 #endif
-#if HPX_THREAD_MAINTAIN_THREAD_DATA
+#if HPX_THREAD_MAINTAIN_LOCAL_STORAGE
           , thread_data_(rhs.thread_data_)
 #endif
           , target_(std::move(rhs.target_))
@@ -104,7 +105,7 @@ namespace hpx { namespace util { namespace coroutines
 #if HPX_THREAD_MAINTAIN_PHASE_INFORMATION
             rhs.phase_ = 0;
 #endif
-#if HPX_THREAD_MAINTAIN_THREAD_DATA
+#if HPX_THREAD_MAINTAIN_LOCAL_STORAGE
             rhs.thread_data_ = 0;
 #endif
         }
@@ -123,7 +124,7 @@ namespace hpx { namespace util { namespace coroutines
 #if HPX_THREAD_MAINTAIN_PHASE_INFORMATION
             std::swap(phase_, rhs.phase_);
 #endif
-#if HPX_THREAD_MAINTAIN_THREAD_DATA
+#if HPX_THREAD_MAINTAIN_LOCAL_STORAGE
             std::swap(thread_data_, rhs.thread_data_);
 #endif
             std::swap(target_, rhs.target_);
@@ -147,7 +148,7 @@ namespace hpx { namespace util { namespace coroutines
         }
 #endif
 
-#if HPX_THREAD_MAINTAIN_THREAD_DATA
+#if HPX_THREAD_MAINTAIN_LOCAL_STORAGE
         std::size_t get_thread_data() const
         {
             return thread_data_;
@@ -240,14 +241,14 @@ namespace hpx { namespace util { namespace coroutines
             return !exited();
         }
 
-        hpx::util::function_nonser<signature_type> f_;
+        hpx::util::unique_function_nonser<signature_type> f_;
         context_state state_;
         thread_id_repr_type id_;
 
 #if HPX_THREAD_MAINTAIN_PHASE_INFORMATION
         std::size_t phase_;
 #endif
-#if HPX_THREAD_MAINTAIN_THREAD_DATA
+#if HPX_THREAD_MAINTAIN_LOCAL_STORAGE
         std::size_t thread_data_;
 #endif
 

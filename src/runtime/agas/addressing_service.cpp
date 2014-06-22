@@ -24,7 +24,7 @@
 #include <hpx/include/performance_counters.hpp>
 #include <hpx/performance_counters/counter_creators.hpp>
 #include <hpx/lcos/wait_all.hpp>
-#if !defined(HPX_GCC_VERSION) || (HPX_GCC_VERSION > 40400)
+#if !defined(HPX_GCC44_WORKAROUND)
 #include <hpx/lcos/broadcast.hpp>
 #endif
 
@@ -1216,7 +1216,8 @@ bool addressing_service::is_local_lva_encoded_address(
     )
 {
     // NOTE: This should still be migration safe.
-    return msb == get_local_locality().get_msb();
+    return naming::detail::strip_internal_bits_from_gid(msb) ==
+        get_local_locality().get_msb();
 }
 
 bool addressing_service::resolve_locally_known_addresses(
@@ -1883,7 +1884,7 @@ void addressing_service::decref(
         ) = &addressing_service::decref;
 
         threads::register_thread_nullary(
-            HPX_STD_BIND(decref_ptr, this, gid, credit, boost::ref(throws)),
+            util::bind(decref_ptr, this, gid, credit, boost::ref(throws)),
             "addressing_service::decref");
         return;
     }
@@ -1962,9 +1963,9 @@ lcos::future<bool> addressing_service::register_name_async(
     boost::int64_t new_credit = naming::detail::get_credit_from_gid(new_gid);
     if (new_credit != 0)
     {
-        using HPX_STD_PLACEHOLDERS::_1;
+        using util::placeholders::_1;
         return f.then(
-            HPX_STD_BIND(correct_credit_on_failure, _1, id,
+            util::bind(correct_credit_on_failure, _1, id,
                 HPX_GLOBALCREDIT_INITIAL, new_credit)
         );
     }
@@ -2053,9 +2054,46 @@ lcos::future<naming::id_type> addressing_service::resolve_name_async(
         name, req, action_priority_);
 } // }}}
 
+namespace detail
+{
+    hpx::future<hpx::id_type> on_register_event(hpx::future<bool> f,
+        lcos::promise<hpx::id_type, naming::gid_type> p)
+    {
+        if (!f.get())
+        {
+            HPX_THROW_EXCEPTION(bad_request,
+                "hpx::agas::detail::on_register_event",
+                "request 'symbol_ns_on_event' failed");
+            return hpx::future<hpx::id_type>();
+        }
+        return p.get_future();
+    }
+}
+
+future<hpx::id_type> addressing_service::on_symbol_namespace_event(
+    std::string const& name, namespace_action_code evt,
+    bool call_for_past_events)
+{
+    if (evt != symbol_ns_bind)
+    {
+        HPX_THROW_EXCEPTION(bad_parameter,
+            "addressing_service::on_symbol_namespace_event",
+            "invalid event type");
+        return hpx::future<hpx::id_type>();
+    }
+
+    lcos::promise<naming::id_type, naming::gid_type> p;
+    request req(symbol_ns_on_event, name, evt, call_for_past_events, p.get_gid());
+    hpx::future<bool> f = stubs::symbol_namespace::service_async<bool>(
+        name, req, action_priority_);
+
+    using util::placeholders::_1;
+    return f.then(util::bind(&detail::on_register_event, _1, std::move(p)));
+}
+
 }}
 
-#if !defined(HPX_GCC_VERSION) || (HPX_GCC_VERSION > 40400)
+#if !defined(HPX_GCC44_WORKAROUND)
 
 ///////////////////////////////////////////////////////////////////////////////
 typedef hpx::agas::server::symbol_namespace::service_action
@@ -2092,7 +2130,7 @@ bool addressing_service::iterate_ids(
     try {
         request req(symbol_ns_iterate_names, f);
 
-#if !defined(HPX_GCC_VERSION) || (HPX_GCC_VERSION > 40400)
+#if !defined(HPX_GCC44_WORKAROUND)
         symbol_namespace_service_action act;
         lcos::broadcast(act, detail::find_all_symbol_namespace_services(), req).get(ec);
 #else
@@ -2764,8 +2802,11 @@ void addressing_service::send_refcnt_requests_sync(
             {
                 HPX_THROWS_IF(ec, rep.get_status(),
                     "addressing_service::send_refcnt_requests_sync",
-                    "could not decrement reference count (reported error: " +
-                    hpx::get_error_what(ec));
+                    "could not decrement reference count (reported error" +
+                    hpx::get_error_what(ec) + ", " +
+                    hpx::get_error_file_name(ec) + "(" +
+                    boost::lexical_cast<std::string>(
+                        hpx::get_error_line_number(ec)) + "))");
                 return;
             }
         }
@@ -2777,3 +2818,116 @@ void addressing_service::send_refcnt_requests_sync(
 
 }}
 
+///////////////////////////////////////////////////////////////////////////////
+namespace hpx
+{
+    namespace detail
+    {
+        inline std::string name_from_basename(char const* basename, std::size_t idx)
+        {
+            std::string name;
+
+            if (basename[0] != '/')
+                name += '/';
+            name += basename;
+            if (name[name.size()-1] != '/')
+                name += '/';
+            name += boost::lexical_cast<std::string>(idx);
+
+            return name;
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    std::vector<hpx::future<hpx::id_type> >
+        find_all_ids_from_basename(char const* basename, std::size_t num_ids)
+    {
+        if (0 == basename)
+        {
+            HPX_THROW_EXCEPTION(bad_parameter,
+                "hpx::find_all_ids_from_basename",
+                "no basename specified");
+        }
+
+        std::vector<hpx::future<hpx::id_type> > results;
+        for(std::size_t i = 0; i != num_ids; ++i)
+        {
+            std::string name = detail::name_from_basename(basename, i);
+            results.push_back(agas::on_symbol_namespace_event(
+                name, agas::symbol_ns_bind, true));
+        }
+        return results;
+    }
+
+    std::vector<hpx::future<hpx::id_type> >
+        find_ids_from_basename(char const* basename,
+            std::vector<std::size_t> const& ids)
+    {
+        if (0 == basename)
+        {
+            HPX_THROW_EXCEPTION(bad_parameter,
+                "hpx::find_ids_from_basename",
+                "no basename specified");
+        }
+
+        std::vector<hpx::future<hpx::id_type> > results;
+        BOOST_FOREACH(std::size_t i, ids)
+        {
+            std::string name = detail::name_from_basename(basename, i);
+            results.push_back(agas::on_symbol_namespace_event(
+                name, agas::symbol_ns_bind, true));
+        }
+        return results;
+    }
+
+    hpx::future<hpx::id_type> find_id_from_basename(char const* basename,
+        std::size_t sequence_nr)
+    {
+        if (0 == basename)
+        {
+            HPX_THROW_EXCEPTION(bad_parameter,
+                "hpx::find_id_from_basename",
+                "no basename specified");
+        }
+
+        if (sequence_nr == ~0U)
+            sequence_nr = naming::get_locality_id_from_id(find_here());
+
+        std::string name = detail::name_from_basename(basename, sequence_nr);
+        return agas::on_symbol_namespace_event(name, agas::symbol_ns_bind, true);
+    }
+
+    hpx::future<bool> register_id_with_basename(char const* basename,
+        hpx::id_type id, std::size_t sequence_nr)
+    {
+        if (0 == basename)
+        {
+            HPX_THROW_EXCEPTION(bad_parameter,
+                "hpx::register_id_with_basename",
+                "no basename specified");
+        }
+
+        if (sequence_nr == ~0U)
+            sequence_nr = naming::get_locality_id_from_id(find_here());
+
+        std::string name = detail::name_from_basename(basename, sequence_nr);
+        return agas::register_name(name, id);
+    }
+
+    hpx::future<hpx::id_type> unregister_id_with_basename(
+        char const* basename, std::size_t sequence_nr)
+    {
+        if (0 == basename)
+        {
+            HPX_THROW_EXCEPTION(bad_parameter,
+                "hpx::unregister_id_with_basename",
+                "no basename specified");
+        }
+
+        if (sequence_nr == ~0U)
+            sequence_nr = naming::get_locality_id_from_id(find_here());
+
+        std::string name = detail::name_from_basename(basename, sequence_nr);
+        return agas::unregister_name(name);
+    }
+}

@@ -69,9 +69,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Properly handle all preprocessing limits
 #if !defined(HPX_LIMIT)
-#  define HPX_LIMIT 4
-#elif (HPX_LIMIT < 4)
-#  error "HPX_LIMIT is too low, it must be at least 4"
+#  define HPX_LIMIT 5
+#elif (HPX_LIMIT < 5)
+#  error "HPX_LIMIT is too low, it must be at least 5"
 #elif (HPX_LIMIT > HPX_MAX_LIMIT) && \
       !defined(HPX_USE_PREPROCESSOR_LIMIT_EXPANSION)
 #  define HPX_USE_PREPROCESSOR_LIMIT_EXPANSION
@@ -367,8 +367,8 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 /// By default, always enable storing the thread data.
-#if !defined(HPX_THREAD_MAINTAIN_THREAD_DATA)
-#  define HPX_THREAD_MAINTAIN_THREAD_DATA 1
+#if !defined(HPX_THREAD_MAINTAIN_LOCAL_STORAGE)
+#  define HPX_THREAD_MAINTAIN_LOCAL_STORAGE 1
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -598,23 +598,27 @@
 #  define HPX_STD_BIND                ::hpx::util::bind
 #  define HPX_STD_PROTECT(f)          ::hpx::util::protect(f)
 #  define HPX_STD_REF(r)              ::boost::ref(r)
+#  define HPX_STD_CREF(r)             ::boost::cref(r)
 #else
 #  if !defined(HPX_HAVE_CXX11_STD_BIND)
 #    if defined(HPX_PHOENIX_BIND)
 #      define HPX_STD_PLACEHOLDERS    ::boost::phoenix::placeholders
 #      define HPX_STD_BIND            ::boost::phoenix::bind
 #      define HPX_STD_REF(r)          ::boost::phoenix::ref(r)
+#      define HPX_STD_CREF(r)         ::boost::phoenix::cref(r)
 #      define HPX_STD_PROTECT(f)      ::boost::phoenix::lambda[f]
 #    else
 #      define HPX_STD_PLACEHOLDERS
 #      define HPX_STD_BIND            ::boost::bind
 #      define HPX_STD_REF(r)          ::boost::ref(r)
+#      define HPX_STD_CREF(r)         ::boost::cref(r)
 #      define HPX_STD_PROTECT(f)      ::hpx::util::protect(f)
 #    endif
 #  else
 #    define HPX_STD_PLACEHOLDERS      ::std::placeholders
 #    define HPX_STD_BIND              ::std::bind
 #    define HPX_STD_REF(r)            ::std::ref(r)
+#    define HPX_STD_CREF(r)           ::std::cref(r)
 #    define HPX_STD_PROTECT(f)        ::hpx::util::protect(f)
 #  endif
 #endif
@@ -640,9 +644,9 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Older Boost versions do not have BOOST_NOEXCEPT defined
 #if !defined(BOOST_NOEXCEPT)
-#define BOOST_NOEXCEPT
-#define BOOST_NOEXCEPT_IF(Predicate)
-#define BOOST_NOEXCEPT_EXPR(Expression) false
+#  define BOOST_NOEXCEPT
+#  define BOOST_NOEXCEPT_IF(Predicate)
+#  define BOOST_NOEXCEPT_EXPR(Expression) false
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -653,6 +657,14 @@
 #  else
 #    define BOOST_NOINLINE
 #  endif
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+// GCC has issues with forceinline and member function pointers
+#if defined(HPX_GCC_VERSION)
+#  define HPX_MAYBE_FORCEINLINE inline
+#else
+#  define HPX_MAYBE_FORCEINLINE BOOST_FORCEINLINE
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////

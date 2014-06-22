@@ -10,13 +10,13 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/atomic.hpp>
 #include <boost/array.hpp>
+#include <boost/random.hpp>
 
 #include <algorithm>
 #include <iostream>
 #include <vector>
 #include <memory>
 #include <cstdio>
-#include <random>
 
 //
 // This is a test program which reads and writes chunks of memory to storage
@@ -270,7 +270,7 @@ namespace Storage {
         uint32_t address, uint64_t length, std::size_t remote_buffer)
     {
         // we must allocate a temporary buffer to copy from storage into
-        // we can't use the remote buffer supplied because it is a handle to memory on 
+        // we can't use the remote buffer supplied because it is a handle to memory on
         // the (possibly) remote node. We allocate here using a NULL deleter so the array will
         // not be released by the shared_pointer
         std::allocator<char> local_allocator;
@@ -367,12 +367,12 @@ int reduce(hpx::future<std::vector<hpx::future<int>>> futvec)
 // Create a new barrier and register its gid with the given symbolic name.
 hpx::lcos::barrier create_barrier(std::size_t num_localities, char const* symname)
 {
-    hpx::lcos::barrier b;
     DEBUG_OUTPUT(2,
         std::cout << "Creating barrier based on N localities "
                   << num_localities << std::endl;
     );
-    b.create(hpx::find_here(), num_localities);
+
+    hpx::lcos::barrier b = hpx::lcos::barrier::create(hpx::find_here(), num_localities);
     hpx::agas::register_name_sync(symname, b.get_gid());
     return b;
 }
@@ -387,8 +387,8 @@ void barrier_wait()
 // Test speed of write/put
 void test_write(
     uint64_t rank, uint64_t nranks, uint64_t num_transfer_slots,
-    std::mt19937& gen, std::uniform_int_distribution<>& random_rank,
-    std::uniform_int_distribution<>& random_slot,
+    boost::random::mt19937& gen, boost::random::uniform_int_distribution<>& random_rank,
+    boost::random::uniform_int_distribution<>& random_slot,
     test_options &options
     )
 {
@@ -429,7 +429,7 @@ void test_write(
               send_rank = random_rank(gen);
             }
             else {
-              send_rank = i % nranks;
+              send_rank = static_cast<int>(i % nranks);
             }
             // get the pointer to the current packet send buffer
             char *buffer = &local_storage[i*options.transfer_size_B];
@@ -494,7 +494,7 @@ void test_write(
         }
         double movetime = movetimer.elapsed();
         //
-        int numwait = final_list.size();
+        int numwait = static_cast<int>(final_list.size());
         hpx::util::high_resolution_timer futuretimer;
         hpx::future<int> result = when_all(final_list).then(hpx::launch::sync, reduce);
         result.get();
@@ -546,8 +546,8 @@ static void transfer_data(general_buffer_type recv,
 // Test speed of read/get
 void test_read(
     uint64_t rank, uint64_t nranks, uint64_t num_transfer_slots,
-    std::mt19937& gen, std::uniform_int_distribution<>& random_rank,
-    std::uniform_int_distribution<>& random_slot,
+    boost::random::mt19937& gen, boost::random::uniform_int_distribution<>& random_rank,
+    boost::random::uniform_int_distribution<>& random_slot,
     test_options &options
     )
 {
@@ -591,7 +591,7 @@ void test_read(
               send_rank = random_rank(gen);
             }
             else {
-              send_rank = i % nranks;
+              send_rank = static_cast<int>(i % nranks);
             }
             // get the pointer to the current packet send buffer
             char *buffer = &local_storage[i*options.transfer_size_B];
@@ -663,7 +663,7 @@ void test_read(
         }
         double movetime = movetimer.elapsed();
         //
-        int numwait = final_list.size();
+        int numwait = static_cast<int>(final_list.size());
         hpx::util::high_resolution_timer futuretimer;
         hpx::future<int> result = when_all(final_list).then(hpx::launch::sync, reduce);
         result.get();
@@ -751,7 +751,7 @@ int hpx_main(boost::program_options::variables_map& vm)
     options.threads           = hpx::get_os_thread_count();
     options.network           = vm["parceltype"].as<std::string>();
     options.all2all           = vm["all-to-all"].as<bool>();
-    options.distribution      = vm["distribution"].as<boost::uint64_t>();
+    options.distribution      = vm["distribution"].as<boost::uint64_t>() ? true : false;
 
     //
     if (options.global_storage_MB>0) {
@@ -764,14 +764,14 @@ int hpx_main(boost::program_options::variables_map& vm)
         std::cout << "num ranks " << nranks << ", num_transfer_slots " << num_transfer_slots << " on rank " << rank << std::endl;
     );
     //
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> random_rank(0, (int)nranks - 1);
-    std::uniform_int_distribution<> random_slot(0, (int)num_transfer_slots - 1);
+    boost::random::mt19937 gen;
+    boost::random::uniform_int_distribution<> random_rank(0, (int)nranks - 1);
+    boost::random::uniform_int_distribution<> random_slot(0, (int)num_transfer_slots - 1);
     //
-    ActiveFutures.resize(nranks);
+    ActiveFutures.reserve(nranks);
     for(uint64_t i = 0; i < nranks; i++) {
         FuturesWaiting[i].store(0);
+        ActiveFutures.push_back(std::vector<hpx::future<int>>());
     }
 
     test_write(rank, nranks, num_transfer_slots, gen, random_rank, random_slot, options);
@@ -837,7 +837,7 @@ int main(int argc, char* argv[])
           "When set, all ranks send to all others, when off, only rank 0 send to the others.\n")
         ;
 
-    // if the user does not set parceltype on the command line, 
+    // if the user does not set parceltype on the command line,
     // we use a default of unknowm so we don't mistake plots
     desc_commandline.add_options()
         ( "parceltype",

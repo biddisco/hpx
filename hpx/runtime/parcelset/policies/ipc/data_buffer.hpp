@@ -320,6 +320,18 @@ namespace hpx { namespace parcelset { namespace policies { namespace ipc
         {
         }
 
+        data_buffer(allocator_type const &)
+        {}
+
+        data_buffer(data_buffer const & other, allocator_type const & dummy = allocator_type())
+          : data_(other.data_)
+        {}
+
+        template <typename Allocator>
+        data_buffer(data_buffer && other, allocator_type const & dummy = allocator_type())
+          : data_(std::move(other.data_))
+        {}
+
         data_buffer_type& get_buffer()
         {
             return data_->get_buffer();
@@ -367,7 +379,8 @@ namespace hpx { namespace parcelset { namespace policies { namespace ipc
 
         void clear()
         {
-            data_->clear();
+            if(data_)
+                data_->clear();
         }
 
         char const & operator[](std::size_t i) const

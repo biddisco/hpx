@@ -17,7 +17,7 @@
 #include <hpx/lcos/detail/full_empty_entry.hpp>
 #include <hpx/runtime/agas/interface.hpp>
 
-#if !defined(HPX_GCC_VERSION) || (HPX_GCC_VERSION > 40400)
+#if !defined(HPX_GCC44_WORKAROUND)
 #define HPX_USE_FAST_BOOTSTRAP_SYNCHRONIZATION
 #endif
 
@@ -60,11 +60,17 @@ namespace hpx
 inline lcos::barrier
 create_barrier(std::size_t num_localities, char const* symname)
 {
-    lcos::barrier b;
-    b.create(find_here(), num_localities);
+    lcos::barrier b = lcos::barrier::create(find_here(), num_localities);
 
-    agas::register_name_sync(symname, b.get_gid());
+    // register an unmanaged gid to avoid id-splitting during startup
+    agas::register_name_sync(symname, b.get_gid().get_gid());
     return b;
+}
+
+inline void delete_barrier(lcos::barrier& b, char const* symname)
+{
+    agas::unregister_name_sync(symname);
+    b.free();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -256,7 +262,7 @@ bool pre_main(runtime_mode mode)
 
             // Tear down the startup barrier.
             if (agas_client.is_bootstrap())
-                agas::unregister_name_sync(startup_barrier_name);
+                delete_barrier(startup_barrier, startup_barrier_name);
         }
     }
 

@@ -19,7 +19,6 @@ set(example_programs
     fibonacci_one
     fibonacci_futures
     fractals
-    fractals_executor
     fractals_struct
     interest_calculator
     non_atomic_rma
@@ -34,6 +33,12 @@ set(example_programs
     wait_composition
     zerocopy_rdma
    )
+
+if(HPX_LOCAL_SCHEDULER OR HPX_ALL_SCHEDULERS)
+  set(example_programs ${example_programs}
+      fractals_executor
+     )
+endif()
 
 if(HPX_HAVE_CXX11_LAMBDAS)
   set(example_programs ${example_programs}
@@ -89,7 +94,7 @@ foreach(example_program ${example_programs})
   add_hpx_executable(${example_program}
                      SOURCES ${sources}
                      ${${example_program}_FLAGS}
-                     FOLDER "Examples/Quickstart/${example_program}")
+                     FOLDER "Examples/Quickstart")
 
   # add a custom target for this example
   add_hpx_pseudo_target(examples.quickstart.${example_program})

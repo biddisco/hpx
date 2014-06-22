@@ -16,7 +16,7 @@
         template <typename Object
              
              >
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* func)(),
             Object* obj
            ) const
@@ -37,7 +37,7 @@
         template <typename Object
              
              >
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* const func)(
                 ) const,
             Component* obj
@@ -59,7 +59,7 @@
     };
     template <typename Object, typename Arguments_
          >
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* func)(), Component* obj,
@@ -73,7 +73,7 @@
     }
     template <typename Object, typename Arguments_
          >
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* const func)() const,
@@ -92,7 +92,7 @@
         template <typename Object
              
              >
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* func)(),
             Component* obj
            ) const
@@ -114,7 +114,7 @@
         template <typename Object
              
              >
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* const func)(
                 ) const,
             Component* obj
@@ -137,7 +137,7 @@
     };
     template <typename Object, typename Arguments_
          >
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* func)(), Component* obj,
@@ -151,7 +151,7 @@
     }
     template <typename Object, typename Arguments_
          >
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* const func)() const,
@@ -171,7 +171,7 @@
         template <typename Object
             , typename Arg0
             , typename FArg0>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* func)(FArg0 arg0),
             Object* obj
           , Arg0 && arg0) const
@@ -192,7 +192,7 @@
         template <typename Object
             , typename Arg0
             , typename FArg0>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* const func)(
                 FArg0 arg0) const,
             Component* obj
@@ -214,7 +214,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* func)(FArg0), Component* obj,
@@ -228,7 +228,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* const func)(FArg0) const,
@@ -247,7 +247,7 @@
         template <typename Object
             , typename Arg0
             , typename FArg0>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* func)(FArg0 arg0),
             Component* obj
           , Arg0 && arg0) const
@@ -269,7 +269,7 @@
         template <typename Object
             , typename Arg0
             , typename FArg0>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* const func)(
                 FArg0 arg0) const,
             Component* obj
@@ -292,7 +292,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* func)(FArg0), Component* obj,
@@ -306,7 +306,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* const func)(FArg0) const,
@@ -326,7 +326,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1
             , typename FArg0 , typename FArg1>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* func)(FArg0 arg0 , FArg1 arg1),
             Object* obj
           , Arg0 && arg0 , Arg1 && arg1) const
@@ -347,7 +347,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1
             , typename FArg0 , typename FArg1>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1) const,
             Component* obj
@@ -369,7 +369,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* func)(FArg0 , FArg1), Component* obj,
@@ -383,7 +383,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* const func)(FArg0 , FArg1) const,
@@ -402,7 +402,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1
             , typename FArg0 , typename FArg1>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* func)(FArg0 arg0 , FArg1 arg1),
             Component* obj
           , Arg0 && arg0 , Arg1 && arg1) const
@@ -424,7 +424,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1
             , typename FArg0 , typename FArg1>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1) const,
             Component* obj
@@ -447,7 +447,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* func)(FArg0 , FArg1), Component* obj,
@@ -461,7 +461,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* const func)(FArg0 , FArg1) const,
@@ -481,7 +481,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2
             , typename FArg0 , typename FArg1 , typename FArg2>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2),
             Object* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2) const
@@ -502,7 +502,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2
             , typename FArg0 , typename FArg1 , typename FArg2>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2) const,
             Component* obj
@@ -524,7 +524,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* func)(FArg0 , FArg1 , FArg2), Component* obj,
@@ -538,7 +538,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* const func)(FArg0 , FArg1 , FArg2) const,
@@ -557,7 +557,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2
             , typename FArg0 , typename FArg1 , typename FArg2>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2),
             Component* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2) const
@@ -579,7 +579,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2
             , typename FArg0 , typename FArg1 , typename FArg2>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2) const,
             Component* obj
@@ -602,7 +602,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* func)(FArg0 , FArg1 , FArg2), Component* obj,
@@ -616,7 +616,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* const func)(FArg0 , FArg1 , FArg2) const,
@@ -636,7 +636,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3),
             Object* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3) const
@@ -657,7 +657,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3) const,
             Component* obj
@@ -679,7 +679,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3), Component* obj,
@@ -693,7 +693,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3) const,
@@ -712,7 +712,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3),
             Component* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3) const
@@ -734,7 +734,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3) const,
             Component* obj
@@ -757,7 +757,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3), Component* obj,
@@ -771,7 +771,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3) const,
@@ -791,7 +791,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4),
             Object* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4) const
@@ -812,7 +812,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4) const,
             Component* obj
@@ -834,7 +834,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4), Component* obj,
@@ -848,7 +848,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4) const,
@@ -867,7 +867,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4),
             Component* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4) const
@@ -889,7 +889,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4) const,
             Component* obj
@@ -912,7 +912,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4), Component* obj,
@@ -926,7 +926,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4) const,
@@ -946,7 +946,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5),
             Object* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4 , Arg5 && arg5) const
@@ -967,7 +967,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5) const,
             Component* obj
@@ -989,7 +989,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5), Component* obj,
@@ -1003,7 +1003,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5) const,
@@ -1022,7 +1022,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5),
             Component* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4 , Arg5 && arg5) const
@@ -1044,7 +1044,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5) const,
             Component* obj
@@ -1067,7 +1067,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5), Component* obj,
@@ -1081,7 +1081,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5) const,
@@ -1101,7 +1101,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6),
             Object* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4 , Arg5 && arg5 , Arg6 && arg6) const
@@ -1122,7 +1122,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6) const,
             Component* obj
@@ -1144,7 +1144,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6), Component* obj,
@@ -1158,7 +1158,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6) const,
@@ -1177,7 +1177,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6),
             Component* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4 , Arg5 && arg5 , Arg6 && arg6) const
@@ -1199,7 +1199,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6) const,
             Component* obj
@@ -1222,7 +1222,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6), Component* obj,
@@ -1236,7 +1236,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6) const,
@@ -1256,7 +1256,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7),
             Object* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4 , Arg5 && arg5 , Arg6 && arg6 , Arg7 && arg7) const
@@ -1277,7 +1277,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7) const,
             Component* obj
@@ -1299,7 +1299,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7), Component* obj,
@@ -1313,7 +1313,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7) const,
@@ -1332,7 +1332,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7),
             Component* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4 , Arg5 && arg5 , Arg6 && arg6 , Arg7 && arg7) const
@@ -1354,7 +1354,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7) const,
             Component* obj
@@ -1377,7 +1377,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7), Component* obj,
@@ -1391,7 +1391,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7) const,
@@ -1411,7 +1411,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8),
             Object* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4 , Arg5 && arg5 , Arg6 && arg6 , Arg7 && arg7 , Arg8 && arg8) const
@@ -1432,7 +1432,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8) const,
             Component* obj
@@ -1454,7 +1454,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8), Component* obj,
@@ -1468,7 +1468,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8) const,
@@ -1487,7 +1487,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8),
             Component* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4 , Arg5 && arg5 , Arg6 && arg6 , Arg7 && arg7 , Arg8 && arg8) const
@@ -1509,7 +1509,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8) const,
             Component* obj
@@ -1532,7 +1532,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8), Component* obj,
@@ -1546,7 +1546,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8) const,
@@ -1566,7 +1566,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9),
             Object* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4 , Arg5 && arg5 , Arg6 && arg6 , Arg7 && arg7 , Arg8 && arg8 , Arg9 && arg9) const
@@ -1587,7 +1587,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9) const,
             Component* obj
@@ -1609,7 +1609,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9), Component* obj,
@@ -1623,7 +1623,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9) const,
@@ -1642,7 +1642,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9),
             Component* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4 , Arg5 && arg5 , Arg6 && arg6 , Arg7 && arg7 , Arg8 && arg8 , Arg9 && arg9) const
@@ -1664,7 +1664,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9) const,
             Component* obj
@@ -1687,7 +1687,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9), Component* obj,
@@ -1701,7 +1701,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9) const,
@@ -1721,7 +1721,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9 , typename Arg10
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9 , FArg10 arg10),
             Object* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4 , Arg5 && arg5 , Arg6 && arg6 , Arg7 && arg7 , Arg8 && arg8 , Arg9 && arg9 , Arg10 && arg10) const
@@ -1742,7 +1742,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9 , typename Arg10
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9 , FArg10 arg10) const,
             Component* obj
@@ -1764,7 +1764,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9 , FArg10), Component* obj,
@@ -1778,7 +1778,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9 , FArg10) const,
@@ -1797,7 +1797,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9 , typename Arg10
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9 , FArg10 arg10),
             Component* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4 , Arg5 && arg5 , Arg6 && arg6 , Arg7 && arg7 , Arg8 && arg8 , Arg9 && arg9 , Arg10 && arg10) const
@@ -1819,7 +1819,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9 , typename Arg10
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9 , FArg10 arg10) const,
             Component* obj
@@ -1842,7 +1842,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9 , FArg10), Component* obj,
@@ -1856,7 +1856,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9 , FArg10) const,
@@ -1876,7 +1876,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9 , typename Arg10 , typename Arg11
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9 , FArg10 arg10 , FArg11 arg11),
             Object* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4 , Arg5 && arg5 , Arg6 && arg6 , Arg7 && arg7 , Arg8 && arg8 , Arg9 && arg9 , Arg10 && arg10 , Arg11 && arg11) const
@@ -1897,7 +1897,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9 , typename Arg10 , typename Arg11
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9 , FArg10 arg10 , FArg11 arg11) const,
             Component* obj
@@ -1919,7 +1919,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9 , FArg10 , FArg11), Component* obj,
@@ -1933,7 +1933,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9 , FArg10 , FArg11) const,
@@ -1952,7 +1952,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9 , typename Arg10 , typename Arg11
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9 , FArg10 arg10 , FArg11 arg11),
             Component* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4 , Arg5 && arg5 , Arg6 && arg6 , Arg7 && arg7 , Arg8 && arg8 , Arg9 && arg9 , Arg10 && arg10 , Arg11 && arg11) const
@@ -1974,7 +1974,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9 , typename Arg10 , typename Arg11
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9 , FArg10 arg10 , FArg11 arg11) const,
             Component* obj
@@ -1997,7 +1997,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9 , FArg10 , FArg11), Component* obj,
@@ -2011,7 +2011,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9 , FArg10 , FArg11) const,
@@ -2031,7 +2031,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9 , typename Arg10 , typename Arg11 , typename Arg12
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9 , FArg10 arg10 , FArg11 arg11 , FArg12 arg12),
             Object* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4 , Arg5 && arg5 , Arg6 && arg6 , Arg7 && arg7 , Arg8 && arg8 , Arg9 && arg9 , Arg10 && arg10 , Arg11 && arg11 , Arg12 && arg12) const
@@ -2052,7 +2052,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9 , typename Arg10 , typename Arg11 , typename Arg12
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9 , FArg10 arg10 , FArg11 arg11 , FArg12 arg12) const,
             Component* obj
@@ -2074,7 +2074,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9 , FArg10 , FArg11 , FArg12), Component* obj,
@@ -2088,7 +2088,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9 , FArg10 , FArg11 , FArg12) const,
@@ -2107,7 +2107,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9 , typename Arg10 , typename Arg11 , typename Arg12
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9 , FArg10 arg10 , FArg11 arg11 , FArg12 arg12),
             Component* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4 , Arg5 && arg5 , Arg6 && arg6 , Arg7 && arg7 , Arg8 && arg8 , Arg9 && arg9 , Arg10 && arg10 , Arg11 && arg11 , Arg12 && arg12) const
@@ -2129,7 +2129,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9 , typename Arg10 , typename Arg11 , typename Arg12
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9 , FArg10 arg10 , FArg11 arg11 , FArg12 arg12) const,
             Component* obj
@@ -2152,7 +2152,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9 , FArg10 , FArg11 , FArg12), Component* obj,
@@ -2166,7 +2166,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9 , FArg10 , FArg11 , FArg12) const,
@@ -2186,7 +2186,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9 , typename Arg10 , typename Arg11 , typename Arg12 , typename Arg13
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12 , typename FArg13>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9 , FArg10 arg10 , FArg11 arg11 , FArg12 arg12 , FArg13 arg13),
             Object* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4 , Arg5 && arg5 , Arg6 && arg6 , Arg7 && arg7 , Arg8 && arg8 , Arg9 && arg9 , Arg10 && arg10 , Arg11 && arg11 , Arg12 && arg12 , Arg13 && arg13) const
@@ -2207,7 +2207,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9 , typename Arg10 , typename Arg11 , typename Arg12 , typename Arg13
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12 , typename FArg13>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9 , FArg10 arg10 , FArg11 arg11 , FArg12 arg12 , FArg13 arg13) const,
             Component* obj
@@ -2229,7 +2229,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12 , typename FArg13>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9 , FArg10 , FArg11 , FArg12 , FArg13), Component* obj,
@@ -2243,7 +2243,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12 , typename FArg13>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9 , FArg10 , FArg11 , FArg12 , FArg13) const,
@@ -2262,7 +2262,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9 , typename Arg10 , typename Arg11 , typename Arg12 , typename Arg13
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12 , typename FArg13>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9 , FArg10 arg10 , FArg11 arg11 , FArg12 arg12 , FArg13 arg13),
             Component* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4 , Arg5 && arg5 , Arg6 && arg6 , Arg7 && arg7 , Arg8 && arg8 , Arg9 && arg9 , Arg10 && arg10 , Arg11 && arg11 , Arg12 && arg12 , Arg13 && arg13) const
@@ -2284,7 +2284,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9 , typename Arg10 , typename Arg11 , typename Arg12 , typename Arg13
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12 , typename FArg13>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9 , FArg10 arg10 , FArg11 arg11 , FArg12 arg12 , FArg13 arg13) const,
             Component* obj
@@ -2307,7 +2307,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12 , typename FArg13>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9 , FArg10 , FArg11 , FArg12 , FArg13), Component* obj,
@@ -2321,7 +2321,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12 , typename FArg13>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9 , FArg10 , FArg11 , FArg12 , FArg13) const,
@@ -2341,7 +2341,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9 , typename Arg10 , typename Arg11 , typename Arg12 , typename Arg13 , typename Arg14
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12 , typename FArg13 , typename FArg14>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9 , FArg10 arg10 , FArg11 arg11 , FArg12 arg12 , FArg13 arg13 , FArg14 arg14),
             Object* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4 , Arg5 && arg5 , Arg6 && arg6 , Arg7 && arg7 , Arg8 && arg8 , Arg9 && arg9 , Arg10 && arg10 , Arg11 && arg11 , Arg12 && arg12 , Arg13 && arg13 , Arg14 && arg14) const
@@ -2362,7 +2362,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9 , typename Arg10 , typename Arg11 , typename Arg12 , typename Arg13 , typename Arg14
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12 , typename FArg13 , typename FArg14>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             void (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9 , FArg10 arg10 , FArg11 arg11 , FArg12 arg12 , FArg13 arg13 , FArg14 arg14) const,
             Component* obj
@@ -2384,7 +2384,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12 , typename FArg13 , typename FArg14>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9 , FArg10 , FArg11 , FArg12 , FArg13 , FArg14), Component* obj,
@@ -2398,7 +2398,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12 , typename FArg13 , typename FArg14>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function_void(
         continuation_type cont,
         void (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9 , FArg10 , FArg11 , FArg12 , FArg13 , FArg14) const,
@@ -2417,7 +2417,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9 , typename Arg10 , typename Arg11 , typename Arg12 , typename Arg13 , typename Arg14
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12 , typename FArg13 , typename FArg14>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* func)(FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9 , FArg10 arg10 , FArg11 arg11 , FArg12 arg12 , FArg13 arg13 , FArg14 arg14),
             Component* obj
           , Arg0 && arg0 , Arg1 && arg1 , Arg2 && arg2 , Arg3 && arg3 , Arg4 && arg4 , Arg5 && arg5 , Arg6 && arg6 , Arg7 && arg7 , Arg8 && arg8 , Arg9 && arg9 , Arg10 && arg10 , Arg11 && arg11 , Arg12 && arg12 , Arg13 && arg13 , Arg14 && arg14) const
@@ -2439,7 +2439,7 @@
         template <typename Object
             , typename Arg0 , typename Arg1 , typename Arg2 , typename Arg3 , typename Arg4 , typename Arg5 , typename Arg6 , typename Arg7 , typename Arg8 , typename Arg9 , typename Arg10 , typename Arg11 , typename Arg12 , typename Arg13 , typename Arg14
             , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12 , typename FArg13 , typename FArg14>
-        BOOST_FORCEINLINE result_type operator()(continuation_type cont,
+        HPX_MAYBE_FORCEINLINE result_type operator()(continuation_type cont,
             Result (Object::* const func)(
                 FArg0 arg0 , FArg1 arg1 , FArg2 arg2 , FArg3 arg3 , FArg4 arg4 , FArg5 arg5 , FArg6 arg6 , FArg7 arg7 , FArg8 arg8 , FArg9 arg9 , FArg10 arg10 , FArg11 arg11 , FArg12 arg12 , FArg13 arg13 , FArg14 arg14) const,
             Component* obj
@@ -2462,7 +2462,7 @@
     };
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12 , typename FArg13 , typename FArg14>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9 , FArg10 , FArg11 , FArg12 , FArg13 , FArg14), Component* obj,
@@ -2476,7 +2476,7 @@
     }
     template <typename Object, typename Arguments_
         , typename FArg0 , typename FArg1 , typename FArg2 , typename FArg3 , typename FArg4 , typename FArg5 , typename FArg6 , typename FArg7 , typename FArg8 , typename FArg9 , typename FArg10 , typename FArg11 , typename FArg12 , typename FArg13 , typename FArg14>
-    static HPX_STD_FUNCTION<threads::thread_function_type>
+    static threads::thread_function_type
     construct_continuation_thread_object_function(
         continuation_type cont,
         Result (Object::* const func)(FArg0 , FArg1 , FArg2 , FArg3 , FArg4 , FArg5 , FArg6 , FArg7 , FArg8 , FArg9 , FArg10 , FArg11 , FArg12 , FArg13 , FArg14) const,

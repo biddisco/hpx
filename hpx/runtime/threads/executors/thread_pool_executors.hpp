@@ -37,7 +37,7 @@ namespace hpx { namespace threads { namespace executors
             // Schedule the specified function for execution in this executor.
             // Depending on the subclass implementation, this may block in some
             // situations.
-            void add(HPX_STD_FUNCTION<void()> && f, char const* description,
+            void add(closure_type && f, char const* description,
                 threads::thread_state_enum initial_state, bool run_now,
                 threads::thread_stacksize stacksize, error_code& ec);
 
@@ -45,14 +45,14 @@ namespace hpx { namespace threads { namespace executors
             // than time abs_time. This call never blocks, and may violate
             // bounds on the executor's queue size.
             void add_at(boost::posix_time::ptime const& abs_time,
-                HPX_STD_FUNCTION<void()> && f, char const* description,
+                closure_type && f, char const* description,
                 threads::thread_stacksize stacksize, error_code& ec);
 
             // Schedule given function for execution in this executor no sooner
             // than time rel_time from now. This call never blocks, and may
             // violate bounds on the executor's queue size.
             void add_after(boost::posix_time::time_duration const& rel_time,
-                HPX_STD_FUNCTION<void()> && f, char const* description,
+                closure_type && f, char const* description,
                 threads::thread_stacksize stacksize, error_code& ec);
 
             // Return an estimate of the number of waiting tasks.
@@ -83,7 +83,7 @@ namespace hpx { namespace threads { namespace executors
             void run(std::size_t virt_core, std::size_t num_thread);
 
             threads::thread_state_enum thread_function_nullary(
-                HPX_STD_FUNCTION<void()> const& func);
+                closure_type func);
 
             // the scheduler used by this executor
             Scheduler scheduler_;
@@ -106,17 +106,19 @@ namespace hpx { namespace threads { namespace executors
     }
 
     ///////////////////////////////////////////////////////////////////////////
+#if defined(HPX_LOCAL_SCHEDULER)
     struct HPX_EXPORT local_queue_executor : public scheduled_executor
     {
-        local_queue_executor() {}
+        local_queue_executor();
 
         local_queue_executor(std::size_t max_punits,
             std::size_t min_punits = 1);
     };
+#endif
 
     struct HPX_EXPORT local_priority_queue_executor : public scheduled_executor
     {
-        local_priority_queue_executor() {}
+        local_priority_queue_executor();
 
         local_priority_queue_executor(std::size_t max_punits,
             std::size_t min_punits = 1);
@@ -125,7 +127,7 @@ namespace hpx { namespace threads { namespace executors
 #if defined(HPX_STATIC_PRIORITY_SCHEDULER)
     struct HPX_EXPORT static_priority_queue_executor : public scheduled_executor
     {
-        static_priority_queue_executor() {}
+        static_priority_queue_executor();
 
         static_priority_queue_executor(std::size_t max_punits,
             std::size_t min_punits = 1);

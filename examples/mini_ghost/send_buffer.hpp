@@ -30,17 +30,24 @@ namespace mini_ghost {
           : dest_(hpx::invalid_id)
         {}
 
-        send_buffer(send_buffer &&) = default;
-        send_buffer& operator=(send_buffer &&) = default;
+        send_buffer(send_buffer &&other)
+          : dest_(std::move(other.dest_))
+        {
+        }
+        send_buffer& operator=(send_buffer &&other)
+        {
+            if(this != &other)
+            {
+                dest_  = std::move(other.dest_);
+            }
+            return *this;
+        }
 
         void operator()(grid<value_type> const & g, std::size_t step, std::size_t var)
         {
-            if(dest_)
-            {
-                buffer_type buffer;
-                pack_buffer<Zone>::call(g, buffer);
-                hpx::apply(Action(), dest_, buffer, step, var);
-            }
+            buffer_type buffer;
+            pack_buffer<Zone>::call(g, buffer);
+            hpx::apply(Action(), dest_, buffer, step, var);
         }
 
         hpx::id_type dest_;

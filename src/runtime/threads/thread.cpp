@@ -130,7 +130,8 @@ namespace hpx
     void thread::start_thread(HPX_STD_FUNCTION<void()> && func)
     {
         threads::thread_init_data data(
-            HPX_STD_BIND(&thread::thread_function_nullary, std::move(func)),
+            util::bind(util::one_shot(&thread::thread_function_nullary), 
+                std::move(func)),
             "thread::thread_function_nullary");
 
         error_code ec(lightweight);
@@ -186,7 +187,7 @@ namespace hpx
             // register callback function to be called when thread exits
             native_handle_type this_id = threads::get_self_id();
             if (threads::add_thread_exit_callback(handle,
-                    HPX_STD_BIND(&resume_thread, this_id)))
+                    util::bind(&resume_thread, this_id)))
             {
                 // wait for thread to be terminated
                 this_thread::suspend(threads::suspended, "thread::join");
@@ -212,7 +213,7 @@ namespace hpx
         threads::interrupt_thread(id.id_, flag);
     }
 
-#if HPX_THREAD_MAINTAIN_THREAD_DATA
+#if HPX_THREAD_MAINTAIN_LOCAL_STORAGE
     std::size_t thread::get_thread_data() const
     {
         return threads::get_thread_data(native_handle());
@@ -241,7 +242,7 @@ namespace hpx
               : id_(thread::uninitialized)
             {
                 if (threads::add_thread_exit_callback(id,
-                        HPX_STD_BIND(&thread_task_base::thread_exit_function,
+                        util::bind(&thread_task_base::thread_exit_function,
                             future_base_type(this))))
                 {
                     id_ = id;
@@ -304,8 +305,8 @@ namespace hpx
             return lcos::future<void>();
         }
 
-        using lcos::detail::future_access;
-        return future_access::create<lcos::future<void> >(std::move(base));
+        using traits::future_access;
+        return future_access<lcos::future<void> >::create(std::move(base));
     }
 
     ///////////////////////////////////////////////////////////////////////////
