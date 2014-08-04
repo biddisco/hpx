@@ -7,7 +7,9 @@
 #include <hpx/hpx_fwd.hpp>
 
 #if defined(HPX_HAVE_PARCELPORT_IBVERBS)
-
+#if defined(_bgq_linux)
+ #include <asm/param.h>
+#endif
 #include <hpx/exception_list.hpp>
 #include <hpx/runtime/naming/locality.hpp>
 #include <hpx/runtime/parcelset/policies/ibverbs/connection_handler.hpp>
@@ -84,8 +86,10 @@ namespace hpx { namespace parcelset { namespace policies { namespace ibverbs
         device_list_ = 0;
         int num_devices = 0;
         device_list_ = ibv_get_device_list(&num_devices);
+        std::cout << "num devices is " << num_devices << std::endl;
         for(int i = 0; i < num_devices; ++i)
         {
+            std::cout << "Device name " << ibv_get_device_name(device_list_[i]) << std::endl;
             ibv_context *ctx = ibv_open_device(device_list_[i]);
             get_pd(ctx, boost::system::throws);
             context_list_.push_back(ctx);

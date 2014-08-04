@@ -123,7 +123,7 @@ namespace hpx { namespace util
         int flag = (detail::get_cfg_entry(
             cfg, "hpx.parcel.mpi.multithreaded", 0) != 0) ?
                 MPI_THREAD_MULTIPLE : MPI_THREAD_SINGLE;
-
+std::cout << "Calling MPI_Init tread " << std::endl;
         int retval = MPI_Init_thread(argc, argv, flag, &provided_threading_flag_);
         if (MPI_SUCCESS != retval)
         {

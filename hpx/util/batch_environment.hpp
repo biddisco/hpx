@@ -27,7 +27,7 @@ namespace hpx { namespace util
     {
         // the constructor tries to read from a PBS node-file, filling our
         // map of nodes and thread counts
-        batch_environment(bool debug = false)
+        batch_environment(bool debug = true)
           : agas_node_num_(0), num_tasks_(1), debug_(debug)
         {}
 

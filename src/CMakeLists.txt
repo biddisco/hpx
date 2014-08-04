@@ -295,9 +295,10 @@ set(hpx_serialization_lib_dependencies
 
 if(NOT MSVC)
   set(hpx_serialization_lib_dependencies
+      ${BOOST_SERIALIZATION_LIBRARY}
       ${hpx_serialization_lib_dependencies}
       ${BOOST_SYSTEM_LIBRARY}
-      ${BOOST_SERIALIZATION_LIBRARY})
+  )
 endif()
 
 target_link_libraries(hpx_serialization

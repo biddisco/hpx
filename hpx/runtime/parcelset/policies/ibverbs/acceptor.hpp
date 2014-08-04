@@ -26,7 +26,7 @@
 
 #include <netdb.h>
 #include <rdma/rdma_cma.h>
-
+#include <string.h>
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx { namespace parcelset { namespace policies { namespace ibverbs
 {
@@ -53,12 +53,14 @@ namespace hpx { namespace parcelset { namespace policies { namespace ibverbs
             boost::asio::ip::tcp::endpoint const & ep
           , boost::system::error_code &ec)
         {
+            std::cout << "here 1 " << std::endl;
             if(event_channel_)
             {
                 HPX_IBVERBS_THROWS_IF(ec, boost::asio::error::already_connected);
             }
             else
             {
+              std::cout << "here 2 " << std::endl;
                 event_channel_ = rdma_create_event_channel();
                 if(!event_channel_)
                 {
@@ -71,15 +73,19 @@ namespace hpx { namespace parcelset { namespace policies { namespace ibverbs
                     );
                     return;
                 }
+                std::cout << "here 3" << std::endl;
+
                 set_nonblocking(event_channel_->fd, ec);
                 if(ec)
                 {
                     close(ec);
                     return;
                 }
+                std::cout << "here 4" << std::endl;
 
                 int ret = 0;
                 ret = rdma_create_id(event_channel_, &listener_, NULL, RDMA_PS_TCP);
+                std::cout << "here 5 " << std::endl;
 
                 if(ret)
                 {
@@ -92,28 +98,38 @@ namespace hpx { namespace parcelset { namespace policies { namespace ibverbs
                     );
                     return;
                 }
+                std::cout << "here 6 " << std::endl;
 
                 std::string host = ep.address().to_string();
                 std::string port = boost::lexical_cast<std::string>(ep.port());
+                std::cout << "here 7 " << host.c_str() << " " << port << std::endl;
 
                 addrinfo *addr;
+                ret = getaddrinfo(host.c_str(), port.c_str(), NULL, &addr);
+                std::cout << "here 7 " << ret << std::endl;
 
-                getaddrinfo(host.c_str(), port.c_str(), NULL, &addr);
+                // Bind an address to the listening connection.
+//                memset(&addr->ai_addr, 0, sizeof(addr->ai_addr));
 
                 ret = rdma_bind_addr(listener_, addr->ai_addr);
+                std::cout << "here 8 " << ret << std::endl;
 
                 freeaddrinfo(addr);
-                if(ret)
+                std::cout << "here 9 " << errno << std::endl;
+                if(ret == -1)
                 {
                     int verrno = errno;
-                    close(ec);
+                    std::cout << "here 9 err " << strerror(verrno) << std::endl;
+//                    close(ec);
                     boost::system::error_code err(verrno, boost::system::system_category());
                     HPX_IBVERBS_THROWS_IF(
                         ec
                       , err
                     );
+                    std::cout << "here 9 +" << strerror(verrno) << std::endl;
                     return;
                 }
+                std::cout << "here 10 " << std::endl;
                 ret = rdma_listen(listener_, 10); /* backlog = 10 is arbitrary */
                 if(ret)
                 {

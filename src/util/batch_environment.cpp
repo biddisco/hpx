@@ -165,6 +165,10 @@ namespace hpx { namespace util
         // provide sufficient environment variable to deduce all required
         // information.
         // (https://computing.llnl.gov/linux/slurm/srun.html)
+        if(std::getenv("SLURM_NODELIST") &&
+               std::getenv("SLURM_PROCID")) {
+          std::cout << "Detecting SLURM " << std::getenv("SLURM_NODELIST")  << " " << std::getenv("SLURM_PROCID") << std::endl;
+        }
         return std::getenv("SLURM_NODELIST") &&
                std::getenv("SLURM_PROCID");
     }
@@ -330,6 +334,8 @@ namespace hpx { namespace util
     std::string batch_environment::init_from_environment(
         std::string const& agas_host)
     {
+      std::cout << "Entering init_from_environment " << std::endl;
+
         char* tasks_per_node_env = std::getenv("SLURM_TASKS_PER_NODE");
         std::vector<std::size_t> tasks_per_node;
         if (tasks_per_node_env)

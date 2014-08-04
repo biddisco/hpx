@@ -18,6 +18,11 @@
 #include <memory>
 #include <cstdio>
 
+//#include <boost/archive/impl/archive_pointer_oserializer.ipp>
+#include <boost/archive/detail/archive_serializer_map.hpp>
+#include <boost/archive/impl/archive_serializer_map.ipp>
+#include <hpx/util/basic_binary_oprimitive_impl.hpp>
+
 //
 // This is a test program which reads and writes chunks of memory to storage
 // distributed across localities.
@@ -795,9 +800,19 @@ int hpx_main(boost::program_options::variables_map& vm)
     else return 0;
 }
 
+   // explicitly instantiate base primitive
+   template class hpx::util::basic_binary_oprimitive<hpx::util::portable_binary_oarchive>;
+
+
+   template class 
+      boost::archive::detail::archive_serializer_map<hpx::util::portable_binary_oarchive>;
+
 //----------------------------------------------------------------------------
 int main(int argc, char* argv[])
 {
+
+
+
     // Configure application-specific options
     boost::program_options::options_description
        desc_commandline("Usage: " HPX_APPLICATION_STRING " [options]");

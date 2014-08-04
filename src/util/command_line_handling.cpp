@@ -366,6 +366,7 @@ namespace hpx { namespace util
         }
         // FIXME: What if I don't want to use the node list with SLURM?
         else if (env.found_batch_environment()) {
+          std::cout << "Using SLURM nodelist " << std::endl;
             using_nodelist = true;
             ini_config += "hpx.nodes!=" + env.init_from_environment(agas_host);
         }

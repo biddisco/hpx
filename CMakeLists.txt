@@ -110,13 +110,15 @@ endif()
 
 ###############################################################################
 # Boost libraries which are always used from the installed version
-set(BOOST_LIBRARIES date_time
+set(BOOST_LIBRARIES 
+                    date_time
                     filesystem
                     program_options
                     regex
-                    serialization
                     system
-                    thread)
+                    thread
+                    serialization 
+)
 
 # Decide whether to use Boost.Context for coroutine implementation
 if(${BOOST_MINOR_VERSION} GREATER 50)
@@ -358,7 +360,33 @@ endif()
 ################################################################################
 # Decide whether to use MPI based parcelport
 ################################################################################
-include(${CMAKE_CURRENT_SOURCE_DIR}/BGAS-MVAPICH.cmake)
+#------------------------------------------------------------------------------
+# Machine check, see if we can tell if we are we running on BGQ or BGAS
+#------------------------------------------------------------------------------
+SITE_NAME(hostname)
+set(BGQ   0)
+set(BGAS  0)
+set(BGVIZ 0)
+if(hostname MATCHES bbpbg1)
+  set(BGQ  1)
+  message("Running on BGQ")
+elseif(hostname MATCHES bbpbg2)
+  set(BGAS 1)
+  message("Running on BGAS")
+elseif(hostname MATCHES bbpviz1)
+  set(BGVIZ 1)
+  message("Running on VIZ")
+endif()
+message("CMAKE_SYSTEM is ${CMAKE_SYSTEM} with hostname ${hostname} and
+processor ${CMAKE_SYSTEM_PROCESSOR}" )
+
+if (BGAS)
+  include (${CMAKE_CURRENT_SOURCE_DIR}/BGAS-MVAPICH.cmake)
+endif()
+if(BGVIZ)
+  find_package(MPI REQUIRED)
+endif()
+
 if("${HPX_PLATFORM_UC}" STREQUAL "BLUEGENEQ")
   hpx_option(HPX_HAVE_PARCELPORT_MPI BOOL "Enable parcelport based on MPI (default: ON)." ON ADVANCED)
 else()

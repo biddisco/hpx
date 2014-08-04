@@ -8,9 +8,9 @@
 
 #if !defined(HPX_HAVE_GENERIC_CONTEXT_COROUTINES)
 
-#if (defined(__linux) || defined(linux) || defined(__linux__)) && !defined(__bgq__)
+#if (defined(__linux) || defined(linux) || defined(__linux__)) && !(defined(__bgq__) || defined(_bgq_linux))
 
-#if defined(__x86_64__) || defined(__amd64__)
+#if defined(__x86_64__) || defined(__amd64__) || defined(_bgq_linux)
 #include "swapcontext64.ipp"
 #elif defined(__i386__) || defined(__i486__) || defined(__i586__) || defined(__i686__)
 #include "swapcontext32.ipp"

@@ -23,6 +23,9 @@
 #include <hpx/runtime/parcelset/policies/ipc/sender.hpp>
 #endif
 #if defined(HPX_HAVE_PARCELPORT_IBVERBS)
+#if defined(_bgq_linux)
+ #include <asm/param.h>
+#endif
 #include <hpx/runtime/parcelset/policies/ibverbs/connection_handler.hpp>
 #include <hpx/runtime/parcelset/policies/ibverbs/receiver.hpp>
 #include <hpx/runtime/parcelset/policies/ibverbs/sender.hpp>

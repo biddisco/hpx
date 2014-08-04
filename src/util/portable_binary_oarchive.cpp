@@ -174,8 +174,8 @@ void portable_binary_oarchive::init(util::binary_filter* filter, unsigned int fl
 namespace boost {
 namespace archive {
 
-    template class HPX_ALWAYS_EXPORT
-        detail::archive_pointer_oserializer<hpx::util::portable_binary_oarchive>;
+//    template class HPX_ALWAYS_EXPORT
+//        detail::archive_pointer_oserializer<hpx::util::portable_binary_oarchive>;
 
 } // namespace archive
 } // namespace boost
@@ -188,8 +188,8 @@ namespace archive {
 namespace boost {
 namespace archive {
 
-    template class HPX_ALWAYS_EXPORT
-        detail::archive_serializer_map<hpx::util::portable_binary_oarchive>;
+//    template class HPX_ALWAYS_EXPORT
+//        detail::archive_serializer_map<hpx::util::portable_binary_oarchive>;
 
 } // namespace archive
 } // namespace boost
@@ -198,12 +198,11 @@ namespace archive {
 
 #include <hpx/util/basic_binary_oprimitive_impl.hpp>
 
-namespace hpx { namespace util
-{
+//namespace hpx { namespace util
+//{
     // explicitly instantiate base primitive
-    template class basic_binary_oprimitive<
-        hpx::util::portable_binary_oarchive
-    >;
-}}
+//    template class basic_binary_oprimitive<hpx::util::portable_binary_oarchive>;
+//}
+//}
 
 #endif // BOOST_VERSION >= 103700
