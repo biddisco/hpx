@@ -8,7 +8,7 @@
 
 #include <boost/cache/statistics/local_statistics.hpp>
 
-#if defined(__bgq__)
+#if defined(_BGION__)
 #include <hwi/include/bqc/A2_inlines.h>
 #else
 #include <boost/chrono/chrono.hpp>
