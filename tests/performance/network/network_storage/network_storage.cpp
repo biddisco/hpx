@@ -5,6 +5,7 @@
 
 #include <hpx/hpx_init.hpp>
 #include <hpx/hpx.hpp>
+#include <hpx/components/iostreams/standard_streams.hpp>
 
 #include <boost/assert.hpp>
 #include <boost/shared_ptr.hpp>
@@ -68,7 +69,7 @@
 //
 #define MAX_RANKS 64
 
-#define USE_CLEANING_THREAD
+//#define USE_CLEANING_THREAD
 
 std::vector<std::vector<hpx::future<int> > > ActiveFutures;
 boost::array<boost::atomic<int>, 64>       FuturesWaiting;
@@ -101,8 +102,115 @@ typedef struct {
     bool            distribution;
 } test_options;
 
+namespace hpx { namespace util {
+       
 //----------------------------------------------------------------------------
-#define DEBUG_LEVEL 0
+class simple_profiler {
+  public:
+    // time, level, count
+    typedef std::tuple<double,int,int> valtype;
+
+    simple_profiler(const char *title) {
+        this->_parent = NULL;
+        this->_title  = title;
+        this->_done   = false;
+    }
+
+    simple_profiler(simple_profiler &parent, const char *title) {
+        this->_parent = &parent;
+        this->_title  = title;
+        this->_done   = false;
+    }
+
+    ~simple_profiler() {
+      if (!this->_done) done();
+    };
+
+    void done() {
+        double elapsed = this->_timer.elapsed();
+        if (this->_parent) {
+          this->_parent->addProfile(this->_title, std::make_tuple(elapsed,0,1));
+          std::for_each(this->_profiles.begin(), this->_profiles.end(),
+            [=](std::map<const char *, valtype>::value_type &p) {
+              this->_parent->addProfile(p.first, p.second);
+            }
+          );
+        }
+        else {
+          // get the max depth of the profile tree so we can prepare string lengths
+          int maxlevel = 0;
+          std::for_each(this->_profiles.begin(), this->_profiles.end(),
+              [&](std::map<const char *, valtype>::value_type &p) {
+              maxlevel = std::max(maxlevel, std::get<1>(p.second));
+            }
+          );
+          // prepare format string for output
+          char const* fmt1 = "Profile %20s : %2i %5i %9.3f %s %7.3f";
+          std::string fmt2 = "Total   " + std::string(41,' ') + " %s %7.3f";
+          // add this level to top of list
+          this->_profiles[this->_title] = std::make_tuple(elapsed,0,1);
+          // print each of the sub nodes
+          std::vector<double> level_totals(5,0);
+          int last_level = 0;
+          hpx::cout << std::string(58+maxlevel*9,'-') << "\n";
+          for (auto p=this->_profiles.begin(); p!=this->_profiles.end(); ) {
+              int &level = std::get<1>(p->second);
+              level_totals[level] += std::get<0>(p->second);
+              if (level<last_level) {
+                hpx::cout << std::string(52,' ') << std::string (last_level*9, ' ') << "------\n";
+                hpx::cout << (boost::format(fmt2)
+                  % std::string (last_level*9, ' ')
+                  % (100.0*level_totals[last_level]/elapsed)) << "\n";
+                last_level = level;
+              }
+              else if (level>last_level) {
+                last_level = level;
+              }
+              hpx::cout << (boost::format(fmt1)
+                  % p->first
+                  % level
+                  % std::get<2>(p->second)
+                  % std::get<0>(p->second)
+                  % std::string (level*9, ' ')
+                  % (100.0*std::get<0>(p->second)/elapsed)) << "\n";
+              if ((++p)==this->_profiles.end()) {
+                hpx::cout << std::string(52,' ') << std::string (last_level*9, ' ') << "------\n";
+                hpx::cout << (boost::format(fmt2)
+                  % std::string (last_level*9, ' ')
+                  % (100.0*level_totals[last_level]/elapsed)) << "\n";
+                last_level = level;
+              }
+          }
+          hpx::cout << std::string(58+maxlevel*9,'-') << "\n";
+        }
+        this->_done = true;
+    }
+
+    void addProfile(const char *title, valtype value)
+    {
+        if (this->_profiles.find(title) == this->_profiles.end()) {
+            std::get<1>(value) += 1;                 // level
+            this->_profiles[title] = value;
+        }
+        else {
+            valtype &val = this->_profiles[title];
+            std::get<0>(val)  += std::get<0>(value); // time
+            std::get<2>(val)  += 1;                  // count
+        }
+    }
+    //
+    simple_profiler                              *_parent;
+    hpx::util::high_resolution_timer              _timer;
+    const char *                                  _title;
+    std::map<const char *, valtype>               _profiles;
+    bool                                          _done;
+};
+
+} }
+
+
+//----------------------------------------------------------------------------
+#define DEBUG_LEVEL 3
 #define DEBUG_OUTPUT(level,x)                                                \
     if (DEBUG_LEVEL>=level) {                                                \
         x                                                                    \
@@ -405,9 +513,12 @@ void test_write(
     );
     //
     hpx::util::high_resolution_timer timerWrite;
+    hpx::util::simple_profiler level1("Write function");
 
     bool active = (rank==0) | (rank>0 && options.all2all);
     for(boost::uint64_t i = 0; active && i < options.iterations; i++) {
+        hpx::util::simple_profiler iteration(level1,"Iteration");
+        
         DEBUG_OUTPUT(1,
             std::cout << "Starting iteration " << i << " on rank " << rank << std::endl;
         );
@@ -422,7 +533,7 @@ void test_write(
         // Start main message sending loop
         //
         for(uint64_t i = 0; i < num_transfer_slots; i++) {
-            hpx::util::high_resolution_timer looptimer;
+            hpx::util::simple_profiler prof_setup(iteration, "Setup slots");
             int send_rank;
             if(options.distribution==0) {
               // pick a random locality to send to
@@ -441,12 +552,14 @@ void test_write(
             DEBUG_OUTPUT(5,
                 std::cout << "Rank " << rank << " sending block " << i << " to rank " << send_rank << std::endl;
             );
+            prof_setup.done();
 
             // Execute a PUT on whatever locality we chose
             // Create a serializable memory buffer ready for sending.
             // Do not copy any data. Protect this with a mutex to ensure the
             // background thread removing completed futures doesn't collide
             {
+                hpx::util::simple_profiler prof_put(iteration, "Put");
                 DEBUG_OUTPUT(5,
                     std::cout << "Put from rank " << rank << " on rank " << send_rank << std::endl;
                 );
@@ -468,42 +581,44 @@ void test_write(
                         })
                 );
             }
-            DEBUG_OUTPUT(5,
-                std::cout << "Loop timer " << looptimer.elapsed() << std::endl;
-            );
         }
+
         int removed = 0;
 #ifdef USE_CLEANING_THREAD
-        // tell the cleaning thread it's time to stop
-        FuturesActive = false;
-        // wait for cleanup thread to terminate before we reduce any remaining futures
-        removed = cleaner.get();
-        DEBUG_OUTPUT(2,
-            std::cout << "Cleaning thread rank " << rank << " removed " << removed << std::endl;
-        );
-#endif
+        {
+          hpx::util::simple_profiler prof_clean(iteration, "Cleaning Wait");
+          // tell the cleaning thread it's time to stop
+          FuturesActive = false;
+          // wait for cleanup thread to terminate before we reduce any remaining futures
+          removed = cleaner.get();
+          DEBUG_OUTPUT(2,
+              std::cout << "Cleaning thread rank " << rank << " removed " << removed << std::endl;
+          );
+        }
+        #endif
         //
-        hpx::util::high_resolution_timer movetimer;
+        hpx::util::simple_profiler prof_move(iteration, "Moving futures");
         std::vector<hpx::future<int> > final_list;
         for(uint64_t i = 0; i < nranks; i++) {
-            // move the contents of intermediate vector into final list
-            final_list.reserve(final_list.size() + ActiveFutures[i].size());
-            std::move(ActiveFutures[i].begin(), ActiveFutures[i].end(),
-                std::back_inserter(final_list));
-            ActiveFutures[i].clear();
+          // move the contents of intermediate vector into final list
+          final_list.reserve(final_list.size() + ActiveFutures[i].size());
+          std::move(ActiveFutures[i].begin(), ActiveFutures[i].end(),
+              std::back_inserter(final_list));
+          ActiveFutures[i].clear();
         }
-        double movetime = movetimer.elapsed();
+        prof_move.done();
         //
+        hpx::util::simple_profiler fwait(iteration, "Future wait");
         int numwait = static_cast<int>(final_list.size());
-        hpx::util::high_resolution_timer futuretimer;
         hpx::future<int> result = when_all(final_list).then(hpx::launch::sync, reduce);
         result.get();
         int total = numwait+removed;
         DEBUG_OUTPUT(3,
-            std::cout << "Future timer, rank " << rank << " waiting on " << numwait << " total " << total << " "
-            << futuretimer.elapsed() << " Move time " << movetime << std::endl;
+            std::cout << "Future wait, rank " << rank << " waiting on " << numwait << std::endl;
         );
+        fwait.done();
     }
+    hpx::util::simple_profiler prof_barrier(level1, "Final Barrier");
     barrier_wait();
     //
     double writeMB   = static_cast<double>(nranks*options.local_storage_MB*options.iterations);
@@ -668,7 +783,11 @@ void test_read(
         hpx::util::high_resolution_timer futuretimer;
         hpx::future<int> result = when_all(final_list).then(hpx::launch::sync, reduce);
         result.get();
+#ifdef USE_CLEANING_THREAD
         int total = numwait+removed;
+#else
+        int total = numwait;
+#endif
         DEBUG_OUTPUT(3,
             std::cout << "Future timer, rank " << rank << " waiting on " << numwait << " total " << total << " "
             << futuretimer.elapsed() << " Move time " << movetime << std::endl;
@@ -776,20 +895,20 @@ int hpx_main(boost::program_options::variables_map& vm)
     }
 
     test_write(rank, nranks, num_transfer_slots, gen, random_rank, random_slot, options);
-    test_read (rank, nranks, num_transfer_slots, gen, random_rank, random_slot, options);
+//    test_read (rank, nranks, num_transfer_slots, gen, random_rank, random_slot, options);
     //
     delete_local_storage();
 
     // release barrier object
     unique_barrier = hpx::invalid_id;
     DEBUG_OUTPUT(2,
-        std::cout << "Unregistering Barrier " << rank << std::endl;
+        std::cout << "Unregistering Barrier : " << rank << std::endl;
     );
     if (0 == rank)
         hpx::agas::unregister_name_sync("/0/DSM_barrier");
 
     DEBUG_OUTPUT(2,
-        std::cout << "Calling finalize" << rank << std::endl;
+        std::cout << "Calling finalize : " << rank << std::endl;
     );
     if (rank==0)
       return hpx::finalize();
