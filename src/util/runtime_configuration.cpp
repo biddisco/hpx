@@ -456,6 +456,13 @@ namespace hpx { namespace util
             if(NULL != sec) {
                 std::string ibverbs_enabled(
                     sec->get_entry("enabled", "0"));
+
+                /////////////////////////////////////////////////////////////////
+                // TODO: This is the place where the IP Address for
+                // the infiniband adapter gets set. Currently, rdma_cm is used.
+                // If you need the node_guid or something else, you need to
+                // change the code here.
+
                 //if(boost::lexical_cast<int>(ibverbs_enabled))
                 {
 #if (defined(__linux) || defined(linux) || defined(__linux__))
