@@ -23,9 +23,7 @@
 #include <hpx/runtime/parcelset/policies/ipc/sender.hpp>
 #endif
 #if defined(HPX_PARCELPORT_IBVERBS)
-#include <hpx/runtime/parcelset/policies/ibverbs/connection_handler.hpp>
-#include <hpx/runtime/parcelset/policies/ibverbs/receiver.hpp>
-#include <hpx/runtime/parcelset/policies/ibverbs/sender.hpp>
+#include <hpx/runtime/parcelset/policies/ibverbs/parcelport.hpp>
 #endif
 #if defined(HPX_PARCELPORT_MPI)
 #include <hpx/runtime/parcelset/policies/mpi/connection_handler.hpp>
@@ -78,7 +76,7 @@ namespace hpx { namespace parcelset
         case connection_ibverbs:
 #if defined(HPX_PARCELPORT_IBVERBS)
             return return_type(
-                policies::ibverbs::connection_handler::runtime_configuration()
+                policies::ibverbs::parcelport_impl::runtime_configuration()
               , false);
 #endif
             break;
@@ -153,7 +151,7 @@ namespace hpx { namespace parcelset
 
                 if (boost::lexical_cast<int>(enable_ibverbs))
                 {
-                    return boost::make_shared<policies::ibverbs::connection_handler>(
+                    return boost::make_shared<policies::ibverbs::parcelport_impl>(
                         cfg, on_start_thread, on_stop_thread);
                 }
             }
