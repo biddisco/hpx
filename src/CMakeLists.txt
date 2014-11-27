@@ -28,9 +28,55 @@ add_hpx_library_sources(hpx
 add_hpx_library_sources(hpx
   GLOB GLOBS "${hpx_SOURCE_DIR}/src/pre_main.cpp"
   APPEND)
+
+# add files in runtime without recursing
 add_hpx_library_sources(hpx
-  GLOB_RECURSE GLOBS "${hpx_SOURCE_DIR}/src/runtime/*.cpp"
+  GLOB GLOBS "${hpx_SOURCE_DIR}/src/runtime/*.cpp"
   APPEND)
+# add each subdir, but only parcelports that are enabled
+add_hpx_library_sources(hpx
+  GLOB_RECURSE GLOBS "${hpx_SOURCE_DIR}/src/runtime/actions/*.cpp"
+  APPEND)
+add_hpx_library_sources(hpx
+  GLOB_RECURSE GLOBS "${hpx_SOURCE_DIR}/src/runtime/agas/*.cpp"
+  APPEND)
+add_hpx_library_sources(hpx
+  GLOB_RECURSE GLOBS "${hpx_SOURCE_DIR}/src/runtime/applier/*.cpp"
+  APPEND)
+add_hpx_library_sources(hpx
+  GLOB_RECURSE GLOBS "${hpx_SOURCE_DIR}/src/runtime/components/*.cpp"
+  APPEND)
+add_hpx_library_sources(hpx
+  GLOB_RECURSE GLOBS "${hpx_SOURCE_DIR}/src/runtime/naming/*.cpp"
+  APPEND)
+add_hpx_library_sources(hpx
+  GLOB_RECURSE GLOBS "${hpx_SOURCE_DIR}/src/runtime/threads/*.cpp"
+  APPEND)
+# do not recurse into all parcel types unless enabled
+add_hpx_library_sources(hpx
+  GLOB GLOBS "${hpx_SOURCE_DIR}/src/runtime/parcelset/*.cpp"
+  APPEND)
+if(HPX_PARCELPORT_IPC)
+  add_hpx_library_sources(hpx
+    GLOB_RECURSE GLOBS "${hpx_SOURCE_DIR}/src/runtime/parcelset/policies/ipc/*.cpp"
+    APPEND)
+endif()
+if(HPX_PARCELPORT_MPI)
+  add_hpx_library_sources(hpx
+    GLOB_RECURSE GLOBS "${hpx_SOURCE_DIR}/src/runtime/parcelset/policies/mpi/*.cpp"
+    APPEND)
+endif()
+if(HPX_PARCELPORT_TCP)
+  add_hpx_library_sources(hpx
+    GLOB_RECURSE GLOBS "${hpx_SOURCE_DIR}/src/runtime/parcelset/policies/tcp/*.cpp"
+    APPEND)
+endif()
+if(HPX_PARCELPORT_IBVERBS)
+  add_hpx_library_sources(hpx
+    GLOB_RECURSE GLOBS "${hpx_SOURCE_DIR}/src/runtime/parcelset/policies/ibverbs/*.cpp"
+    APPEND)
+endif()
+
 add_hpx_library_sources(hpx
   GLOB_RECURSE GLOBS "${hpx_SOURCE_DIR}/src/performance_counters/*.cpp"
   APPEND)
@@ -94,6 +140,7 @@ add_hpx_library_headers(hpx
 add_hpx_library_headers(hpx
   GLOB GLOBS "${hpx_SOURCE_DIR}/hpx/preprocessed/*.hpp"
   APPEND)
+
 add_hpx_library_headers(hpx
   GLOB_RECURSE GLOBS "${hpx_SOURCE_DIR}/hpx/runtime/*.hpp"
   APPEND)
