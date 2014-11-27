@@ -83,7 +83,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ibverbs {
         void put_parcel(parcel p, write_handler_type f);
         void put_parcels(std::vector<parcel> parcels, std::vector<write_handler_type> handlers)
         {
-            naming::locality const& locality_id =
+            locality const& locality_id =
                 parcels[0].get_destination_locality();
 
             for (std::size_t i = 1; i != parcels.size(); ++i)
@@ -125,7 +125,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ibverbs {
         }
 
         /// Cache specific functionality
-        void remove_from_connection_cache(naming::locality const& loc)
+        void remove_from_connection_cache(locality const& loc)
         {
             // This function is called when a locality disconnects.
             // It makes sure that connections to a specific locality are

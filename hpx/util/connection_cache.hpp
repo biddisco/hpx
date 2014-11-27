@@ -353,7 +353,7 @@ namespace hpx { namespace util
             mutex_type::scoped_lock lock(mtx_);
 
             // Search for an entry for this key.
-            typename cache_type::iterator const ct = cache_.find(l);
+            typename cache_type::iterator ct = cache_.find(l);
 
             if (ct != cache_.end()) {
                 // Update LRU meta data.
@@ -469,7 +469,8 @@ namespace hpx { namespace util
                 evictions_ += num_existing_connections(it->second);
 
                 // Erase entry if key exists in the cache.
-                cache_.erase(it);
+                typename cache_type::iterator it2 = it;
+                cache_.erase(it2, it2);
             }
 
             // FIXME: This should probably throw instead of asserting, as it
@@ -599,7 +600,8 @@ namespace hpx { namespace util
                 {
                     // Remove the key if its connection count is zero.
                     if (0 == num_existing_connections(ct->second)) {
-                        cache_.erase(ct);
+                        typename cache_type::const_iterator ct2 = ct;
+                        cache_.erase(ct2);
                         key_tracker_.erase(kt);
                         kt = key_tracker_.begin();
                     }
