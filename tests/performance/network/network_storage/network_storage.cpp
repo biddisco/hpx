@@ -239,7 +239,7 @@ void delete_local_storage()
 //----------------------------------------------------------------------------
 void release_storage_lock()
 {
-  storage_mutex.unlock();
+//  storage_mutex.unlock();
 }
 
 //----------------------------------------------------------------------------
@@ -401,7 +401,7 @@ namespace Storage {
           reinterpret_cast<char*>(remote_buffer), length);
 
         // lock the mutex, will be unlocked by the transfer buffer's deleter
-        storage_mutex.lock();
+//        storage_mutex.lock();
 
         return fut.then(
 //            hpx::launch::async,
@@ -788,6 +788,8 @@ void test_read(
             std::cout << "Cleaning thread rank " << rank << " removed "
             << removed << std::endl;
         );
+#else
+        int removed = 0;
 #endif
         //
         hpx::util::high_resolution_timer movetimer;
@@ -929,7 +931,7 @@ int hpx_main(boost::program_options::variables_map& vm)
     }
 
     test_write(rank, nranks, num_transfer_slots, gen, random_rank, random_slot, options);
-//    test_read (rank, nranks, num_transfer_slots, gen, random_rank, random_slot, options);
+    test_read (rank, nranks, num_transfer_slots, gen, random_rank, random_slot, options);
     //
     delete_local_storage();
 
