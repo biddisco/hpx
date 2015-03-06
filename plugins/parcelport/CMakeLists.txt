@@ -9,7 +9,7 @@
 set(parcelport_plugins
   #verbs
   #ipc
-  minimal
+  verbs
   mpi
   tcp)
 
@@ -84,7 +84,7 @@ endforeach()
 macro(add_static_parcelports)
   add_parcelport_tcp_module()
   add_parcelport_mpi_module()
-  add_parcelport_minimal_module()
+  add_parcelport_verbs_module()
 endmacro()
 
 macro(add_parcelport_modules)
