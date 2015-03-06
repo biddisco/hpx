@@ -7,8 +7,9 @@
 # We explicitly disable ibverbs and ipc for now as they don't work currently
 
 set(parcelport_plugins
-  #ibverbs
+  #verbs
   #ipc
+  minimal
   mpi
   tcp)
 
@@ -83,6 +84,7 @@ endforeach()
 macro(add_static_parcelports)
   add_parcelport_tcp_module()
   add_parcelport_mpi_module()
+  add_parcelport_minimal_module()
 endmacro()
 
 macro(add_parcelport_modules)
