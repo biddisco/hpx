@@ -60,6 +60,11 @@
 //
 // (+or more) where %l is num_ranks, and %%x is rank of current process
 
+
+//----------------------------------------------------------------------------
+// #defines to control program
+//----------------------------------------------------------------------------
+
 //----------------------------------------------------------------------------
 // These are used to track how many requests are pending for each locality
 // Many requests for read/write of memory may be issued at a time, resulting
@@ -67,16 +72,43 @@
 // a background thread can be spawned to check for ready futures and remove
 // them from the waiting list. The vars are used for this bookkeeping task.
 //
-#define MAX_RANKS 64
-
 #define USE_CLEANING_THREAD
 
+
+//----------------------------------------------------------------------------
+// Array allocation on start assumes a certain maximum number of localities will be used
+#define MAX_RANKS 64
+
+//----------------------------------------------------------------------------
+// control the amount of debug messaging that is output 
+#define DEBUG_LEVEL 9
+
+//----------------------------------------------------------------------------
+// if we have access to boost logging via the verbs aprcelport include this
+// #include "plugins/parcelport/verbs/rdmahelper/include/RdmaLogging.h"
+// otherwise use this
+#define LOG_DEBUG_MSG(x) std::cout << x << std::endl
+
+//----------------------------------------------------------------------------
+#define DEBUG_OUTPUT(level,x)                                                \
+    if (DEBUG_LEVEL>=level) {                                                \
+        LOG_DEBUG_MSG(x);                                                    \
+    }
+
+//----------------------------------------------------------------------------
+#define TEST_FAIL    0
+#define TEST_SUCCESS 1
+
+
+//----------------------------------------------------------------------------
+// global vars
+//----------------------------------------------------------------------------
 std::vector<std::vector<hpx::future<int> > > ActiveFutures;
-boost::array<boost::atomic<int>, 64>       FuturesWaiting;
+boost::array<boost::atomic<int>, MAX_RANKS>  FuturesWaiting;
 
 #ifdef USE_CLEANING_THREAD
-boost::atomic<bool>                        FuturesActive;
-hpx::lcos::local::spinlock                 FuturesMutex;
+ boost::atomic<bool>                        FuturesActive;
+ hpx::lcos::local::spinlock                 FuturesMutex;
 #endif
 
 //----------------------------------------------------------------------------
@@ -105,6 +137,10 @@ typedef struct {
 namespace hpx { namespace util {
        
 //----------------------------------------------------------------------------
+// an experimental profiling class which times sections of code and collects
+// the timing from a tree of profiler objects to break down the time spend
+// in nested sections
+//
 class simple_profiler {
   public:
     // time, level, count
@@ -202,17 +238,6 @@ class simple_profiler {
 };
 
 } }
-
-
-//----------------------------------------------------------------------------
-#define DEBUG_LEVEL 3
-#define DEBUG_OUTPUT(level,x)                                                \
-    if (DEBUG_LEVEL>=level) {                                                \
-        x                                                                    \
-    }
-//
-#define TEST_FAIL    0
-#define TEST_SUCCESS 1
 
 //----------------------------------------------------------------------------
 void allocate_local_storage(uint64_t local_storage_bytes)
@@ -471,8 +496,7 @@ int reduce(hpx::future<std::vector<hpx::future<int> > > futvec)
 hpx::lcos::barrier create_barrier(std::size_t num_localities, char const* symname)
 {
     DEBUG_OUTPUT(2,
-        std::cout << "Creating barrier based on N localities "
-                  << num_localities << std::endl;
+        "Creating barrier based on N localities " << num_localities
     );
 
     hpx::lcos::barrier b = hpx::lcos::barrier::create(hpx::find_here(), num_localities);
@@ -498,13 +522,13 @@ void test_write(
     CopyToStorage_action actWrite;
     //
     DEBUG_OUTPUT(1,
-        std::cout << "Entering Barrier at start of write on rank " << rank << std::endl;
+        "Entering Barrier at start of write on rank " << rank
     );
     //
     barrier_wait();
     //
     DEBUG_OUTPUT(1,
-        std::cout << "Passed Barrier at start of write on rank " << rank << std::endl;
+        "Passed Barrier at start of write on rank " << rank
     );
     //
     hpx::util::high_resolution_timer timerWrite;
@@ -515,7 +539,7 @@ void test_write(
         hpx::util::simple_profiler iteration(level1,"Iteration");
         
         DEBUG_OUTPUT(1,
-            std::cout << "Starting iteration " << i << " on rank " << rank << std::endl;
+            "Starting iteration " << i << " on rank " << rank
         );
 #ifdef USE_CLEANING_THREAD
         //
@@ -545,7 +569,7 @@ void test_write(
             int memory_slot = random_slot(gen);
             uint32_t memory_offset = static_cast<uint32_t>(memory_slot*options.transfer_size_B);
             DEBUG_OUTPUT(5,
-                std::cout << "Rank " << rank << " sending block " << i << " to rank " << send_rank << std::endl;
+                "Rank " << rank << " sending block " << i << " to rank " << send_rank
             );
             prof_setup.done();
 
@@ -556,7 +580,7 @@ void test_write(
             {
                 hpx::util::simple_profiler prof_put(iteration, "Put");
                 DEBUG_OUTPUT(5,
-                    std::cout << "Put from rank " << rank << " on rank " << send_rank << std::endl;
+                    "Put from rank " << rank << " on rank " << send_rank
                 );
 #ifdef USE_CLEANING_THREAD
                 ++FuturesWaiting[send_rank];
@@ -587,7 +611,7 @@ void test_write(
           // wait for cleanup thread to terminate before we reduce any remaining futures
           removed = cleaner.get();
           DEBUG_OUTPUT(2,
-              std::cout << "Cleaning thread rank " << rank << " removed " << removed << std::endl;
+            "Cleaning thread rank " << rank << " removed " << removed
           );
         }
         #endif
@@ -609,7 +633,7 @@ void test_write(
         result.get();
         int total = numwait+removed;
         DEBUG_OUTPUT(3,
-            std::cout << "Future wait, rank " << rank << " waiting on " << numwait << std::endl;
+            "Future wait, rank " << rank << " waiting on " << numwait
         );
         fwait.done();
     }
@@ -647,7 +671,7 @@ static void transfer_data(general_buffer_type recv,
   }
   else {
     DEBUG_OUTPUT(5,
-      std::cout << "Skipped copy due to matching pointers" << std::endl;
+      "Skipped copy due to matching pointers"
     );
   }
 }
@@ -664,13 +688,13 @@ void test_read(
     CopyFromStorage_action actRead;
     //
     DEBUG_OUTPUT(1,
-        std::cout << "Entering Barrier at start of read on rank " << rank << std::endl;
+        "Entering Barrier at start of read on rank " << rank
     );
     //
     barrier_wait();
     //
     DEBUG_OUTPUT(1,
-        std::cout << "Passed Barrier at start of read on rank " << rank << std::endl;
+        "Passed Barrier at start of read on rank " << rank
     );
     //
     // this is mostly the same as the put loop, except that the received future
@@ -681,7 +705,7 @@ void test_read(
     bool active = (rank==0) || (rank>0 && options.all2all);
     for(boost::uint64_t i = 0; active && i < options.iterations; i++) {
       DEBUG_OUTPUT(1,
-          std::cout << "Starting iteration " << i << " on rank " << rank << std::endl;
+          "Starting iteration " << i << " on rank " << rank
       );
 #ifdef USE_CLEANING_THREAD
         //
@@ -759,8 +783,10 @@ void test_read(
         // futures
         int removed = cleaner.get();
         DEBUG_OUTPUT(2,
-            std::cout << "Cleaning thread rank " << rank << " removed " << removed << std::endl;
+            "Cleaning thread rank " << rank << " removed " << removed
         );
+#else
+        int removed = 0;
 #endif
         //
         hpx::util::high_resolution_timer movetimer;
@@ -780,8 +806,8 @@ void test_read(
         result.get();
         int total = numwait+removed;
         DEBUG_OUTPUT(3,
-            std::cout << "Future timer, rank " << rank << " waiting on " << numwait << " total " << total << " "
-            << futuretimer.elapsed() << " Move time " << movetime << std::endl;
+            "Future timer, rank " << rank << " waiting on " << numwait << " total " << total << " "
+            << futuretimer.elapsed() << " Move time " << movetime
         );
     }
     barrier_wait();
@@ -846,7 +872,7 @@ int hpx_main(boost::program_options::variables_map& vm)
     //
     if (nranks>MAX_RANKS) {
       std::cerr << "This test can only be run using " << MAX_RANKS
-        << " nodes, please recompile this test with the MAX_RANKS set to a higher number " << std::endl;
+        << " nodes, please recompile this test with the MAX_RANKS set to a higher number ";
       return 1;
     }
 
@@ -868,11 +894,14 @@ int hpx_main(boost::program_options::variables_map& vm)
     if (options.global_storage_MB>0) {
       options.local_storage_MB = options.global_storage_MB/nranks;
     }
+    DEBUG_OUTPUT(2,
+        "Allocating local storage on " << rank
+    );
     allocate_local_storage(options.local_storage_MB*1024*1024);
     //
     uint64_t num_transfer_slots = 1024*1024*options.local_storage_MB / options.transfer_size_B;
     DEBUG_OUTPUT(1,
-        std::cout << "num ranks " << nranks << ", num_transfer_slots " << num_transfer_slots << " on rank " << rank << std::endl;
+        "num ranks " << nranks << ", num_transfer_slots " << num_transfer_slots << " on rank " << rank
     );
     //
     boost::random::mt19937 gen;
@@ -893,13 +922,13 @@ int hpx_main(boost::program_options::variables_map& vm)
     // release barrier object
     unique_barrier = hpx::invalid_id;
     DEBUG_OUTPUT(2,
-        std::cout << "Unregistering Barrier : " << rank << std::endl;
+        "Unregistering Barrier " << rank
     );
     if (0 == rank)
         hpx::agas::unregister_name_sync("/0/DSM_barrier");
 
     DEBUG_OUTPUT(2,
-        std::cout << "Calling finalize : " << rank << std::endl;
+        "Calling finalize" << rank
     );
     if (rank==0)
       return hpx::finalize();
@@ -970,11 +999,11 @@ int main(int argc, char* argv[])
 
     // make sure our barrier was already created before hpx_main runs
     DEBUG_OUTPUT(2,
-        std::cout << "Registering create_barrier startup function " << std::endl;
+        "Registering create_barrier startup function "
     );
     hpx::register_pre_startup_function(&create_barrier_startup);
     DEBUG_OUTPUT(2,
-        std::cout << "Registering find_barrier startup function " << std::endl;
+        "Registering find_barrier startup function "
     );
     hpx::register_startup_function(&find_barrier_startup);
 
