@@ -26,6 +26,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "plugins/parcelport/verbs/rdmahelper/include/RdmaLogging.h"
 
 namespace hpx
 {
@@ -101,6 +102,7 @@ namespace hpx
                         chunks.push_back(transmission_chunk_type(index, c.size_));
                     ++index;
                 }
+                LOG_DEBUG_MSG("Encode finalize : zero-copy chunks " << decnumber(chunks.size()));
 
                 buffer.num_chunks_ = count_chunks_type(
                     static_cast<boost::uint32_t>(chunks.size()),
@@ -117,6 +119,7 @@ namespace hpx
                         }
                     }
                 }
+                LOG_DEBUG_MSG("Encode finalize : total chunks " << decnumber(chunks.size()));
             }
 
             inline std::size_t
@@ -138,6 +141,7 @@ namespace hpx
         encode_parcels(parcel const * ps, std::size_t num_parcels, Buffer & buffer,
             int archive_flags_, boost::uint64_t max_outbound_size, NewGids new_gids)
         {
+          FUNC_START_DEBUG_MSG;
             HPX_ASSERT(buffer.data_.empty());
             // collect argument sizes from parcels
             std::size_t arg_size = 0;
@@ -171,7 +175,7 @@ namespace hpx
                     }
 
                     buffer.data_.reserve(arg_size);
-
+                    
                     // mark start of serialization
                     util::high_resolution_timer timer;
 
@@ -198,6 +202,11 @@ namespace hpx
                         }
 
                         arg_size = archive.bytes_written();
+
+            LOG_DEBUG_MSG(
+                   "Inside encode parcels with bytes_written " << decnumber(archive.bytes_written())
+                << " actual containter data size " << decnumber(buffer.data_.size())
+                << " parcels_sent " << decnumber(parcels_sent));
                     }
 
                     // store the time required for serialization
@@ -245,8 +254,10 @@ namespace hpx
             }
 
             buffer.data_point_.num_parcels_ = parcels_sent;
+            LOG_DEBUG_MSG("Inside encode parcels with num_parcels_sent " << decnumber(buffer.data_point_.num_parcels_));
             detail::encode_finalize(buffer, arg_size);
 
+            FUNC_END_DEBUG_MSG;
             return parcels_sent;
         }
     }
