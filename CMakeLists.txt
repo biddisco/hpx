@@ -1136,7 +1136,9 @@ if(WIN32)
   ##############################################################################
 
   hpx_add_config_define(BOOST_USE_WINDOWS_H)
-  hpx_add_config_define(BOOST_SERIALIZATION_DYN_LINK)
+  if (NOT Boost_USE_STATIC_LIBS)
+    hpx_add_config_define(BOOST_SERIALIZATION_DYN_LINK)
+  endif()
   if(NOT CMAKE_CL_64)
     hpx_add_config_define(BOOST_NO_ALIGNMENT)
   endif()
@@ -1518,7 +1520,9 @@ hpx_include(SetOutputPaths)
 ################################################################################
 set(HPX_STATIC_PARCELPORT_PLUGINS "" CACHE INTERNAL "" FORCE)
 add_hpx_pseudo_target(plugins)
-add_definitions(-DBOOST_LOG_DYN_LINK)
+if (NOT Boost_USE_STATIC_LIBS)
+  add_definitions(-DBOOST_LOG_DYN_LINK)
+endif()
 add_subdirectory(plugins)
 
 if(HPX_WITH_COMPRESSION_BZIP2)
