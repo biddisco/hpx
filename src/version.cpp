@@ -188,10 +188,10 @@ namespace hpx
 #else
         strm << "  HPX_HAVE_PARCELPORT_IPC=OFF\n";
 #endif
-#if defined(HPX_HAVE_PARCELPORT_IBVERBS)
-        strm << "  HPX_HAVE_PARCELPORT_IBVERBS=ON\n";
+#if defined(HPX_HAVE_PARCELPORT_VERBS)
+        strm << "  HPX_HAVE_PARCELPORT_VERBS=ON\n";
 #else
-        strm << "  HPX_HAVE_PARCELPORT_IBVERBS=OFF\n";
+        strm << "  HPX_HAVE_PARCELPORT_VERBS=OFF\n";
 #endif
 #if defined(HPX_HAVE_VERIFY_LOCKS)
         strm << "  HPX_HAVE_VERIFY_LOCKS=ON\n";
