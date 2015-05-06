@@ -234,6 +234,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
         mutex_type  ReadCompletionMap_mutex;
         mutex_type  SendCompletionMap_mutex;
         mutex_type  TagSendCompletionMap_mutex;
+        mutex_type  encode_lock;
 
         typedef char                                                      memory_type;
         typedef RdmaMemoryPool                                            memory_pool_type;
@@ -860,7 +861,10 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
                 // encode the parcel directly into an rdma pinned memory block
                 // if the serialization overflows the block, panic and rewrite this.
                 LOG_DEBUG_MSG("Encoding parcel");
-                encode_parcels(&p, std::size_t(-1), buffer, archive_flags_, chunk_pool_->default_chunk_size());
+                {
+                    scoped_lock dummy(encode_lock);
+                    encode_parcels(&p, std::size_t(-1), buffer, archive_flags_, chunk_pool_->default_chunk_size());
+                }
                 buffer.data_point_.time_ = timer.elapsed_nanoseconds();
 
                 // create a tag, needs to be unique per client
