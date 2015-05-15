@@ -16,6 +16,9 @@
 #include <hpx/util/safe_bool.hpp>
 #include <hpx/util/memory_chunk_pool_allocator.hpp>
 #include <hpx/lcos/local/condition_variable.hpp>
+#include <hpx/lcos/local/spinlock_no_backoff.hpp>
+
+#include <hpx/apply.hpp>
 
 // The memory pool specialization need to be pulled in before encode_parcels
 #include "RdmaMemoryPool.h"
@@ -46,7 +49,7 @@
 
 #define HPX_HAVE_PARCELPORT_VERBS_MEMORY_COPY_THRESHOLD DEFAULT_MEMORY_POOL_CHUNK_SIZE
 //#define HPX_HAVE_PARCELPORT_VERBS_MEMORY_COPY_THRESHOLD 256
-
+#define HPX_HAVE_PARCELPORT_VERBS_SEND_QUEUE 32
 using namespace hpx::parcelset::policies;
 
 namespace hpx { namespace parcelset { namespace policies { namespace verbs
@@ -178,6 +181,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
         //      , parcels_sent_(0)
         {
             FUNC_START_DEBUG_MSG;
+            parcelport::_parcelport_instance = this;
             //    _port   = 0;
 #ifdef BOOST_BIG_ENDIAN
             std::string endian_out = get_config_entry("hpx.parcel.endian_out", "big");
@@ -224,6 +228,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
         // reuse of classes/types
         typedef header<DEFAULT_MEMORY_POOL_CHUNK_SIZE>  header_type;
         typedef hpx::lcos::local::spinlock              mutex_type;
+        typedef hpx::lcos::local::spinlock   no_backoff_mutex_type;
         typedef hpx::lcos::local::spinlock::scoped_lock scoped_lock;
         typedef hpx::lcos::local::condition_variable    condition_type;
         typedef boost::unique_lock<mutex_type>          unique_lock;
@@ -232,7 +237,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
         mutex_type  stop_mutex;
         mutex_type  connection_mutex;
         mutex_type  ReadCompletionMap_mutex;
-        mutex_type  SendCompletionMap_mutex;
+        no_backoff_mutex_type  SendCompletionMap_mutex;
         mutex_type  TagSendCompletionMap_mutex;
         mutex_type  encode_lock;
 
@@ -259,12 +264,23 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
         // struct we use to keep track of all memory regions used during a send, they must
         // be held onto until all transfers of data are complete.
         // ----------------------------------------------------------------------------------------------
-        typedef struct {
+        typedef struct parcel_send_data_ {
             uint32_t                                         tag;
+            std::atomic_flag                                 delete_flag;
             parcelset::parcel                                parcel;
             parcelset::parcelhandler::write_handler_type     handler;
             RdmaMemoryRegion *header_region, *chunk_region, *message_region;
             std::vector<RdmaMemoryRegion*>                   zero_copy_regions;
+            // used only during delete_send_data, custom move assignment
+            parcel_send_data_ & operator=(parcel_send_data_&& other) {
+                zero_copy_regions = std::move(other.zero_copy_regions);
+                parcel          = std::move(other.parcel);
+                handler         = std::move(other.handler);
+                header_region   = other.header_region;
+                chunk_region    = other.chunk_region;
+                message_region  = other.message_region;
+                return *this;
+            }
         } parcel_send_data;
 
         // ----------------------------------------------------------------------------------------------
@@ -295,8 +311,9 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
 
         recv_wr_map ReadCompletionMap;
 
-        active_send_list_type active_sends;
-        mutex_type       active_send_mutex;
+        active_send_list_type   active_sends;
+        mutex_type              active_send_mutex;
+        condition_type          active_send_condition;
 
         active_recv_list_type active_recvs;
         mutex_type       active_recv_mutex;
@@ -306,6 +323,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
         // Called when we finish sending a simple message, or when all zero-copy Get operations are done
         // ----------------------------------------------------------------------------------------------
         void delete_send_data(active_send_iterator send) {
+//            parcel_send_data send_data = std::move(*send);
             parcel_send_data &send_data = *send;
             // trigger the send complete handler for hpx internal cleanup
             LOG_DEBUG_MSG("Calling write_handler for completed send");
@@ -335,9 +353,20 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
                     chunk_pool_->deallocate(r);
                 }
             }
+            //
+            // when a parcel is deleted, it takes a lock, since we are locking before delete
+            // we must grab a reference to the parcel and keep it alive until we unlock
+            // parcelset::parcel parcel = std::move(send->parcel);
+            // erratum : the parcel destructor takes a lock even when empty, so better
+            // to avoid the lock held detection by using util::ignore_while_checking
             {
-                scoped_lock lock(active_send_mutex);
+                unique_lock lock(active_send_mutex);
+                LOG_TRACE_MSG("Lock 1");
+                util::ignore_while_checking<unique_lock> il(&lock);
                 active_sends.erase(send);
+                lock.unlock();
+                LOG_TRACE_MSG("UnLock 1");
+                active_send_condition.notify_one();
                 LOG_DEBUG_MSG("Active send after erase size " << active_sends.size() );
             }
         }
@@ -349,8 +378,16 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
         void delete_recv_data(active_recv_iterator recv)
         {
             FUNC_START_DEBUG_MSG;
-            parcel_recv_data &recv_data = *recv;
-
+            parcel_recv_data recv_data = std::move(*recv);
+            {
+                unique_lock lock(active_recv_mutex);
+                LOG_TRACE_MSG("Lock 2");
+                active_recvs.erase(recv);
+                lock.unlock();
+                LOG_TRACE_MSG("UnLock 2");
+                LOG_DEBUG_MSG("Active recv after erase size " << active_recvs.size() );
+            }
+            //
             chunk_pool_->deallocate(recv_data.header_region);
             LOG_DEBUG_MSG("Zero copy regions size is (delete) " << recv_data.zero_copy_regions.size());
             for (auto r : recv_data.zero_copy_regions) {
@@ -368,11 +405,6 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
                     chunk_pool_->deallocate(r);
                 }
             }
-            {
-                scoped_lock lock(active_recv_mutex);
-                active_recvs.erase(recv);
-                LOG_DEBUG_MSG("Active recv after erase size " << active_recvs.size() );
-            }
         }
 
         // ----------------------------------------------------------------------------------------------
@@ -383,18 +415,20 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
         // ----------------------------------------------------------------------------------------------
         int handle_verbs_connection(std::pair<uint32_t,uint64_t> qpinfo, RdmaClientPtr client)
         {
-            scoped_lock lock(connection_mutex);
+            unique_lock lock(connection_mutex);
+            LOG_TRACE_MSG("Lock 3");
             LOG_DEBUG_MSG("handle_verbs_connection callback triggered");
             boost::uint32_t dest_ip = client->getRemoteIPv4Address();
             ip_map_iterator ip_it = ip_qp_map.find(dest_ip);
             if (ip_it==ip_qp_map.end()) {
                 ip_qp_map.insert(std::make_pair(dest_ip, qpinfo.first));
-                client->setInitiatedConnection(false);
                 LOG_DEBUG_MSG("handle_verbs_connection OK adding " << ipaddress(dest_ip));
             }
             else {
                 throw std::runtime_error("verbs parcelport : should not be receiving a connection more than once");
             }
+            lock.unlock();
+            LOG_TRACE_MSG("UnLock 3");
             return 0;
         }
 
@@ -406,29 +440,44 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
         int handle_verbs_completion(struct ibv_wc completion, RdmaClient *client)
         {
             uint64_t wr_id = completion.wr_id;
+            LOG_DEBUG_MSG("Handle verbs completion " << hexpointer(wr_id) << RdmaCompletionQueue::wc_opcode_str(completion.opcode));
             //
             // When a send completes, release memory and trigger write_handler
             //
             if (completion.opcode==IBV_WC_SEND) {
                 bool                 found_wr_id;
                 active_send_iterator current_send;
-                {   // locked region : // make sure map isn't modified whilst we are querying it
+                {
+                    // we must be very careful here.
+                    // if the lock is not obtained and this thread is waiting, then
+                    // zero copy Gets might complete and another thread might receive a zero copy
+                    // complete message then delete the current send data whilst we are still waiting
                     scoped_lock lock(SendCompletionMap_mutex);
+                    LOG_TRACE_MSG("Lock 4");
                     send_wr_map::iterator it = SendCompletionMap.find(wr_id);
                     found_wr_id = (it != SendCompletionMap.end());
                     if (found_wr_id) {
                         current_send = it->second;
-                        LOG_DEBUG_MSG("erasing iterator from SendCompletionMap : size before erase " << SendCompletionMap.size());
+                        LOG_DEBUG_MSG("erasing " <<hexpointer(wr_id) << "from SendCompletionMap : size before erase " << SendCompletionMap.size());
                         SendCompletionMap.erase(it);
                     }
                     else {
                         LOG_ERROR_MSG("FATAL : SendCompletionMap did not find " << hexpointer(wr_id));
+                        for (auto & pair : SendCompletionMap) {
+                            std::cout << hexpointer(pair.first) << "\n";
+                        }
                         std::terminate();
                     }
+                    LOG_TRACE_MSG("UnLock 4");
                 }
                 if (found_wr_id) {
                     // if the send had no zero_copy regions, then it has completed
                     if (current_send->zero_copy_regions.empty()) {
+                        LOG_DEBUG_MSG("Deleting send data " << hexpointer(&(*current_send)) << "normal");
+                        delete_send_data(current_send);
+                    }
+                    else if (current_send->delete_flag.test_and_set(std::memory_order_acquire)) {
+                        LOG_DEBUG_MSG("Deleting send data " << hexpointer(&(*current_send)) << "after race detection");
                         delete_send_data(current_send);
                     }
                 }
@@ -446,17 +495,20 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
                 bool                 found_wr_id;
                 active_recv_iterator current_recv;
                 {   // locked region : // make sure map isn't modified whilst we are querying it
-                    scoped_lock lock(ReadCompletionMap_mutex);
+                    unique_lock lock(ReadCompletionMap_mutex);
+                    LOG_TRACE_MSG("Lock 5");
                     recv_wr_map::iterator it = ReadCompletionMap.find(wr_id);
                     found_wr_id = (it != ReadCompletionMap.end());
                     if (found_wr_id) {
                         current_recv = it->second;
-                        LOG_DEBUG_MSG("erasing iterator from ReadCompletionMap : size before erase " << ReadCompletionMap.size());
+                        LOG_DEBUG_MSG("erasing " <<hexpointer(wr_id) << "from ReadCompletionMap : size before erase " << ReadCompletionMap.size());
                         ReadCompletionMap.erase(it);
                     }
                     else {
                         std::terminate();
                     }
+                    lock.unlock();
+                    LOG_TRACE_MSG("UnLock 5");
                 }
                 if (found_wr_id) {
                     parcel_recv_data &recv_data = *current_recv;
@@ -529,6 +581,8 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
                 active_send_iterator current_send;
                 {
                     scoped_lock lock(TagSendCompletionMap_mutex);
+                    util::ignore_while_checking<scoped_lock> il(&lock);
+                    LOG_TRACE_MSG("Lock 6");
                     send_wr_map::iterator it = TagSendCompletionMap.find(tag);
                     if (it==TagSendCompletionMap.end()) {
                         LOG_ERROR_MSG("Tag not present in Send map, FATAL");
@@ -536,9 +590,14 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
                     }
                     current_send = it->second;
                     TagSendCompletionMap.erase(it);
+                    LOG_TRACE_MSG("UnLock 6");
                 }
-                //
-                delete_send_data(current_send);
+                // we cannot delete the send data until we are absolutely sure that
+                // the initial send has been cleaned up
+                if (current_send->delete_flag.test_and_set(std::memory_order_acquire)) {
+                    LOG_DEBUG_MSG("Deleting send data " << hexpointer(&(*current_send)) << "with no race detection");
+                    delete_send_data(current_send);
+                }
                 //
                 _rdmaController->refill_client_receives();
                 return 0;
@@ -560,9 +619,12 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
                 // until all recv operations have completed.
                 active_recv_iterator current_recv;
                 {
-                    scoped_lock lock(active_recv_mutex);
+                    unique_lock lock(active_recv_mutex);
+                    LOG_TRACE_MSG("Lock 7");
                     current_recv = active_recvs.insert(active_recvs.end(), parcel_recv_data());
                     LOG_DEBUG_MSG("Active recv after insert size " << active_recvs.size());
+                    lock.unlock();
+                    LOG_TRACE_MSG("UnLock 7");
                 }
                 parcel_recv_data &recv_data = *current_recv;
                 // get the header of the new message/parcel
@@ -625,8 +687,11 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
                                 LOG_DEBUG_MSG("Zero copy regions size is (create) " << recv_data.zero_copy_regions.size());
                                 // put region into map before posting read in case it completes whilst this thread is suspended
                                 {
-                                    scoped_lock lock(ReadCompletionMap_mutex);
+                                    unique_lock lock(ReadCompletionMap_mutex);
+                                    LOG_TRACE_MSG("Lock 8");
                                     ReadCompletionMap[(uint64_t)get_region] = current_recv;
+                                    lock.unlock();
+                                    LOG_TRACE_MSG("UnLock 8");
                                 }
                                 // overwrite the serialization data to account for the local pointers instead of remote ones
                                 /// post the rdma read/get
@@ -673,6 +738,8 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
                 _rdmaController->refill_client_receives();
                 return 0;
             }
+
+            throw std::runtime_error("Unexpected opcode in handle_verbs_completion");
             return 0;
         }
 
@@ -796,14 +863,19 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
                     }
                 } while (!finished);
 
-                unique_lock lock(stop_mutex);
-                _rdmaController->for_each_client(
-                        [](std::pair<const uint32_t, RdmaClientPtr> &map_pair) {
-                    if (map_pair.second->getInitiatedConnection()) {
-                        _rdmaController->removeServerToServerConnection(map_pair.second);
+                {
+                    unique_lock lock(stop_mutex);
+                    LOG_TRACE_MSG("Lock 9");
+                    _rdmaController->for_each_client(
+                            [](std::pair<const uint32_t, RdmaClientPtr> &map_pair) {
+                        if (map_pair.second->getInitiatedConnection()) {
+                            _rdmaController->removeServerToServerConnection(map_pair.second);
+                        }
                     }
+                    );
+                    lock.unlock();
+                    LOG_TRACE_MSG("UnLock 9");
                 }
-                );
                 // wait for all clients initiated elsewhere to be disconnected
                 while (_rdmaController->num_clients()!=0) {
                     _rdmaController->eventMonitor(0);
@@ -823,7 +895,28 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
         // This must be thread safe in order to function as any thread may invoke an action
         // ----------------------------------------------------------------------------------------------
         void put_parcel(parcelset::locality const & dest, parcel p, write_handler_type f) {
-            // FUNC_START_DEBUG_MSG;
+            FUNC_START_DEBUG_MSG;
+            //
+            // All the parcelport code should run on hpx threads and not OS threads
+            //
+            if (threads::get_self_ptr() == 0) {
+                hpx::apply(&parcelport::put_parcel, this, dest, p, f);
+                return;
+            }
+            {
+                unique_lock lock(active_send_mutex);
+                LOG_DEBUG_MSG("Lock 20");
+                if (active_sends.size()>(HPX_HAVE_PARCELPORT_VERBS_SEND_QUEUE-2)) {
+                    lock.unlock();
+                    LOG_DEBUG_MSG("UnLock 20");
+                    LOG_DEBUG_MSG("Extra HPX Background work");
+                    hpx_background_work();
+                    return;
+                }
+                lock.unlock();
+                LOG_DEBUG_MSG("UnLock 20");
+            }
+
             boost::uint32_t dest_ip = dest.get<locality>().ip_;
             LOG_DEBUG_MSG("Locality " << ipaddress(_ibv_ip) << " put_parcel to " << ipaddress(dest_ip) );
 
@@ -831,8 +924,9 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
             RdmaClientPtr client;
             {
                 // lock this region as we are creating a connection to a remote locality
-                // if two threads attempt to do this at the same time, we'll get multiple clients
-                scoped_lock lock(connection_mutex);
+                // if two threads attempt to do this at the same time, we'll get duplicated clients
+                unique_lock lock(connection_mutex);
+                LOG_TRACE_MSG("Lock 10");
                 ip_map_iterator ip_it = ip_qp_map.find(dest_ip);
                 if (ip_it!=ip_qp_map.end()) {
                     LOG_DEBUG_MSG("Connection found with qp " << ip_it->second);
@@ -841,10 +935,11 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
                 else {
                     LOG_DEBUG_MSG("Connection required to " << ipaddress(dest_ip));
                     client = _rdmaController->makeServerToServerConnection(dest_ip, _rdmaController->getPort());
-                    client->setInitiatedConnection(true);
                     LOG_DEBUG_MSG("Setting qpnum in main client map");
                     ip_qp_map[dest_ip] = client->getQpNum();
                 }
+                lock.unlock();
+                LOG_TRACE_MSG("UnLock 10");
             }
 
             // connection ok, we can now send required info to the remote peer
@@ -862,8 +957,9 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
                 // if the serialization overflows the block, panic and rewrite this.
                 LOG_DEBUG_MSG("Encoding parcel");
                 {
-                    scoped_lock dummy(encode_lock);
+                    LOG_DEBUG_MSG("Calling encode parcels");
                     encode_parcels(&p, std::size_t(-1), buffer, archive_flags_, chunk_pool_->default_chunk_size());
+                    LOG_DEBUG_MSG("Done encode parcels");
                 }
                 buffer.data_point_.time_ = timer.elapsed_nanoseconds();
 
@@ -875,17 +971,31 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
                 // until all send operations have completed.
                 active_send_iterator current_send;
                 {
-                    scoped_lock lock(active_send_mutex);
-                    current_send = active_sends.insert(active_sends.end(), parcel_send_data());
+                    unique_lock lock(active_send_mutex);
+                    LOG_TRACE_MSG("Lock 11");
+
+                    // if more than N parcels are currently queued, then yield
+                    // otherwise we can fill the send queues with so many requests that memory buffers
+                    // are exhausted.
+                    active_send_condition.wait(lock, [this] {
+                      return !active_sends.size()<HPX_HAVE_PARCELPORT_VERBS_SEND_QUEUE;
+                    });
+
+                    active_sends.emplace_back();
+                    current_send = std::prev(active_sends.end());
+//                    current_send = active_sends.insert(active_sends.end(), parcel_send_data());
+                    lock.unlock();
+                    LOG_TRACE_MSG("UnLock 11");
                     LOG_DEBUG_MSG("Active send after insert size " << active_sends.size());
                 }
                 parcel_send_data &send_data = *current_send;
-                send_data.tag     = tag;
-                send_data.parcel  = p;
-                send_data.handler = f;
+                send_data.tag            = tag;
+                send_data.parcel         = p;
+                send_data.handler        = f;
                 send_data.header_region  = NULL;
                 send_data.message_region = NULL;
                 send_data.chunk_region   = NULL;
+                send_data.delete_flag.clear();
 
                 LOG_DEBUG_MSG("Generated unique dest " << hexnumber(dest_ip) << " coded tag " << hexuint32(send_data.tag));
 
@@ -978,6 +1088,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
                 {
                     // add wr_id's to completion map
                     scoped_lock lock(SendCompletionMap_mutex);
+                    LOG_TRACE_MSG("Lock 12");
                     if (SendCompletionMap.find(wr_id) != SendCompletionMap.end()) {
                         LOG_ERROR_MSG("FATAL : wr_id duplicated " << hexpointer(wr_id));
                         std::terminate();
@@ -987,15 +1098,19 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
                     SendCompletionMap[wr_id] = current_send;
                     LOG_DEBUG_MSG("wr_id for send added to WR completion map "
                             << hexpointer(wr_id) << " Entries " << SendCompletionMap.size());
+                    LOG_TRACE_MSG("UnLock 12");
                 }
                 {
                     // if there are zero copy regions, we must hold onto them until the destination tells us
                     // it has completed all rdma Get operations
                     if (!send_data.zero_copy_regions.empty()) {
-                        scoped_lock lock(TagSendCompletionMap_mutex);
+                        unique_lock lock(TagSendCompletionMap_mutex);
+                        LOG_TRACE_MSG("Lock 13");
                         // put the data into a new map which is indexed by the Tag of the send
                         // zero copy blocks will be released when we are told this has completed
                         TagSendCompletionMap[send_data.tag] = current_send;
+                        LOG_TRACE_MSG("UnLock 13");
+                        lock.unlock();
                     }
                 }
 
@@ -1014,10 +1129,41 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
 
                 // parcels_sent_.add_data(buffer.data_point_);
             }
+
+            // after putting a parcel, immediately poll for completions to help
+            // prevent the send queue from becoming full
+            hpx_background_work();
+
             FUNC_END_DEBUG_MSG;
         }
 
-        mutable mutex_type background_mtx;
+        // ----------------------------------------------------------------------------------------------
+        // This is called to poll for completions and handle all incoming messages as well as complete
+        // outgoing messages.
+        //
+        // @TODO : It is assumed that hpx_bakground_work is only going to be called from
+        // an hpx thread.
+        // Since the parcelport can be serviced by hpx threads or by OS threads, we must use extra
+        // care when dealing with mutexes and condition_variables since we do not want to suspend an
+        // OS thread, but we do want to suspend hpx threads when necessary.
+        // ----------------------------------------------------------------------------------------------
+        bool hpx_background_work() {
+            bool done = false;
+            // this must be called on an HPX thread
+            HPX_ASSERT(threads::get_self_ptr() != 0);
+            //
+            do {
+                // if an event comes in, we may spend time processing/handling it and another may arrive
+                // during this handling, so keep checking until none are received
+                done = (_rdmaController->eventMonitor(0) == 0);
+            } while (!done);
+            return true;
+        }
+
+        static bool OS_background_work() {
+            return parcelport::get_singleton()->hpx_background_work();
+        }
+//        HPX_DEFINE_PLAIN_ACTION(parcelport::OS_background_work, background);
 
         // ----------------------------------------------------------------------------------------------
         // This is called whenever a HPX OS thread is idling, can be used to poll for incoming messages
@@ -1026,15 +1172,18 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
         bool do_background_work(std::size_t num_thread) {
             if (stopped_)
                 return false;
-            //        mutex_type::scoped_lock mtx(background_mtx);
-            // if an event comes in, we may spend time processing/handling it and another may arrive
-            // during this handling, so keep checking until none are received
-            bool done = false;
-            do {
-                done = (_rdmaController->eventMonitor(0) == 0);
-            } while (!done);
+            //
+//            background_action background;
+            return hpx::apply(&parcelport::OS_background_work);
             return true;
         }
+
+        static parcelport *get_singleton()
+        {
+            return _parcelport_instance;
+        }
+
+        static parcelport *_parcelport_instance;
 
     private:
 
@@ -1058,6 +1207,8 @@ namespace hpx { namespace parcelset { namespace policies { namespace verbs
 }
 }
 }
+
+//HPX_REGISTER_ACTION(hpx::parcelset::policies::verbs::parcelport::OS_background_work, parcelport_background_action);
 
 namespace hpx {
 namespace traits {
@@ -1130,6 +1281,6 @@ std::string       hpx::parcelset::policies::verbs::parcelport::_ibverbs_device;
 std::string       hpx::parcelset::policies::verbs::parcelport::_ibverbs_interface;
 boost::uint32_t   hpx::parcelset::policies::verbs::parcelport::_ibv_ip;
 boost::uint32_t   hpx::parcelset::policies::verbs::parcelport::_port;
-
+hpx::parcelset::policies::verbs::parcelport *hpx::parcelset::policies::verbs::parcelport::_parcelport_instance;
 
 HPX_REGISTER_PARCELPORT(hpx::parcelset::policies::verbs::parcelport, verbs);
