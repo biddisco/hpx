@@ -42,16 +42,16 @@ namespace hpx { namespace serialization
     struct serialization_chunk
     {
         chunk_data      data_;  // index or pointer
-        std::size_t     size_;  // size of the serialization_chunk starting at index_/pos_
+        std::size_t     size_;  // size of the chunk starting at index_/pos_
         boost::uint8_t  type_;  // chunk_type
-        boost::uint32_t rkey_;  // optional RDMA remote key for parcelport put/get operations
+        boost::uint32_t rkey_;  // optional RDMA remote key for parcelport put/get
     };
 
     ///////////////////////////////////////////////////////////////////////
     inline serialization_chunk create_index_chunk(std::size_t index, std::size_t size)
     {
         serialization_chunk retval = {
-            { 0 }, size, static_cast<boost::uint8_t>(chunk_type_index)
+            { 0 }, size, static_cast<boost::uint8_t>(chunk_type_index), 0
         };
         retval.data_.index_ = index;
         return retval;
