@@ -19,13 +19,33 @@ int hpx_main(boost::program_options::variables_map& vm)
     else
         hpx::cout << "ever.\n" << hpx::flush;
 
+                   
+    int port = boost::lexical_cast<std::size_t>(hpx::get_config_entry("hpx.parcel.port", 0));
+    int agas = boost::lexical_cast<std::size_t>(hpx::get_config_entry("hpx.agas.port", 0));
+    hpx::cout << "Using port number " << port << " and agas " << agas << std::endl;
+
+    uint64_t nranks = hpx::get_num_localities().get();
+
     hpx::util::high_resolution_timer t;
-    while (runfor <= 0 || t.elapsed() < runfor)
+    bool terminate = false;
+    while (!terminate && (runfor <= 0 || t.elapsed() < runfor))
     {
-        hpx::this_thread::suspend(1000);
-        hpx::cout << "." << hpx::flush;
+        hpx::this_thread::suspend(boost::chrono::milliseconds(1000));
+        uint64_t nranks2 = hpx::get_num_localities().get();
+        hpx::cout << "." << nranks2 <<  hpx::flush;
+        std::cout << std::flush;
+        if (nranks2!=nranks) {
+            hpx::cout << "\nRanks changed from " << nranks << " to " << nranks2 << std::endl << std::flush;
+            if (nranks2==1 && nranks==2) {
+              // last client disconnected, so just exit
+              // terminate = true;
+            }
+            nranks=nranks2;
+        }
     }
 
+    hpx::cout <<"\nSleeping before shutdown" << std::endl;
+    hpx::this_thread::sleep_for(boost::chrono::seconds(1));
     hpx::cout << "\n" << hpx::flush;
     return hpx::finalize();
 }
