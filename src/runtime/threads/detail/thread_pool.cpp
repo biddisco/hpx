@@ -48,13 +48,14 @@ namespace hpx { namespace threads { namespace detail
     template <typename Scheduler>
     thread_pool<Scheduler>::thread_pool(Scheduler& sched,
             threads::policies::callback_notifier& notifier,
-            char const* pool_name)
+            char const* pool_name, bool do_background_work)
       : sched_(sched),
         notifier_(notifier),
         pool_name_(pool_name),
         state_(state_starting),
         thread_count_(0),
-        used_processing_units_()
+        used_processing_units_(),
+        do_background_work_(do_background_work)
     {
 #if defined(HPX_HAVE_THREAD_CUMULATIVE_COUNTS) && \
     defined(HPX_HAVE_THREAD_IDLE_RATES)
@@ -499,11 +500,23 @@ namespace hpx { namespace threads { namespace detail
                         executed_thread_phases_[num_thread],
                         tfunc_times_[num_thread], exec_times_[num_thread]);
 
-                    detail::scheduling_loop(
-                        num_thread, sched_, state_, counters,
-                        util::bind(&policies::scheduler_base::idle_callback,
+                    detail::scheduling_callbacks callbacks(
+                        util::bind(
+                            &policies::scheduler_base::idle_callback,
                             &sched_, num_thread
-                        ));
+                        ),
+                        detail::scheduling_callbacks::callback_type());
+
+                    if (do_background_work_)
+                    {
+                        callbacks.background_ = util::bind(
+                            &policies::scheduler_base::background_callback,
+                            &sched_, num_thread);
+                    }
+
+                    sched_.state_ = &state_;
+                    detail::scheduling_loop(num_thread, sched_,
+                        counters, callbacks);
 
                     // the OS thread is allowed to exit only if no more HPX
                     // threads exist or if some other thread has terminated

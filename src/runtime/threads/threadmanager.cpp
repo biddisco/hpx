@@ -139,7 +139,7 @@ namespace hpx { namespace threads
         thread_logger_("threadmanager_impl::register_thread"),
         work_logger_("threadmanager_impl::register_work"),
         set_state_logger_("threadmanager_impl::set_state"),
-        pool_(scheduler, notifier, "main_thread_scheduling_pool"),
+        pool_(scheduler, notifier, "main_thread_scheduling_pool", true),
         notifier_(notifier)
     {}
 
@@ -536,23 +536,21 @@ namespace hpx { namespace threads
             thrd->free_thread_exit_callbacks();
     }
 
-    // Return the executor associated with th egiven thread
+    // Return the executor associated with the given thread
     template <typename SchedulingPolicy>
-    executor threadmanager_impl<SchedulingPolicy>::
+    executors::generic_thread_pool_executor threadmanager_impl<SchedulingPolicy>::
         get_executor(thread_id_type const& thrd, error_code& ec) const
     {
         if (HPX_UNLIKELY(!thrd)) {
             HPX_THROWS_IF(ec, null_thread_id,
                 "threadmanager_impl::get_executor",
                 "NULL thread id encountered");
-            return default_executor();
+            return executors::generic_thread_pool_executor(0);
         }
 
         if (&ec != &throws)
             ec = make_success_code();
 
-        if (0 == thrd)
-            return default_executor();
         return executors::generic_thread_pool_executor(thrd->get_scheduler_base());
     }
 

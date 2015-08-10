@@ -10,6 +10,7 @@
 #include <hpx/runtime/threads/thread_init_data.hpp>
 #include <hpx/runtime/threads/topology.hpp>
 #include <hpx/runtime/threads/policies/affinity_data.hpp>
+#include <hpx/runtime/agas/interface.hpp>
 #include <hpx/util/assert.hpp>
 
 #include <boost/noncopyable.hpp>
@@ -17,6 +18,8 @@
 #include <boost/thread/condition_variable.hpp>
 
 #include <hpx/config/warnings_prefix.hpp>
+
+#include <boost/atomic.hpp>
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx { namespace threads { namespace policies
@@ -53,6 +56,7 @@ namespace hpx { namespace threads { namespace policies
 #if defined(HPX_HAVE_THREAD_MANAGER_IDLE_BACKOFF)
           , wait_count_(0)
 #endif
+          , state_(0)
         {}
 
         virtual ~scheduler_base() {}
@@ -99,6 +103,17 @@ namespace hpx { namespace threads { namespace policies
 #endif
         }
 
+        bool background_callback(std::size_t num_thread)
+        {
+            bool result = false;
+            if (hpx::parcelset::do_background_work(num_thread))
+                result = true;
+
+            if (0 == num_thread)
+                hpx::agas::garbage_collect_non_blocking();
+            return result;
+        }
+
         /// This function gets called by the thread-manager whenever new work
         /// has been added, allowing the scheduler to reactivate one or more of
         /// possibly idling OS threads
@@ -112,6 +127,14 @@ namespace hpx { namespace threads { namespace policies
             else
                 cond_.notify_one();
 #endif
+        }
+
+        hpx::state get_state() const
+        {
+            hpx::state state = hpx::state_stopped;
+            if (state_)
+                state = (*state_).load();
+            return state;
         }
 
         ///////////////////////////////////////////////////////////////////////
@@ -197,6 +220,9 @@ namespace hpx { namespace threads { namespace policies
         boost::condition_variable cond_;
         boost::atomic<boost::uint32_t> wait_count_;
 #endif
+
+    public:
+        boost::atomic<hpx::state>* state_;
     };
 }}}
 

@@ -14,6 +14,8 @@
 #include <hpx/runtime/threads/thread.hpp>
 #include <hpx/runtime/threads/thread_data.hpp>
 #include <hpx/runtime/threads/executors/thread_pool_executors.hpp>
+#include <hpx/runtime/threads/executors/default_executor.hpp>
+#include <hpx/runtime/threads/executors/generic_thread_pool_executor.hpp>
 
 #endif
 
