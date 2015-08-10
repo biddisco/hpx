@@ -51,6 +51,7 @@ struct primary_namespace
         this->base_type::service_non_blocking(this->get_id(), req, priority);
     }
 
+/*
     std::vector<response> bulk_service(
         std::vector<request> const& reqs
       , threads::thread_priority priority = threads::thread_priority_default
@@ -67,6 +68,7 @@ struct primary_namespace
     {
         this->base_type::bulk_service_non_blocking(this->get_id(), reqs, priority);
     }
+*/
 };
 
 }}
