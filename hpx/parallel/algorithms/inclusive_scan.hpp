@@ -107,6 +107,9 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
                 // partition. The second accumulates the result from left to
                 // right to be used by the third step--which operates on the
                 // same partitions the first step operated on.
+//                for (auto it=first; it!=last; ++it) {
+//std::cout << *it << ",";
+//                }; std::cout <<std::endl;
 
                 using hpx::util::get;
                 using hpx::util::make_zip_iterator;

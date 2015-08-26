@@ -92,6 +92,33 @@ void inclusive_scan_test3()
     test_inclusive_scan3<std::input_iterator_tag>();
 }
 
+template <typename IteratorTag>
+void test_inclusive_scan4()
+{
+    using namespace hpx::parallel;
+
+    test_inclusive_scan4(seq, IteratorTag());
+    test_inclusive_scan4(par, IteratorTag());
+    test_inclusive_scan4(par_vec, IteratorTag());
+
+    test_inclusive_scan4_async(seq(task), IteratorTag());
+    test_inclusive_scan4_async(par(task), IteratorTag());
+
+    test_inclusive_scan4(execution_policy(seq), IteratorTag());
+    test_inclusive_scan4(execution_policy(par), IteratorTag());
+    test_inclusive_scan4(execution_policy(par_vec), IteratorTag());
+
+    test_inclusive_scan4(execution_policy(seq(task)), IteratorTag());
+    test_inclusive_scan4(execution_policy(par(task)), IteratorTag());
+}
+
+void inclusive_scan_test4()
+{
+    test_inclusive_scan4<std::random_access_iterator_tag>();
+    test_inclusive_scan4<std::forward_iterator_tag>();
+    test_inclusive_scan4<std::input_iterator_tag>();
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 template <typename IteratorTag>
 void test_inclusive_scan_exception()
@@ -176,6 +203,7 @@ int hpx_main(boost::program_options::variables_map& vm)
     inclusive_scan_test1();
     inclusive_scan_test2();
     inclusive_scan_test3();
+    inclusive_scan_test4();
 
     inclusive_scan_exception_test();
     inclusive_scan_bad_alloc_test();
