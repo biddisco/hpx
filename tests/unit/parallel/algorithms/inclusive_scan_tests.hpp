@@ -196,19 +196,23 @@ void test_inclusive_scan4(ExPolicy policy, IteratorTag)
     typedef std::vector<std::size_t>::iterator base_iterator;
     typedef test::test_iterator<base_iterator, IteratorTag> iterator;
 
-    std::vector<double> c(100);
+    const int ARRAY_SIZE=100;
+    std::vector<double> c(ARRAY_SIZE);
     std::vector<double> d(c.size());
     std::fill(boost::begin(c), boost::end(c), double(1.01));
 
+    int mid = ARRAY_SIZE/2;
+    c[mid] = 0.0;
+    
     hpx::parallel::inclusive_scan(policy,
-        iterator(boost::begin(c)), iterator(boost::end(c)), boost::begin(d),
-        std::multiply<multiply>());
+        boost::begin(c), boost::end(c), boost::begin(d),
+        1.0, std::multiplies<double>());
 
     // verify values
     std::vector<double> e(c.size());
     hpx::parallel::v1::detail::sequential_inclusive_scan(
-        boost::begin(c), boost::end(c), boost::begin(e), 0.0,
-        std::multiply<multiply>());
+        boost::begin(c), boost::end(c), boost::begin(e), 1.0,
+        std::multiplies<double>());
 
     HPX_TEST(std::equal(boost::begin(d), boost::end(d), boost::begin(e)));
 }
@@ -219,22 +223,26 @@ void test_inclusive_scan4_async(ExPolicy p, IteratorTag)
     typedef std::vector<std::size_t>::iterator base_iterator;
     typedef test::test_iterator<base_iterator, IteratorTag> iterator;
 
-    std::vector<double> c(100);
+    const int ARRAY_SIZE=100;
+    std::vector<double> c(ARRAY_SIZE);
     std::vector<double> d(c.size());
     std::fill(boost::begin(c), boost::end(c), double(1.01));
-
+    
+    int mid = ARRAY_SIZE/2;
+    c[mid] = 0.0;
+    
     hpx::future<void> f =
-        hpx::parallel::inclusive_scan(p,
-            iterator(boost::begin(c)), iterator(boost::end(c)), boost::begin(d),
-            std::multiply<multiply>());
+    hpx::parallel::inclusive_scan(p,
+            boost::begin(c), boost::end(c), boost::begin(d),
+            1.0, std::multiplies<double>());
 
     f.wait();
 
     // verify values
     std::vector<double> e(c.size());
     hpx::parallel::v1::detail::sequential_inclusive_scan(
-        boost::begin(c), boost::end(c), boost::begin(e), 0.0,
-        std::multiply<multiply>());
+        boost::begin(c), boost::end(c), boost::begin(e), 1.0,
+        std::multiplies<double>());
 
     HPX_TEST(std::equal(boost::begin(d), boost::end(d), boost::begin(e)));
 }
