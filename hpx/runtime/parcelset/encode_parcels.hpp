@@ -26,7 +26,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include "plugins/parcelport/verbs/rdmahelper/include/RdmaLogging.h"
 
 namespace hpx
 {
@@ -95,32 +94,30 @@ namespace hpx
                 chunks.clear();
                 chunks.reserve(buffer.chunks_.size());
 
-            std::size_t index = 0;
-            for (serialization::serialization_chunk& c : buffer.chunks_)
-            {
-                if (c.type_ == serialization::chunk_type_pointer)
-                    chunks.push_back(transmission_chunk_type(index, c.size_));
-                ++index;
-            }
-            LOG_DEBUG_MSG("Encode finalize : zero-copy chunks " << decnumber(chunks.size()));
+                std::size_t index = 0;
+                for (serialization::serialization_chunk& c : buffer.chunks_)
+                {
+                    if (c.type_ == serialization::chunk_type_pointer)
+                        chunks.push_back(transmission_chunk_type(index, c.size_));
+                    ++index;
+                }
 
                 buffer.num_chunks_ = count_chunks_type(
                     static_cast<boost::uint32_t>(chunks.size()),
                     static_cast<boost::uint32_t>(buffer.chunks_.size() - chunks.size())
                 );
 
-            if (!chunks.empty()) {
-                // the remaining number of chunks are non-zero-copy
-                for (serialization::serialization_chunk& c : buffer.chunks_)
-                {
-                    if (c.type_ == serialization::chunk_type_index) {
-                        chunks.push_back(
-                            transmission_chunk_type(c.data_.index_, c.size_));
+                if (!chunks.empty()) {
+                    // the remaining number of chunks are non-zero-copy
+                    for (serialization::serialization_chunk& c : buffer.chunks_)
+                    {
+                        if (c.type_ == serialization::chunk_type_index) {
+                            chunks.push_back(
+                                transmission_chunk_type(c.data_.index_, c.size_));
+                        }
                     }
                 }
             }
-            LOG_DEBUG_MSG("Encode finalize : total chunks " << decnumber(chunks.size()));
-        }
 
             inline std::size_t
             get_archive_size(parcel const& p, boost::uint32_t flags,
@@ -164,9 +161,10 @@ namespace hpx
                         archive_flags |= serialization::enable_compression;
 
                     // Get the chunk size from the allocator if it supports it
-                    size_t chunk_default = hpx::traits::default_chunk_size<
-                            typename Buffer::allocator_type
-                        >::call(buffer.data_.get_allocator());
+//                    size_t chunk_default = hpx::traits::default_chunk_size<
+//                            typename Buffer::allocator_type
+//                        >::call(buffer.data_.get_allocator());
+                    size_t chunk_default = 0;
 
                     // preallocate data
                     for (/**/; parcels_sent != parcels_size; ++parcels_sent)
@@ -252,7 +250,6 @@ namespace hpx
             }
 
             buffer.data_point_.num_parcels_ = parcels_sent;
-            LOG_DEBUG_MSG("Inside encode parcels with num_parcels_sent " << decnumber(buffer.data_point_.num_parcels_));
             detail::encode_finalize(buffer, arg_size);
 
             return parcels_sent;
