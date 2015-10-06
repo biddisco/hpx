@@ -29,8 +29,8 @@ set(CMAKE_USER_MAKE_RULES_OVERRIDE_CXX
 ################################################################################
 # Fortran overrides
 ################################################################################
-set(CMAKE_USER_MAKE_RULES_OVERRIDE_Fortran
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/HPX_FortranOverrides.cmake")
+#set(CMAKE_USER_MAKE_RULES_OVERRIDE_Fortran
+#    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/HPX_FortranOverrides.cmake")
 
 ################################################################################
 # Build type (needs to be handled before project command below)
@@ -86,7 +86,7 @@ endif()
 ################################################################################
 # Fortran compiler detection
 #
-include(HPX_FortranCompiler)
+#include(HPX_FortranCompiler)
 ################################################################################
 
 ################################################################################
