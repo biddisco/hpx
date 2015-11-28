@@ -197,10 +197,11 @@ namespace hpx { namespace parcelset
         Parcelport & pp
       , Buffer buffer
       , std::size_t parcel_count
+      , std::size_t num_thread = -1
     )
     {
         std::vector<serialization::serialization_chunk> chunks(decode_chunks(buffer));
-        decode_message_with_chunks(pp, std::move(buffer), parcel_count, chunks);
+        decode_message_with_chunks(pp, std::move(buffer), parcel_count, chunks, num_thread);
     }
 
     template <typename Parcelport, typename Buffer>
