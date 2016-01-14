@@ -9,10 +9,8 @@
 #include <hpx/parallel/executors.hpp>
 //
 #include <hpx/parallel/algorithms/sort.hpp>
-#include <hpx/parallel/algorithms/detail/tuple_iterator.hpp>
 #include <hpx/parallel/algorithms/prefix_scan.hpp>
 #include <hpx/parallel/algorithms/inclusive_scan.hpp>
-#include <hpx/parallel/algorithms/exclusive_scan.hpp>
 #include <hpx/parallel/util/zip_iterator.hpp>
 #include <hpx/util/transform_iterator.hpp>
 #include <hpx/util/tuple.hpp>
