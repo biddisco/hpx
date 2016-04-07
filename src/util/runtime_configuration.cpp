@@ -29,6 +29,8 @@
 #include <boost/spirit/include/qi_alternative.hpp>
 #include <boost/spirit/include/qi_sequence.hpp>
 
+#include <string>
+
 #if defined(HPX_WINDOWS)
 #  include <process.h>
 #elif defined(HPX_HAVE_UNISTD_H)
@@ -59,7 +61,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 #if defined(__linux) || defined(linux) || defined(__linux__)\
          || defined(__FreeBSD__) || defined(__APPLE__)
-namespace hpx { namespace util { namespace coroutines { namespace detail
+namespace hpx { namespace threads { namespace coroutines { namespace detail
 {
     namespace posix
     {
@@ -112,7 +114,7 @@ namespace hpx { namespace util
 
             // create system and application instance specific entries
             "[system]",
-            "pid = " + boost::lexical_cast<std::string>(getpid()),
+            "pid = " + std::to_string(getpid()),
             "prefix = " + find_prefix(),
 #if defined(__linux) || defined(linux) || defined(__linux__)
             "executable_prefix = " + get_executable_prefix(argv0),
@@ -181,6 +183,10 @@ namespace hpx { namespace util
             "numa_sensitive = 0",
             "max_background_threads = ${MAX_BACKGROUND_THREADS:$[hpx.os_threads]}",
 
+            // connect back to the given latch if specified
+            "[hpx.on_startup]",
+            "wait_on_latch = ${HPX_ON_STARTUP_WAIT_ON_LATCH}",
+
             "[hpx.stacks]",
             "small_size = ${HPX_SMALL_STACK_SIZE:"
                 BOOST_PP_STRINGIZE(HPX_SMALL_STACK_SIZE) "}",
@@ -235,7 +241,9 @@ namespace hpx { namespace util
             "-9 = --hpx:node=9",
 
             "[hpx.agas]",
-            "address = ${HPX_AGAS_SERVER_ADDRESS:" HPX_INITIAL_IP_ADDRESS "}",
+            // 'address' has deliberately no default, see
+            // command_line_handling.cpp
+            "address = ${HPX_AGAS_SERVER_ADDRESS}",
             "port = ${HPX_AGAS_SERVER_PORT:"
                 BOOST_PP_STRINGIZE(HPX_INITIAL_IP_PORT) "}",
             "max_pending_refcnt_requests = "
@@ -451,7 +459,8 @@ namespace hpx { namespace util
         huge_stacksize = init_huge_stack_size();
 
 #if defined(__linux) || defined(linux) || defined(__linux__) || defined(__FreeBSD__)
-        coroutines::detail::posix::use_guard_pages = init_use_stack_guard_pages();
+        threads::coroutines::detail::posix::use_guard_pages =
+            init_use_stack_guard_pages();
 #endif
 #ifdef HPX_HAVE_VERIFY_LOCKS
         if (enable_lock_detection())
@@ -511,7 +520,8 @@ namespace hpx { namespace util
         huge_stacksize = init_huge_stack_size();
 
 #if defined(__linux) || defined(linux) || defined(__linux__) || defined(__FreeBSD__)
-        coroutines::detail::posix::use_guard_pages = init_use_stack_guard_pages();
+        threads::coroutines::detail::posix::use_guard_pages =
+            init_use_stack_guard_pages();
 #endif
 #ifdef HPX_HAVE_VERIFY_LOCKS
         if (enable_lock_detection())
@@ -599,7 +609,7 @@ namespace hpx { namespace util
             util::section* sec = get_section("hpx");
             if (NULL != sec) {
                 sec->add_entry("localities",
-                    boost::lexical_cast<std::string>(num_localities));
+                    std::to_string(num_localities));
             }
         }
     }
@@ -623,7 +633,7 @@ namespace hpx { namespace util
             util::section* sec = get_section("hpx");
             if (NULL != sec) {
                 sec->add_entry("first_used_core",
-                    boost::lexical_cast<std::string>(first_used_core));
+                    std::to_string(first_used_core));
             }
         }
     }

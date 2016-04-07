@@ -46,7 +46,7 @@ void plain_actions(hpx::id_type const& there)
         HPX_TEST(there == f2.get());
     }
 
-    BOOST_SCOPED_ENUM(hpx::launch) policies[] =
+    hpx::launch policies[] =
     {
         hpx::launch::async,
 //        hpx::launch::deferred,    // FIXME: enable once #1523 has been fixed
@@ -99,7 +99,7 @@ int main(int argc, char* argv[])
     using namespace boost::assign;
     std::vector<std::string> cfg;
     cfg += "hpx.os_threads=" +
-        boost::lexical_cast<std::string>(hpx::threads::hardware_concurrency());
+        std::to_string(hpx::threads::hardware_concurrency());
 
     // Initialize and run HPX
     HPX_TEST_EQ_MSG(hpx::init(argc, argv, cfg), 0,

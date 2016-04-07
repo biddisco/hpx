@@ -8,7 +8,6 @@
 #define HPX_RUNTIME_PARCELSET_DETAIL_CALL_FOR_EACH_HPP
 
 #include <hpx/runtime/parcelset/parcelport.hpp>
-#include <hpx/util/move.hpp>
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx { namespace parcelset
@@ -18,7 +17,7 @@ namespace hpx { namespace parcelset
     {
         struct call_for_each
         {
-            HPX_MOVABLE_BUT_NOT_COPYABLE(call_for_each);
+            HPX_MOVABLE_ONLY(call_for_each);
         public:
             typedef void result_type;
 

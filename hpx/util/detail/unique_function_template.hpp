@@ -25,19 +25,19 @@ namespace hpx { namespace util { namespace detail
     struct unique_function_vtable_ptr
     {
         typename callable_vtable<Sig>::invoke_t invoke;
+        typename callable_vtable<Sig>::get_function_address_t get_function_address;
         vtable::get_type_t get_type;
         vtable::destruct_t destruct;
         vtable::delete_t delete_;
-        vtable::get_function_address_t get_function_address;
         bool empty;
 
         template <typename T>
         unique_function_vtable_ptr(construct_vtable<T>) HPX_NOEXCEPT
           : invoke(&callable_vtable<Sig>::template invoke<T>)
+          , get_function_address(&callable_vtable<Sig>::template get_function_address<T>)
           , get_type(&vtable::template get_type<T>)
           , destruct(&vtable::template destruct<T>)
           , delete_(&vtable::template delete_<T>)
-          , get_function_address(&vtable::template get_function_address<T>)
           , empty(std::is_same<T, empty_function<Sig> >::value)
         {}
 
@@ -71,7 +71,7 @@ namespace hpx { namespace util
         typedef detail::unique_function_vtable_ptr<R(Ts...)> vtable_ptr;
         typedef detail::basic_function<vtable_ptr, R(Ts...), Serializable> base_type;
 
-        HPX_MOVABLE_BUT_NOT_COPYABLE(unique_function)
+        HPX_MOVABLE_ONLY(unique_function);
 
     public:
         typedef typename base_type::result_type result_type;
@@ -144,7 +144,7 @@ namespace hpx { namespace util
     {
         typedef unique_function<R(Ts...), false> base_type;
 
-        HPX_MOVABLE_BUT_NOT_COPYABLE(unique_function_nonser);
+        HPX_MOVABLE_ONLY(unique_function_nonser);
 
     public:
         unique_function_nonser() HPX_NOEXCEPT
@@ -206,6 +206,7 @@ namespace hpx { namespace traits
         }
     };
 
+#   ifndef HPX_HAVE_CXX11_ALIAS_TEMPLATES
     template <typename Sig>
     struct get_function_address<util::unique_function_nonser<Sig> >
     {
@@ -215,6 +216,7 @@ namespace hpx { namespace traits
             return f.get_function_address();
         }
     };
+#   endif /*HPX_HAVE_CXX11_ALIAS_TEMPLATES*/
 }}
 
 #endif

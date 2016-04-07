@@ -43,7 +43,7 @@ struct wait_op
 
 ///////////////////////////////////////////////////////////////////////////////
 template <typename Policy, typename Vector>
-boost::uint64_t foreach_vector(Policy const& policy, Vector const& v)
+boost::uint64_t foreach_vector(Policy && policy, Vector const& v)
 {
     typedef typename Vector::value_type value_type;
 
@@ -129,7 +129,7 @@ int main(int argc, char* argv[])
     //initialize program
     std::vector<std::string> cfg;
     cfg.push_back("hpx.os_threads=" +
-        boost::lexical_cast<std::string>(hpx::threads::hardware_concurrency()));
+        std::to_string(hpx::threads::hardware_concurrency()));
     boost::program_options::options_description cmdline(
         "usage: " HPX_APPLICATION_STRING " [options]");
 

@@ -16,6 +16,21 @@
 #include <type_traits>
 #include <utility>
 
+///////////////////////////////////////////////////////////////////////////////
+namespace hpx { namespace traits { namespace detail
+{
+    template <typename T>
+    struct is_deferred_callable;
+
+    template <typename F, typename ...Ts>
+    struct is_deferred_callable<F(Ts...)>
+      : is_callable<
+            typename util::decay_unwrap<F>::type(
+                typename util::decay_unwrap<Ts>::type...)
+        >
+    {};
+}}}
+
 namespace hpx { namespace util
 {
     ///////////////////////////////////////////////////////////////////////////
@@ -56,9 +71,8 @@ namespace hpx { namespace util
             {}
 #endif
 
-#if defined(HPX_HAVE_CXX11_DELETED_FUNCTIONS)
-            deferred& operator=(deferred&&) = delete;
-#endif
+            HPX_DELETE_COPY_ASSIGN(deferred);
+            HPX_DELETE_MOVE_ASSIGN(deferred);
 
             inline typename deferred_result_of<F(Ts...)>::type
             operator()()

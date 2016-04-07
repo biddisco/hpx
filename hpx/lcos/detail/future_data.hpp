@@ -16,13 +16,11 @@
 #include <hpx/runtime/get_worker_thread_num.hpp>
 #include <hpx/util/bind.hpp>
 #include <hpx/util/decay.hpp>
-#include <hpx/util/move.hpp>
 #include <hpx/util/unused.hpp>
 #include <hpx/util/unique_function.hpp>
 #include <hpx/util/deferred_call.hpp>
 
 #include <boost/detail/atomic_count.hpp>
-#include <boost/detail/scoped_enum_emulation.hpp>
 #include <boost/exception_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/math/common_factor_ct.hpp>
@@ -37,11 +35,10 @@
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx { namespace lcos
 {
-    BOOST_SCOPED_ENUM_START(future_status)
+    enum class future_status
     {
         ready, timeout, deferred, uninitialized
     };
-    BOOST_SCOPED_ENUM_END
 }}
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -177,7 +174,7 @@ namespace detail
     template <typename F1, typename F2>
     class compose_cb_impl
     {
-        HPX_MOVABLE_BUT_NOT_COPYABLE(compose_cb_impl)
+        HPX_MOVABLE_ONLY(compose_cb_impl);
 
     public:
         template <typename A1, typename A2>
@@ -244,7 +241,7 @@ namespace detail
     template <typename Result>
     struct future_data : future_data_refcnt_base
     {
-        HPX_NON_COPYABLE(future_data)
+        HPX_NON_COPYABLE(future_data);
 
         typedef typename future_data_result<Result>::type result_type;
         typedef util::unique_function_nonser<void()> completed_callback_type;
@@ -580,17 +577,15 @@ namespace detail
 
             // block if this entry is empty
             if (state_ == empty) {
-                cond_.wait(l, "future_data::wait", ec);
+                cond_.wait(std::move(l), "future_data::wait", ec);
                 if (ec) return;
-
-                HPX_ASSERT(state_ != empty);
             }
 
             if (&ec != &throws)
                 ec = make_success_code();
         }
 
-        virtual BOOST_SCOPED_ENUM(future_status)
+        virtual future_status
         wait_until(boost::chrono::steady_clock::time_point const& abs_time,
             error_code& ec = throws)
         {
@@ -599,13 +594,13 @@ namespace detail
             // block if this entry is empty
             if (state_ == empty) {
                 threads::thread_state_ex_enum const reason =
-                    cond_.wait_until(l, abs_time, "future_data::wait_until", ec);
+                    cond_.wait_until(std::move(l), abs_time,
+                        "future_data::wait_until", ec);
                 if (ec) return future_status::uninitialized;
 
                 if (reason == threads::wait_timeout)
                     return future_status::timeout;
 
-                HPX_ASSERT(state_ != empty);
                 return future_status::ready;
             }
 
@@ -738,7 +733,7 @@ namespace detail
             this->future_data<Result>::wait(ec);
         }
 
-        virtual BOOST_SCOPED_ENUM(future_status)
+        virtual future_status
         wait_until(boost::chrono::steady_clock::time_point const& abs_time,
             error_code& ec = throws)
         {
@@ -786,7 +781,7 @@ namespace detail
         }
 
         // run in a separate thread
-        virtual void apply(BOOST_SCOPED_ENUM(launch) policy,
+        virtual void apply(launch policy,
             threads::thread_priority priority,
             threads::thread_stacksize stacksize, error_code& ec)
         {

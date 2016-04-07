@@ -13,7 +13,6 @@
 #include <hpx/runtime/threads/thread.hpp>
 #include <hpx/lcos/local/shared_mutex.hpp>
 #include <hpx/lcos/local/mutex.hpp>
-#include <hpx/util/move.hpp>
 
 #include <boost/thread/locks.hpp>
 
@@ -31,7 +30,7 @@ namespace test
     class thread_group
     {
     private:
-        HPX_MOVABLE_BUT_NOT_COPYABLE(thread_group);
+        HPX_MOVABLE_ONLY(thread_group);
 
         typedef hpx::lcos::local::shared_mutex mutex_type;
 

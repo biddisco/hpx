@@ -21,6 +21,7 @@
 #include <hpx/runtime/agas/big_boot_barrier.hpp>
 #include <hpx/runtime/get_config_entry.hpp>
 #include <hpx/include/performance_counters.hpp>
+#include <hpx/lcos/latch.hpp>
 
 #include <boost/bind.hpp>
 #include <boost/cstdint.hpp>
@@ -32,6 +33,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <string>
 #include <vector>
 
 #if defined(_WIN64) && defined(_DEBUG) && !defined(HPX_HAVE_FIBER_BASED_COROUTINES)
@@ -258,6 +260,17 @@ namespace hpx {
 
             error_code ec(lightweight);     // ignore errors
             evaluate_active_counters(reset, "startup", ec);
+        }
+
+        // Connect back to given latch if specified
+        std::string connect_back_to(
+            get_config_entry("hpx.on_startup.wait_on_latch", ""));
+        if (!connect_back_to.empty())
+        {
+            // inform launching process that this locality is up and running
+            hpx::lcos::latch l;
+            l.connect_to(connect_back_to);
+            l.count_down_and_wait();
         }
 
         // Now, execute the user supplied thread function (hpx_main)
@@ -615,7 +628,7 @@ namespace hpx {
             std::string* fullname = new std::string(context);
             if (postfix && *postfix)
                 *fullname += postfix;
-            *fullname += "#" + boost::lexical_cast<std::string>(num);
+            *fullname += "#" + std::to_string(num);
             runtime::thread_name_.reset(fullname);
 
             char const* name = runtime::thread_name_.get()->c_str();
@@ -624,7 +637,7 @@ namespace hpx {
             thread_support_->register_thread(name);
 
             // initialize coroutines context switcher
-            hpx::util::coroutines::thread_startup(name);
+            hpx::threads::coroutines::thread_startup(name);
 
             // register this thread with any possibly active Intel tool
             HPX_ITT_THREAD_SET_NAME(name);
@@ -661,7 +674,7 @@ namespace hpx {
     void runtime_impl<SchedulingPolicy>::deinit_tss()
     {
         // initialize coroutines context switcher
-        hpx::util::coroutines::thread_shutdown();
+        hpx::threads::coroutines::thread_shutdown();
 
         // reset applier TSS
         applier_.deinit_tss();

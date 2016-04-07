@@ -1,4 +1,4 @@
-//  Copyright (c) 2007-2015 Hartmut Kaiser
+//  Copyright (c) 2007-2016 Hartmut Kaiser
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -9,7 +9,6 @@
 #define HPX_PARALLEL_DETAIL_FOR_EACH_MAY_29_2014_0932PM
 
 #include <hpx/config.hpp>
-#include <hpx/util/move.hpp>
 #include <hpx/util/invoke.hpp>
 #include <hpx/traits/segmented_iterator_traits.hpp>
 #include <hpx/traits/is_callable.hpp>
@@ -29,10 +28,6 @@
 #include <algorithm>
 #include <iterator>
 #include <type_traits>
-
-#include <boost/utility/enable_if.hpp>
-#include <boost/type_traits/is_base_of.hpp>
-#include <boost/type_traits/is_same.hpp>
 
 namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
 {
@@ -64,13 +59,13 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
             template <typename ExPolicy, typename F,
                 typename Proj = util::projection_identity>
             static typename util::detail::algorithm_result<ExPolicy, Iter>::type
-            parallel(ExPolicy policy, Iter first, std::size_t count,
+            parallel(ExPolicy && policy, Iter first, std::size_t count,
                 F && f, Proj && proj = Proj())
             {
                 if (count != 0)
                 {
                     return util::foreach_partitioner<ExPolicy>::call(
-                        policy, first, count,
+                        std::forward<ExPolicy>(policy), first, count,
                         [f, proj](std::size_t /*part_index*/,
                             Iter part_begin, std::size_t part_size)
                         {
@@ -182,11 +177,8 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
     for_each_n(ExPolicy && policy, InIter first, Size count, F && f,
         Proj && proj = Proj())
     {
-        typedef typename std::iterator_traits<InIter>::iterator_category
-            iterator_category;
-
         static_assert(
-            (boost::is_base_of<std::input_iterator_tag, iterator_category>::value),
+            (hpx::traits::is_input_iterator<InIter>::value),
             "Requires at least input iterator.");
 
         // if count is representing a negative value, we do nothing
@@ -196,10 +188,10 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
                 std::move(first));
         }
 
-        typedef typename boost::mpl::or_<
-            is_sequential_execution_policy<ExPolicy>,
-            boost::is_same<std::input_iterator_tag, iterator_category>
-        >::type is_seq;
+        typedef std::integral_constant<bool,
+                is_sequential_execution_policy<ExPolicy>::value ||
+               !hpx::traits::is_forward_iterator<InIter>::value
+            > is_seq;
 
         return detail::for_each_n<InIter>().call(
             std::forward<ExPolicy>(policy), is_seq(),
@@ -244,11 +236,11 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
             template <typename ExPolicy, typename InIter, typename F,
                 typename Proj>
             static typename util::detail::algorithm_result<ExPolicy, InIter>::type
-            parallel(ExPolicy policy, InIter first, InIter last, F && f,
+            parallel(ExPolicy && policy, InIter first, InIter last, F && f,
                 Proj && proj)
             {
                 return detail::for_each_n<Iter>().call(
-                    policy, boost::mpl::false_(),
+                    std::forward<ExPolicy>(policy), std::false_type(),
                     first, std::distance(first, last), std::forward<F>(f),
                     std::forward<Proj>(proj));
             }
@@ -256,19 +248,15 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
 
         ///////////////////////////////////////////////////////////////////////
         // non-segmented implementation
-        template <typename ExPolicy, typename InIter, typename F,
-            typename Proj>
+        template <typename ExPolicy, typename InIter, typename F, typename Proj>
         inline typename util::detail::algorithm_result<ExPolicy, InIter>::type
         for_each_(ExPolicy && policy, InIter first, InIter last, F && f,
             Proj && proj, std::false_type)
         {
-            typedef typename std::iterator_traits<InIter>::iterator_category
-                iterator_category;
-
-            typedef typename boost::mpl::or_<
-                parallel::is_sequential_execution_policy<ExPolicy>,
-                boost::is_same<std::input_iterator_tag, iterator_category>
-            >::type is_seq;
+            typedef std::integral_constant<bool,
+                    parallel::is_sequential_execution_policy<ExPolicy>::value ||
+                   !hpx::traits::is_forward_iterator<InIter>::value
+                > is_seq;
 
             if (first == last)
             {
@@ -282,8 +270,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
         }
 
         // forward declare the segmented version of this algorithm
-        template <typename ExPolicy, typename SegIter, typename F,
-            typename Proj>
+        template <typename ExPolicy, typename SegIter, typename F, typename Proj>
         inline typename util::detail::algorithm_result<ExPolicy, SegIter>::type
         for_each_(ExPolicy && policy, SegIter first, SegIter last, F && f,
             Proj && proj, std::true_type);
@@ -376,15 +363,11 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
     for_each(ExPolicy && policy, InIter first, InIter last, F && f,
         Proj && proj = Proj())
     {
-        typedef typename std::iterator_traits<InIter>::iterator_category
-            iterator_category;
-
         static_assert(
-            (boost::is_base_of<std::input_iterator_tag, iterator_category>::value),
+            (hpx::traits::is_input_iterator<InIter>::value),
             "Requires at least input iterator.");
 
-        typedef hpx::traits::segmented_iterator_traits<InIter> iterator_traits;
-        typedef typename iterator_traits::is_segmented_iterator is_segmented;
+        typedef hpx::traits::is_segmented_iterator<InIter> is_segmented;
 
         return detail::for_each_(
             std::forward<ExPolicy>(policy), first, last,

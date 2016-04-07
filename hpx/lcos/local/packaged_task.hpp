@@ -15,7 +15,6 @@
 #include <hpx/traits/is_callable.hpp>
 #include <hpx/util/decay.hpp>
 #include <hpx/util/deferred_call.hpp>
-#include <hpx/util/move.hpp>
 
 #include <boost/intrusive_ptr.hpp>
 #include <boost/mpl/bool.hpp>
@@ -65,7 +64,7 @@ namespace hpx { namespace lcos { namespace local
 
         protected:
             // run in a separate thread
-            void apply(BOOST_SCOPED_ENUM(launch) policy,
+            void apply(launch policy,
                 threads::thread_priority priority,
                 threads::thread_stacksize stacksize, error_code& ec)
             {
@@ -134,7 +133,7 @@ namespace hpx { namespace lcos { namespace local
 
         protected:
             // run in a separate thread
-            void apply(BOOST_SCOPED_ENUM(launch) policy,
+            void apply(launch policy,
                 threads::thread_priority priority,
                 threads::thread_stacksize stacksize, error_code& ec)
             {
@@ -275,7 +274,7 @@ namespace hpx { namespace lcos { namespace local
         typedef lcos::detail::task_base<Result> task_impl_type;
 
     private:
-        HPX_MOVABLE_BUT_NOT_COPYABLE(futures_factory)
+        HPX_MOVABLE_ONLY(futures_factory);
 
     public:
         // support for result_of
@@ -345,7 +344,7 @@ namespace hpx { namespace lcos { namespace local
 
         // asynchronous execution
         void apply(
-            BOOST_SCOPED_ENUM(launch) policy = launch::async,
+            launch policy = launch::async,
             threads::thread_priority priority = threads::thread_priority_default,
             threads::thread_stacksize stacksize = threads::thread_stacksize_default,
             error_code& ec = throws) const
@@ -398,7 +397,7 @@ namespace hpx { namespace lcos { namespace local
         class packaged_task_base
         {
         private:
-            HPX_MOVABLE_BUT_NOT_COPYABLE(packaged_task_base)
+            HPX_MOVABLE_ONLY(packaged_task_base);
 
         public:
             // construction and destruction
@@ -522,7 +521,7 @@ namespace hpx { namespace lcos { namespace local
     class packaged_task<R(Ts...)>
       : private detail::packaged_task_base<R, R(Ts...)>
     {
-        HPX_MOVABLE_BUT_NOT_COPYABLE(packaged_task)
+        HPX_MOVABLE_ONLY(packaged_task);
 
         typedef detail::packaged_task_base<R, R(Ts...)> base_type;
 

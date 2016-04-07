@@ -43,7 +43,6 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/ref.hpp>
 
 #include <sstream>
@@ -931,10 +930,10 @@ void big_boot_barrier::notify()
     runtime& rt = get_runtime();
     naming::resolver_client& agas_client = rt.get_agas_client();
 
-    if (agas_client.get_status() == state_starting)
     {
         boost::lock_guard<boost::mutex> lk(mtx, boost::adopt_lock);
-        --connected;
+        if (agas_client.get_status() == state_starting)
+            --connected;
     }
     cond.notify_all();
 }

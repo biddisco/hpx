@@ -10,7 +10,6 @@
 #include <hpx/config.hpp>
 #include <hpx/runtime/naming/name.hpp>
 #include <hpx/runtime/naming/address.hpp>
-#include <hpx/util/move.hpp>
 #include <hpx/util/thread_description.hpp>
 
 namespace hpx { namespace threads
@@ -21,7 +20,7 @@ namespace hpx { namespace threads
     ///////////////////////////////////////////////////////////////////////////
     class thread_init_data
     {
-        HPX_MOVABLE_BUT_NOT_COPYABLE(thread_init_data)
+        HPX_MOVABLE_ONLY(thread_init_data);
 
     public:
         thread_init_data()
