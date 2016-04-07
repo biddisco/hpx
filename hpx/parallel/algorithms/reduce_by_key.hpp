@@ -11,6 +11,7 @@
 #include <hpx/parallel/algorithms/sort.hpp>
 #include <hpx/parallel/algorithms/prefix_scan.hpp>
 #include <hpx/parallel/algorithms/inclusive_scan.hpp>
+#include <hpx/parallel/algorithms/prefix_copy_if.hpp>
 #include <hpx/parallel/util/zip_iterator.hpp>
 #include <hpx/util/transform_iterator.hpp>
 #include <hpx/util/tuple.hpp>
@@ -163,31 +164,6 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
                                               std::next(val_start, std::distance(key_start, key_end)));
                     });
         }
-
-        // when we are being run with an asynchronous policy, we do not want to
-        // pass the policy directly to other algorithms we are using - as we
-        // would have wait internally on them before proceeding.
-        // Instead create a new policy from the old one which removes the async/future
-
-        template <typename ExPolicy>
-        struct remove_asynchronous {
-            typedef ExPolicy type;
-        };
-
-        template <>
-        struct remove_asynchronous<hpx::parallel::parallel_vector_execution_policy> {
-            typedef hpx::parallel::parallel_execution_policy type;
-        };
-
-        template <>
-        struct remove_asynchronous<hpx::parallel::sequential_task_execution_policy> {
-            typedef hpx::parallel::sequential_execution_policy type;
-        };
-
-        template <>
-        struct remove_asynchronous<hpx::parallel::parallel_task_execution_policy> {
-            typedef hpx::parallel::parallel_execution_policy type;
-        };
 
         /// \endcond
     }
@@ -429,7 +405,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
             // @TODO : fix this to write keys to output array instead of input
             auto return_val = make_pair_result(
                 std::move(hpx::parallel::copy_if(
-                    sync_policy,
+            hpx::parallel::seq,
                     make_zip_iterator(
                         key_first, values_output, std::begin(keystate)),
                     make_zip_iterator(
