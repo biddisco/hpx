@@ -317,7 +317,6 @@ HPX_INLINE_NAMESPACE(v1)
             for (int d = log2N - 1; d >= 0; --d) {
                 int d_2 = (1 << d);
                 int dp1_2 = (2 << d);
-                int steps = n_chunks >> (d + 1);
                 for (int k = 0; k < n_chunks - 1; k += dp1_2) {
                     f1_type temp = std::get < 3 > (work_chunks[k + d_2 - 1]);
                     std::get < 3 > (work_chunks[k + d_2 - 1]) =
@@ -342,7 +341,7 @@ HPX_INLINE_NAMESPACE(v1)
             return f3(work_items_2.back().get());
         }
     };
-/*
+
     ///////////////////////////////////////////////////////////////////////
     template<typename OutIter, typename TagType>
     struct parallel_scan_struct
@@ -481,7 +480,6 @@ HPX_INLINE_NAMESPACE(v1)
             for (int d = log2N - 1; d >= 0; --d) {
                 int d_2 = (1 << d);
                 int dp1_2 = (2 << d);
-                int steps = n_chunks >> (d + 1);
                 for (int k = 0; k < n_chunks - 1; k += dp1_2) {
                     T temp = std::get < 3 > (work_chunks[k + d_2 - 1]);
                     std::get < 3 > (work_chunks[k + d_2 - 1]) =
@@ -506,7 +504,7 @@ HPX_INLINE_NAMESPACE(v1)
             return result::get(std::move(final_dest));
         }
     };
-*/
+
     /// \endcond
     }
 
@@ -590,7 +588,6 @@ HPX_INLINE_NAMESPACE(v1)
     /// \a inclusive_scan may be non-deterministic.
     ///
 
-/*
     template<typename ExPolicy, typename InIter, typename OutIter, typename T>
     inline typename boost::enable_if<
             is_execution_policy<ExPolicy>,
@@ -798,7 +795,7 @@ HPX_INLINE_NAMESPACE(v1)
                 std::forward<ExPolicy>(policy), is_seq(),
                 first, last, dest, std::move(init), std::forward< Op >(op));
     }
-*/
+
 }
 }
 }
