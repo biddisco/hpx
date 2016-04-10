@@ -9,7 +9,6 @@
 #define HPX_PARALLEL_ALGORITHM_PREFIX_SCAN_NOV_2015
 
 #include <hpx/hpx_fwd.hpp>
-#include <hpx/util/move.hpp>
 #include <hpx/util/unwrapped.hpp>
 
 #include <hpx/parallel/config/inline_namespace.hpp>
