@@ -29,8 +29,6 @@
 #include <boost/detail/endian.hpp>
 #include <boost/exception_ptr.hpp>
 
-#include "plugins/parcelport/verbs/rdmahelper/include/RdmaLogging.h"
-
 #include <limits>
 #include <memory>
 #include <mutex>
@@ -880,8 +878,6 @@ namespace hpx { namespace parcelset
                     archive_flags_,
                     this->get_max_outbound_message_size(),
                     &new_gids);
-
-//LOG_MEMORY_MSG("encode_parcels (send)", sender_connection->buffer_.data_.data(), 128);
 
             using hpx::parcelset::detail::call_for_each;
             using hpx::util::placeholders::_1;

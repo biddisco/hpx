@@ -22,8 +22,8 @@
 #include <hpx/lcos/local/spinlock.hpp>
 #include <hpx/lcos/local/condition_variable.hpp>
 
-#include <hpx/plugins/parcelport/header.hpp>
 #include <hpx/plugins/parcelport/mpi/locality.hpp>
+#include <hpx/plugins/parcelport/mpi/header.hpp>
 #include <hpx/plugins/parcelport/mpi/sender.hpp>
 #include <hpx/plugins/parcelport/mpi/receiver.hpp>
 
