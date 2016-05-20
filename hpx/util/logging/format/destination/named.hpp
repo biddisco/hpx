@@ -17,11 +17,11 @@
 #ifndef JT28092007_destination_named_HPP_DEFINED
 #define JT28092007_destination_named_HPP_DEFINED
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(HPX_MSVC) && (HPX_MSVC >= 1020)
 # pragma once
 #endif
 
-#if defined(_MSC_VER)
+#if defined(HPX_MSVC)
 #pragma warning ( disable : 4355)
 #endif
 
@@ -31,10 +31,11 @@
 #include <hpx/util/logging/detail/manipulator.hpp>
 #include <hpx/util/logging/format/destination/convert_destination.hpp>
 #include <hpx/util/logging/format/array.hpp> // array
-#include <vector>
-#include <map>
 #include <boost/type_traits/is_base_of.hpp>
+#include <map>
+#include <memory>
 #include <sstream>
+#include <vector>
 
 namespace hpx { namespace util { namespace logging { namespace destination {
 

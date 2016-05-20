@@ -5,17 +5,12 @@
 //  See accompanying file LICENSE_1_0.txt or copy at
 //  http://www.boost.org/LICENSE_1_0.txt
 
-#define HPX_LIMIT 13
-#define BOOST_MPL_CFG_NO_PREPROCESSED_HEADERS
-#define BOOST_MPL_LIMIT_VECTOR_SIZE 30
-
 #include <hpx/hpx_init.hpp>
 #include <hpx/include/threadmanager.hpp>
 #include <hpx/include/runtime.hpp>
 #include <hpx/util/lightweight_test.hpp>
 
 #include <boost/assign/std/vector.hpp>
-#include <boost/lexical_cast.hpp>
 
 using boost::program_options::variables_map;
 using boost::program_options::options_description;

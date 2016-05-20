@@ -15,8 +15,7 @@
 #   define HPX_ASSERT_MSG(expr, msg) BOOST_ASSERT_MSG(expr, msg)
 #else
 
-#include <hpx/config/branch_hints.hpp>
-#include <hpx/config/compiler_specific.hpp>
+#include <hpx/config.hpp>
 
 //-------------------------------------------------------------------------- //
 //                                     HPX_ASSERT                            //
@@ -28,7 +27,7 @@
 
 #if defined(HPX_GCC_VERSION) || defined(HPX_CLANG_VERSION)
 # define HPX_ASSERT(expr) ((expr) ? (void)0 : __builtin_unreachable())
-#elif defined(_MSC_VER) && !defined(BOOST_INTEL_WIN)
+#elif defined(HPX_MSVC) && !defined(HPX_INTEL_WIN)
 # define HPX_ASSERT(expr) __assume(!!(expr))
 #else
 # define HPX_ASSERT(expr) ((void)0)
@@ -41,7 +40,7 @@
 
 namespace hpx
 {
-    HPX_EXPORT void assertion_failed(char const * expr,
+    HPX_ATTRIBUTE_NORETURN HPX_EXPORT void assertion_failed(char const * expr,
         char const * function, char const * file, long line);  // user defined
 } // namespace hpx
 
@@ -64,7 +63,7 @@ namespace hpx
 
 #if defined(HPX_GCC_VERSION) || defined(HPX_CLANG_VERSION)
 # define HPX_ASSERT_MSG(expr, msg) ((expr) ? (void)0 : __builtin_unreachable())
-#elif defined(_MSC_VER) && !defined(BOOST_INTEL_WIN)
+#elif defined(HPX_MSVC) && !defined(HPX_INTEL_WIN)
 # define HPX_ASSERT_MSG(expr, msg) __assume(!!(expr))
 #else
 # define HPX_ASSERT_MSG(expr, msg) ((void)0)
@@ -77,8 +76,9 @@ namespace hpx
 
 namespace hpx
 {
-    HPX_EXPORT void assertion_failed_msg(char const * expr, char const * msg,
-           char const * function, char const * file, long line); // user defined
+    HPX_ATTRIBUTE_NORETURN HPX_EXPORT void assertion_failed_msg(
+        char const * expr, char const * msg,
+        char const * function, char const * file, long line); // user defined
 } // namespace hpx
 
 #define HPX_ASSERT_MSG(expr, msg) (HPX_LIKELY(!!(expr)) \
@@ -106,9 +106,10 @@ namespace hpx { namespace assertion { namespace detail
 {
     // Note: The template is needed to make the function non-inline and
     // avoid linking errors
-    template< typename CharT >
-    BOOST_NOINLINE void assertion_failed_msg(CharT const * expr,
-        char const * msg, char const * function, char const * file, long line)
+    template <typename CharT>
+    HPX_ATTRIBUTE_NORETURN HPX_NOINLINE void assertion_failed_msg(
+        CharT const * expr, char const * msg, char const * function,
+        char const * file, long line)
     {
         HPX_ASSERT_MSG_OSTREAM
             << "***** Internal Program Error - assertion (" << expr

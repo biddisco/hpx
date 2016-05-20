@@ -6,10 +6,11 @@
 #if !defined(HPX_PLUGIN_FACTORY_BASE_MAR_24_2013_0333PM)
 #define HPX_PLUGIN_FACTORY_BASE_MAR_24_2013_0333PM
 
-#include <hpx/hpx_fwd.hpp>
+#include <hpx/config.hpp>
 #include <hpx/plugins/plugin_registry_base.hpp>
 
 #include <hpx/util/detail/pack.hpp>
+#include <hpx/util/ini.hpp>
 #include <hpx/util/plugin.hpp>
 #include <hpx/util/plugin/export_plugin.hpp>
 
@@ -69,6 +70,11 @@ namespace hpx { namespace util { namespace plugin
 #define HPX_REGISTER_PLUGIN_MODULE()                                          \
     HPX_PLUGIN_EXPORT_LIST(HPX_PLUGIN_PLUGIN_PREFIX, factory);                \
     HPX_REGISTER_PLUGIN_REGISTRY_MODULE()                                     \
+/**/
+
+#define HPX_REGISTER_PLUGIN_MODULE_DYNAMIC()                                  \
+    HPX_PLUGIN_EXPORT_LIST(HPX_PLUGIN_PLUGIN_PREFIX, factory);                \
+    HPX_REGISTER_PLUGIN_REGISTRY_MODULE_DYNAMIC()                             \
 /**/
 
 #endif

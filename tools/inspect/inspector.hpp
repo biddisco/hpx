@@ -96,9 +96,14 @@ namespace boost
       path base( base_arg );
       base.normalize();
       string::size_type pos( base.string().size() );
-      path src( src_arg.string().substr(pos) );
+      string src_arg_s(src_arg.string());
+      path src;
+      if (pos < src_arg_s.size())
+        src = path(src_arg.string().substr(pos));
+      else
+        src = path(src_arg_s);
       src.normalize();
-      return src.string().substr(1);
+      return src.string();
     }
 
     string impute_library( const path & full_dir_path );

@@ -8,11 +8,14 @@
 #include <hpx/runtime/threads/thread_helpers.hpp>
 #include <hpx/lcos/local/barrier.hpp>
 #include <hpx/lcos/local/mutex.hpp>
+#include <hpx/util/bind.hpp>
 
 #include <boost/chrono/duration.hpp>
 #include <boost/lockfree/queue.hpp>
 
 #include <iostream>
+#include <mutex>
+#include <vector>
 
 using boost::lockfree::queue;
 
@@ -38,14 +41,15 @@ using hpx::threads::set_thread_state;
 using hpx::init;
 using hpx::finalize;
 
-typedef queue<std::pair<thread_id_type, std::size_t>*> fifo_type;
+typedef std::pair<thread_id_type, std::size_t> value_type;
+typedef std::vector<value_type> fifo_type;
 
 ///////////////////////////////////////////////////////////////////////////////
 void lock_and_wait(
     mutex& m
   , barrier& b0
   , barrier& b1
-  , fifo_type& hpxthreads
+  , value_type& entry
   , std::size_t wait
 ) {
     // Wait for all hpxthreads in this iteration to be created.
@@ -56,12 +60,11 @@ void lock_and_wait(
     while (true)
     {
         // Try to acquire the mutex.
-        boost::unique_lock<mutex> l(m, boost::try_to_lock);
+        std::unique_lock<mutex> l(m, std::try_to_lock);
 
         if (l.owns_lock())
         {
-            hpxthreads.push(new std::pair<thread_id_type, std::size_t>
-                (this_, get_thread_phase(this_)));
+            entry = value_type(this_, get_thread_phase(this_));
             break;
         }
 
@@ -106,23 +109,20 @@ int hpx_main(variables_map& vm)
         // Have the fifo preallocate storage.
         fifo_type hpxthreads(hpxthread_count);
 
-        std::vector<mutex*> m(mutex_count, 0);
-        barrier b0(hpxthread_count + 1), b1(hpxthread_count + 1);
-
         // Allocate the mutexes.
-        for (std::size_t j = 0; j < mutex_count; ++j)
-            m[j] = new mutex;
+        std::vector<mutex> m(mutex_count);
+        barrier b0(hpxthread_count + 1), b1(hpxthread_count + 1);
 
         for (std::size_t j = 0; j < hpxthread_count; ++j)
         {
             // Compute the mutex to be used for this thread.
             const std::size_t index = j % mutex_count;
 
-            register_thread(boost::bind
-                (&lock_and_wait, boost::ref(*m[index])
+            register_thread(hpx::util::bind
+                (&lock_and_wait, boost::ref(m[index])
                                , boost::ref(b0)
                                , boost::ref(b1)
-                               , boost::ref(hpxthreads)
+                               , boost::ref(hpxthreads[j])
                                , wait)
               , "lock_and_wait");
         }
@@ -134,22 +134,11 @@ int hpx_main(variables_map& vm)
         b1.wait();
 
         // {{{ Print results for this iteration.
-        std::pair<thread_id_type, std::size_t>* entry = 0;
-
-        while (hpxthreads.pop(entry))
+        for(value_type &entry: hpxthreads)
         {
-            HPX_ASSERT(entry);
-            std::cout << "  " << entry->first << "," << entry->second << "\n";
-            delete entry;
+            std::cout << "  " << entry.first << "," << entry.second << "\n";
         }
         // }}}
-
-        // Destroy the mutexes.
-        for (std::size_t j = 0; j < mutex_count; ++j)
-        {
-            HPX_ASSERT(m[j]);
-            delete m[j];
-        }
     }
 
     // Initiate shutdown of the runtime system.

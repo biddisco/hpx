@@ -4,7 +4,12 @@
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include <hpx/hpx_init.hpp>
-#include <hpx/exception.hpp>
+#include <hpx/throw_exception.hpp>
+//#include <hpx/runtime/get_config_entry.hpp>
+
+//#include <cstddef>
+//#include <string>
+//#include <vector>
 
 ///////////////////////////////////////////////////////////////////////////////
 // Forwarding of hpx_startup::user_main, if necessary. This has to be in a
@@ -12,18 +17,17 @@
 // depending on whether the main executable defines this symbol or not.
 int hpx_startup::user_main()
 {
-//     hpx::util::section const& ini = hpx::get_runtime().get_config();
-//     std::string cmdline(ini.get_entry("hpx.reconstructed_cmd_line", ""));
+//     std::string cmdline(hpx::get_config_entry("hpx.reconstructed_cmd_line", ""));
 //
 //     using namespace boost::program_options;
-// #if defined(BOOST_WINDOWS)
+// #if defined(HPX_WINDOWS)
 //     std::vector<std::string> args = split_winmain(cmdline);
 // #else
 //     std::vector<std::string> args = split_unix(cmdline);
 // #endif
 //
 //     // Copy all arguments which are not hpx related to a temporary array
-//     boost::scoped_array<char*> argv(new char*[args.size()]);
+//     std::vector<char*> argv(args.size());
 //     std::size_t argcount = 0;
 //     for(std::size_t i = 0; i < args.size(); ++i)
 //     {
@@ -32,10 +36,9 @@ int hpx_startup::user_main()
 //     }
 //
 //     // Invoke hpx_main
-//     return user_main(static_cast<int>(argcount), argv.get());
+//     return user_main(static_cast<int>(argcount), argv.data());
     HPX_THROW_EXCEPTION(hpx::not_implemented,
         "The console locality does not implement any main entry point usable "
         "as the main HPX thread (e.g. no hpx_main, hpx_startup::user_main, etc.)",
-        "hpx_startup::user_main")
+        "hpx_startup::user_main");
 }
-

@@ -1,4 +1,4 @@
-//  Copyright (c) 2007-2015 Hartmut Kaiser
+//  Copyright (c) 2007-2016 Hartmut Kaiser
 //  Copyright (c)      2011 Bryce Lelbach
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -8,8 +8,10 @@
 #define HPX_COMPONENTS_SIMPLE_COMPONENT_BASE_JUL_18_2008_0948PM
 
 #include <hpx/config.hpp>
-#include <hpx/exception.hpp>
+#include <hpx/throw_exception.hpp>
+#include <hpx/runtime_fwd.hpp>
 #include <hpx/traits/is_component.hpp>
+#include <hpx/runtime/applier_fwd.hpp>
 #include <hpx/runtime/components/component_type.hpp>
 #include <hpx/runtime/components/server/create_component_fwd.hpp>
 #include <hpx/runtime/naming/name.hpp>
@@ -22,6 +24,7 @@
 #include <boost/mpl/bool.hpp>
 #include <boost/type_traits/is_base_and_derived.hpp>
 
+#include <mutex>
 #include <sstream>
 #include <utility>
 
@@ -45,6 +48,15 @@ namespace hpx { namespace components
                 simple_component_base, Component
             >::type this_component_type;
 
+        Component& derived()
+        {
+            return static_cast<Component&>(*this);
+        }
+        Component const& derived() const
+        {
+            return static_cast<Component const&>(*this);
+        }
+
     public:
         typedef this_component_type wrapped_type;
         typedef this_component_type base_type_holder;
@@ -57,7 +69,11 @@ namespace hpx { namespace components
         /// \brief Destruct a simple_component
         ~simple_component_base()
         {
-            if (gid_) applier::unbind_gid_local(gid_);
+            if (gid_)
+            {
+                error_code ec;
+                agas::unbind_sync(gid_, 1, ec);
+            }
         }
 
         // Copy construction and copy assignment should not copy the gid_.
@@ -162,7 +178,7 @@ namespace hpx { namespace components
                 }
             }
 
-            naming::gid_type::mutex_type::scoped_lock l(gid_.get_mutex());
+            std::unique_lock<naming::gid_type::mutex_type> l(gid_.get_mutex());
 
             if (!naming::detail::has_credits(gid_))
             {
@@ -189,7 +205,7 @@ namespace hpx { namespace components
         naming::id_type get_id() const
         {
             // all credits should have been taken already
-            naming::gid_type gid = get_base_gid();
+            naming::gid_type gid = derived().get_base_gid();
             HPX_ASSERT(!naming::detail::has_credits(gid));
 
             // any (subsequent) invocation causes the credits to be replenished
@@ -199,7 +215,8 @@ namespace hpx { namespace components
 
         naming::id_type get_unmanaged_id() const
         {
-            return naming::id_type(get_base_gid(), naming::id_type::managed);
+            return naming::id_type(derived().get_base_gid(),
+                naming::id_type::managed);
         }
 
 #if defined(HPX_HAVE_COMPONENT_GET_GID_COMPATIBILITY)
@@ -209,24 +226,6 @@ namespace hpx { namespace components
         }
 #endif
 
-        /// This is the default hook implementation for decorate_action which
-        /// does no hooking at all.
-        template <typename F>
-        static threads::thread_function_type
-        decorate_action(naming::address::address_type, F && f)
-        {
-            return std::forward<F>(f);
-        }
-
-        /// This is the default hook implementation for schedule_thread which
-        /// forwards to the default scheduler.
-        static void schedule_thread(naming::address::address_type,
-            threads::thread_init_data& data,
-            threads::thread_state_enum initial_state)
-        {
-            hpx::threads::register_work_plain(data, initial_state); //-V106
-        }
-
 #if defined(HPX_HAVE_SECURITY)
         static components::security::capability get_required_capabilities(
             components::security::traits::capability<>::capabilities caps)
@@ -234,15 +233,6 @@ namespace hpx { namespace components
             return components::default_component_creation_capabilities(caps);
         }
 #endif
-
-        // This component type requires valid id for its actions to be invoked
-        static bool is_target_valid(naming::id_type const& id)
-        {
-            return !naming::is_locality(id);
-        }
-
-        // This component type does not support migration.
-        static BOOST_CONSTEXPR bool supports_migration() { return false; }
 
         // Pinning functionality
         void pin() {}
@@ -267,11 +257,10 @@ namespace hpx { namespace components
         template <typename Component>
         struct simple_heap_factory
         {
-            static Component* alloc(std::size_t count)
+            static void* alloc(std::size_t count)
             {
                 HPX_ASSERT(1 == count);
-                return static_cast<Component*>
-                    (::operator new(sizeof(Component)));
+                return ::operator new(sizeof(Component));
             }
             static void free(void* p, std::size_t count)
             {

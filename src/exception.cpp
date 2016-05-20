@@ -1,41 +1,52 @@
-//  Copyright (c) 2007-2013 Hartmut Kaiser
+//  Copyright (c) 2007-2016 Hartmut Kaiser
 //  Copyright (c)      2011 Bryce Lelbach
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <hpx/hpx_fwd.hpp>
 #include <hpx/config.hpp>
+#include <hpx/error.hpp>
+#include <hpx/error_code.hpp>
 #include <hpx/exception.hpp>
 #include <hpx/state.hpp>
 #include <hpx/version.hpp>
 #include <hpx/runtime.hpp>
+#include <hpx/runtime/get_config_entry.hpp>
+#include <hpx/runtime/get_locality_id.hpp>
+#include <hpx/runtime/get_worker_thread_num.hpp>
 #include <hpx/runtime/naming/name.hpp>
 #include <hpx/runtime/threads/threadmanager.hpp>
 #include <hpx/runtime/threads/thread_helpers.hpp>
+#include <hpx/util/assert.hpp>
 #include <hpx/util/backtrace.hpp>
 #include <hpx/util/command_line_handling.hpp>
+#include <hpx/util/filesystem_compatibility.hpp>
+#include <hpx/util/logging.hpp>
 
-#if defined(BOOST_WINDOWS)
+#if defined(HPX_WINDOWS)
 #  include <process.h>
-#elif defined(BOOST_HAS_UNISTD_H)
+#elif defined(HPX_HAVE_UNISTD_H)
 #  include <unistd.h>
 #endif
 
-#include <boost/format.hpp>
 #include <boost/atomic.hpp>
+#include <boost/exception_ptr.hpp>
+#include <boost/format.hpp>
 
-#include <stdexcept>
 #include <algorithm>
 #if defined(_POSIX_VERSION)
 #include <iostream>
 #endif
+#include <memory>
 #include <sstream>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 #ifdef __APPLE__
 #include <crt_externs.h>
 #define environ (*_NSGetEnviron())
-#elif !defined(BOOST_WINDOWS)
+#elif !defined(HPX_WINDOWS)
 extern char **environ;
 #endif
 
@@ -51,6 +62,95 @@ namespace hpx
     bool expect_exception(bool flag)
     {
         return expect_exception_flag.exchange(flag);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    /// Construct a hpx::exception from a \a hpx::error.
+    ///
+    /// \param e    The parameter \p e holds the hpx::error code the new
+    ///             exception should encapsulate.
+    exception::exception(error e)
+      : boost::system::system_error(make_error_code(e, plain))
+    {
+        HPX_ASSERT((e >= success && e < last_error) || (e & system_error_flag));
+        LERR_(error) << "created exception: " << this->what();
+    }
+
+    /// Construct a hpx::exception from a boost#system_error.
+    exception::exception(boost::system::system_error const& e)
+      : boost::system::system_error(e)
+    {
+        LERR_(error) << "created exception: " << this->what();
+    }
+
+    /// Construct a hpx::exception from a \a hpx::error and an error message.
+    ///
+    /// \param e      The parameter \p e holds the hpx::error code the new
+    ///               exception should encapsulate.
+    /// \param msg    The parameter \p msg holds the error message the new
+    ///               exception should encapsulate.
+    /// \param mode   The parameter \p mode specifies whether the returned
+    ///               hpx::error_code belongs to the error category
+    ///               \a hpx_category (if mode is \a plain, this is the
+    ///               default) or to the category \a hpx_category_rethrow
+    ///               (if mode is \a rethrow).
+    exception::exception(error e, char const* msg, throwmode mode)
+      : boost::system::system_error(make_system_error_code(e, mode), msg)
+    {
+        HPX_ASSERT((e >= success && e < last_error) || (e & system_error_flag));
+        LERR_(error) << "created exception: " << this->what();
+    }
+
+    /// Construct a hpx::exception from a \a hpx::error and an error message.
+    ///
+    /// \param e      The parameter \p e holds the hpx::error code the new
+    ///               exception should encapsulate.
+    /// \param msg    The parameter \p msg holds the error message the new
+    ///               exception should encapsulate.
+    /// \param mode   The parameter \p mode specifies whether the returned
+    ///               hpx::error_code belongs to the error category
+    ///               \a hpx_category (if mode is \a plain, this is the
+    ///               default) or to the category \a hpx_category_rethrow
+    ///               (if mode is \a rethrow).
+    exception::exception(error e, std::string const& msg, throwmode mode)
+      : boost::system::system_error(make_system_error_code(e, mode), msg)
+    {
+        HPX_ASSERT((e >= success && e < last_error) || (e & system_error_flag));
+        LERR_(error) << "created exception: " << this->what();
+    }
+
+    /// Destruct a hpx::exception
+    ///
+    /// \throws nothing
+    exception::~exception() throw()
+    {
+    }
+
+    /// The function \a get_error() returns the hpx::error code stored
+    /// in the referenced instance of a hpx::exception. It returns
+    /// the hpx::error code this exception instance was constructed
+    /// from.
+    ///
+    /// \throws nothing
+    error exception::get_error() const HPX_NOEXCEPT
+    {
+        return static_cast<error>(
+            this->boost::system::system_error::code().value());
+    }
+
+    /// The function \a get_error_code() returns a hpx::error_code which
+    /// represents the same error condition as this hpx::exception instance.
+    ///
+    /// \param mode   The parameter \p mode specifies whether the returned
+    ///               hpx::error_code belongs to the error category
+    ///               \a hpx_category (if mode is \a plain, this is the
+    ///               default) or to the category \a hpx_category_rethrow
+    ///               (if mode is \a rethrow).
+    error_code exception::get_error_code(throwmode mode) const HPX_NOEXCEPT
+    {
+        (void)mode;
+        return error_code(this->boost::system::system_error::code().value(),
+            *this);
     }
 }
 
@@ -83,7 +183,7 @@ namespace hpx { namespace detail
     {
         std::vector<std::string> env;
 
-#if defined(BOOST_WINDOWS)
+#if defined(HPX_WINDOWS)
         std::size_t len = get_arraylen(_environ);
         env.reserve(len);
         std::copy(&_environ[0], &_environ[len], std::back_inserter(env));
@@ -112,11 +212,11 @@ namespace hpx { namespace detail
 
     ///////////////////////////////////////////////////////////////////////////
     template <typename Exception>
-    inline boost::shared_ptr<boost::exception>
+    inline std::shared_ptr<boost::exception>
     make_exception_ptr(Exception const& e)
     {
-        return boost::static_pointer_cast<boost::exception>(
-            boost::make_shared<Exception>(e));
+        return std::static_pointer_cast<boost::exception>(
+            std::make_shared<Exception>(e));
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -249,7 +349,7 @@ namespace hpx { namespace detail
 
         std::size_t shepherd = std::size_t(-1);
         threads::thread_id_type thread_id;
-        std::string thread_name;
+        util::thread_description thread_name;
 
         threads::thread_self* self = threads::get_self_ptr();
         if (NULL != self)
@@ -265,8 +365,10 @@ namespace hpx { namespace detail
         std::string config(configuration_string());
 
         return construct_exception(e, func, file, line, back_trace, node,
-            hostname, pid, shepherd, reinterpret_cast<std::size_t>(thread_id.get()),
-            thread_name, env, config, state_name, auxinfo);
+            hostname, pid, shepherd,
+            reinterpret_cast<std::size_t>(thread_id.get()),
+            util::as_string(thread_name), env, config,
+            state_name, auxinfo);
     }
 
     template <typename Exception>
@@ -306,7 +408,6 @@ namespace hpx { namespace detail
     template HPX_ATTRIBUTE_NORETURN HPX_EXPORT void
         throw_exception(hpx::detail::bad_exception const&,
         std::string const&, std::string const&, long);
-#ifndef BOOST_NO_TYPEID
     template HPX_ATTRIBUTE_NORETURN HPX_EXPORT void
         throw_exception(std::bad_typeid const&,
         std::string const&, std::string const&, long);
@@ -319,7 +420,6 @@ namespace hpx { namespace detail
     template HPX_ATTRIBUTE_NORETURN HPX_EXPORT void
         throw_exception(hpx::detail::bad_cast const&,
         std::string const&, std::string const&, long);
-#endif
     template HPX_ATTRIBUTE_NORETURN HPX_EXPORT void
         throw_exception(std::bad_alloc const&,
         std::string const&, std::string const&, long);
@@ -438,15 +538,6 @@ namespace hpx { namespace detail
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx
 {
-    /// \brief throw an hpx::exception initialized from the given arguments
-    HPX_EXPORT void throw_exception(error e, std::string const& msg,
-        std::string const& func, std::string const& file, long line)
-    {
-        boost::filesystem::path p__(hpx::util::create_path(file));
-        boost::rethrow_exception(detail::get_exception(hpx::exception(e, msg),
-            func, p__.string(), line));
-    }
-
     ///////////////////////////////////////////////////////////////////////////
     // Extract the diagnostic information embedded in the given exception and
     // return a string holding a formatted message.
@@ -570,7 +661,7 @@ namespace hpx
             return hpx::diagnostic_information(be);
         }
         catch (...) {
-            return std::string();
+            return std::string("<unknown>");
         }
     }
 
@@ -591,7 +682,7 @@ namespace hpx
         // Try a cast to std::exception - this should handle boost.system
         // error codes in addition to the standard library exceptions.
         std::exception const* se = dynamic_cast<std::exception const*>(&e);
-        return se ? se->what() : std::string();
+        return se ? se->what() : std::string("<unknown>");
     }
 
     std::string get_error_what(boost::exception_ptr const& e)
@@ -605,7 +696,7 @@ namespace hpx
             return hpx::get_error_what(be);
         }
         catch (...) {
-            return std::string();
+            return std::string("<unknown>");
         }
     }
 
@@ -684,7 +775,10 @@ namespace hpx
             return he.get_error();
         }
         catch (boost::system::system_error const& e) {
-            return static_cast<hpx::error>(e.code().value());
+            int code = e.code().value();
+            if (code < success || code >= last_error)
+                code |= system_error_flag;
+            return static_cast<hpx::error>(code);
         }
         catch (...) {
             return unknown_error;
@@ -1134,6 +1228,27 @@ namespace hpx
     {
         return get_error_state(detail::access_exception(e));
     }
-}
 
+    boost::exception_ptr get_exception_ptr(hpx::exception const& e)
+    {
+        try {
+            throw e;
+        }
+        catch (...) {
+            return boost::current_exception();
+        }
+    }
+
+    void assertion_failed(char const* expr, char const* function,
+        char const* file, long line)
+    {
+        hpx::detail::assertion_failed(expr, function, file, line);
+    }
+
+    void assertion_failed_msg(char const* msg, char const* expr,
+        char const* function, char const* file, long line)
+    {
+        hpx::detail::assertion_failed_msg(msg, expr, function, file, line);
+    }
+}
 

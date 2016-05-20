@@ -1,4 +1,4 @@
-//  Copyright (c) 2007-2015 Hartmut Kaiser
+//  Copyright (c) 2007-2016 Hartmut Kaiser
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -8,9 +8,7 @@
 #if !defined(HPX_RUNTIME_ACTIONS_COMPONENT_ACTION_MAR_26_2008_1054AM)
 #define HPX_RUNTIME_ACTIONS_COMPONENT_ACTION_MAR_26_2008_1054AM
 
-#include <hpx/hpx_fwd.hpp>
 #include <hpx/config.hpp>
-#include <hpx/exception.hpp>
 #include <hpx/runtime/naming/address.hpp>
 #include <hpx/runtime/actions/continuation.hpp>
 #include <hpx/runtime/actions/basic_action.hpp>
@@ -23,6 +21,8 @@
 
 #include <cstdlib>
 #include <stdexcept>
+#include <string>
+#include <sstream>
 
 #include <hpx/config/warnings_prefix.hpp>
 
@@ -52,12 +52,6 @@ namespace hpx { namespace actions
                  << reinterpret_cast<void const*>(get_lva<Component>::call(lva))
                  << ")";
             return name.str();
-        }
-
-        // Let the component decide whether the id is valid
-        static bool is_target_valid(naming::id_type const& id)
-        {
-            return Component::is_target_valid(id);
         }
 
         template <typename ...Ts>
@@ -91,12 +85,6 @@ namespace hpx { namespace actions
                  << reinterpret_cast<void const*>(get_lva<Component>::call(lva))
                  << ")";
             return name.str();
-        }
-
-        // Let the component decide whether the id is valid
-        static bool is_target_valid(naming::id_type const& id)
-        {
-            return Component::is_target_valid(id);
         }
 
         template <typename ...Ts>

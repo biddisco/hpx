@@ -1,4 +1,4 @@
-//  Copyright (c) 2007-2015 Hartmut Kaiser
+//  Copyright (c) 2007-2016 Hartmut Kaiser
 //  Copyright (c)      2011 Bryce Lelbach
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -8,60 +8,49 @@
 #define HPX_APPLIER_APPLY_NOV_27_2008_0957AM
 
 #include <hpx/config.hpp>
-#include <hpx/exception.hpp>
-
+#include <hpx/runtime/actions/action_priority.hpp>
+#include <hpx/runtime/actions/component_action.hpp>
+#include <hpx/runtime/actions/transfer_action.hpp>
 #include <hpx/runtime/agas/interface.hpp>
-#include <hpx/runtime/parcelset/parcel.hpp>
-#include <hpx/runtime/parcelset/parcelhandler.hpp>
 #include <hpx/runtime/applier/applier.hpp>
 #include <hpx/runtime/applier/apply_helper.hpp>
 #include <hpx/runtime/applier/detail/apply_implementations.hpp>
-#include <hpx/runtime/actions/component_action.hpp>
-#include <hpx/runtime/actions/transfer_action.hpp>
-#include <hpx/traits/action_is_target_valid.hpp>
-#include <hpx/traits/action_priority.hpp>
+#include <hpx/runtime/components/client_base.hpp>
+#include <hpx/runtime/naming/address.hpp>
+#include <hpx/runtime/naming/id_type.hpp>
+#include <hpx/runtime/naming/name.hpp>
+#include <hpx/runtime/parcelset/parcel.hpp>
+#include <hpx/runtime/parcelset/parcelhandler.hpp>
 #include <hpx/traits/component_type_is_compatible.hpp>
 #include <hpx/traits/is_action.hpp>
 #include <hpx/traits/is_continuation.hpp>
 #include <hpx/traits/is_distribution_policy.hpp>
+#include <hpx/traits/is_valid_action.hpp>
+
+#include <type_traits>
+#include <utility>
 
 #if defined(HPX_SUPPORT_MULTIPLE_PARCEL_DESTINATIONS)
 #include <hpx/util/remove_local_destinations.hpp>
-#include <boost/dynamic_bitset.hpp>
-#endif
-#include <boost/format.hpp>
-#include <boost/make_shared.hpp>
 
-#include <vector>
-#include <map>
+#include <boost/dynamic_bitset.hpp>
+
 #include <algorithm>
-#include <type_traits>
-#include <memory>
+#include <cstddef>
+#include <iterator>
+#include <map>
+#include <vector>
+#endif
 
 // FIXME: Error codes?
-
-namespace hpx { namespace actions
-{
-    template <typename Action>
-    threads::thread_priority action_priority()
-    {
-        typedef typename hpx::actions::extract_action<Action>::type action_type_;
-        threads::thread_priority priority =
-            static_cast<threads::thread_priority>(
-                traits::action_priority<action_type_>::value);
-        if (priority == threads::thread_priority_default)
-            priority = threads::thread_priority_normal;
-        return priority;
-    }
-}}
 
 namespace hpx
 {
     ///////////////////////////////////////////////////////////////////////////
-    // zero parameter version of apply()
     // Invoked by a running HPX-thread to apply an action to any resource
     namespace applier { namespace detail
     {
+        ///////////////////////////////////////////////////////////////////////
         template <typename Action>
         inline naming::address& complement_addr(naming::address& addr)
         {
@@ -79,7 +68,7 @@ namespace hpx
             threads::thread_priority priority, Ts&&... vs)
         {
             typedef
-                typename hpx::actions::extract_action<Action>::type
+                typename hpx::traits::extract_action<Action>::type
                 action_type;
             action_type act;
 
@@ -101,7 +90,7 @@ namespace hpx
             Continuation && cont, Ts&&... vs)
         {
             typedef
-                typename hpx::actions::extract_action<Action>::type
+                typename hpx::traits::extract_action<Action>::type
                 action_type;
 
             parcelset::parcelhandler& ph =
@@ -123,7 +112,7 @@ namespace hpx
             parcelset::parcelhandler::write_handler_type const& cb, Ts&&... vs)
         {
             typedef
-                typename hpx::actions::extract_action<Action>::type
+                typename hpx::traits::extract_action<Action>::type
                 action_type;
 
             parcelset::parcelhandler& ph =
@@ -144,7 +133,7 @@ namespace hpx
             parcelset::parcelhandler::write_handler_type && cb, Ts&&... vs)
         {
             typedef
-                typename hpx::actions::extract_action<Action>::type
+                typename hpx::traits::extract_action<Action>::type
                 action_type;
 
             parcelset::parcelhandler& ph =
@@ -166,7 +155,7 @@ namespace hpx
             parcelset::parcelhandler::write_handler_type const& cb, Ts&&... vs)
         {
             typedef
-                typename hpx::actions::extract_action<Action>::type
+                typename hpx::traits::extract_action<Action>::type
                 action_type;
 
             parcelset::parcelhandler& ph =
@@ -189,7 +178,7 @@ namespace hpx
             parcelset::parcelhandler::write_handler_type && cb, Ts&&... vs)
         {
             typedef
-                typename hpx::actions::extract_action<Action>::type
+                typename hpx::traits::extract_action<Action>::type
                 action_type;
 
             parcelset::parcelhandler& ph =
@@ -250,7 +239,7 @@ namespace hpx
             std::vector<naming::gid_type> const& gids,
             threads::thread_priority priority, Ts&&... vs)
         {
-            typedef typename hpx::actions::extract_action<Action>::type action_type;
+            typedef typename hpx::traits::extract_action<Action>::type action_type;
 
             // sort destinations
             std::map<parcelset::locality, destinations> dests;
@@ -293,7 +282,7 @@ namespace hpx
         apply_l_p(naming::id_type const& target, naming::address&& addr,
             threads::thread_priority priority, Ts&&... vs)
         {
-            typedef typename hpx::actions::extract_action<Action>::type action_type;
+            typedef typename hpx::traits::extract_action<Action>::type action_type;
 
             HPX_ASSERT(traits::component_type_is_compatible<
                 typename action_type::component_type>::call(addr));
@@ -309,7 +298,7 @@ namespace hpx
         apply_l_p_val(naming::id_type const& target, naming::address&& addr,
             threads::thread_priority priority, Ts... vs)
         {
-            typedef typename hpx::actions::extract_action<Action>::type action_type;
+            typedef typename hpx::traits::extract_action<Action>::type action_type;
 
             HPX_ASSERT(traits::component_type_is_compatible<
                 typename action_type::component_type>::call(addr));
@@ -333,15 +322,33 @@ namespace hpx
     ///////////////////////////////////////////////////////////////////////////
     template <typename Action, typename ...Ts>
     inline bool
-    apply_p(naming::id_type const& gid, threads::thread_priority priority,
+    apply_p(naming::id_type const& id, threads::thread_priority priority,
         Ts&&... vs)
     {
-        return hpx::detail::apply_impl<Action>(gid, priority,
+        return hpx::detail::apply_impl<Action>(id, priority,
             std::forward<Ts>(vs)...);
     }
 
+    template <typename Action, typename Client, typename Stub, typename ...Ts>
+    inline bool
+    apply_p(components::client_base<Client, Stub> const& c,
+        threads::thread_priority priority, Ts&&... vs)
+    {
+        // make sure the action is compatible with the component type
+        typedef typename components::client_base<
+                Client, Stub
+            >::server_component_type component_type;
+
+        typedef traits::is_valid_action<Action, component_type> is_valid;
+        static_assert(is_valid::value,
+            "The action to invoke is not supported by the target");
+
+        return hpx::detail::apply_impl<Action>(
+            c.get_id(), priority, std::forward<Ts>(vs)...);
+    }
+
     template <typename Action, typename DistPolicy, typename ...Ts>
-    inline typename boost::enable_if_c<
+    inline typename std::enable_if<
         traits::is_distribution_policy<DistPolicy>::value, bool
     >::type
     apply_p(DistPolicy const& policy, threads::thread_priority priority,
@@ -358,23 +365,44 @@ namespace hpx
 
         template <typename Action>
         struct apply_dispatch<Action,
-            typename boost::enable_if_c<
+            typename std::enable_if<
                 traits::is_action<Action>::value
             >::type>
         {
             template <typename Component, typename Signature, typename Derived,
                 typename ...Ts>
-            BOOST_FORCEINLINE static bool
+            HPX_FORCEINLINE static bool
             call(hpx::actions::basic_action<Component, Signature, Derived>,
                 naming::id_type const& id, Ts&&... ts)
             {
-                return apply_p<Derived>(id, actions::action_priority<Derived>(),
+                return apply_p<Derived>(id,
+                    actions::action_priority<Derived>(),
+                    std::forward<Ts>(ts)...);
+            }
+
+            template <typename Component, typename Signature, typename Derived,
+                typename Client, typename Stub, typename ...Ts>
+            HPX_FORCEINLINE static bool
+            call(hpx::actions::basic_action<Component, Signature, Derived>,
+                components::client_base<Client, Stub> const& c, Ts&&... ts)
+            {
+                // make sure the action is compatible with the component type
+                typedef typename components::client_base<
+                        Client, Stub
+                    >::server_component_type component_type;
+
+                typedef traits::is_valid_action<Derived, component_type> is_valid;
+                static_assert(is_valid::value,
+                    "The action to invoke is not supported by the target");
+
+                return apply_p<Derived>(c.get_id(),
+                    actions::action_priority<Derived>(),
                     std::forward<Ts>(ts)...);
             }
 
             template <typename Component, typename Signature, typename Derived,
                 typename DistPolicy, typename ...Ts>
-            BOOST_FORCEINLINE static typename boost::enable_if_c<
+            HPX_FORCEINLINE static typename std::enable_if<
                 traits::is_distribution_policy<DistPolicy>::value, bool
             >::type
             call(hpx::actions::basic_action<Component, Signature, Derived>,
@@ -389,14 +417,32 @@ namespace hpx
 
     template <typename Action, typename ...Ts>
     inline bool
-    apply(naming::id_type const& gid, Ts&&... vs)
+    apply(naming::id_type const& id, Ts&&... vs)
     {
-        return apply_p<Action>(gid, actions::action_priority<Action>(),
+        return apply_p<Action>(id, actions::action_priority<Action>(),
             std::forward<Ts>(vs)...);
     }
 
+    template <typename Action, typename Client, typename Stub,
+        typename ...Ts>
+    inline bool
+    apply(components::client_base<Client, Stub> const& c, Ts&&... vs)
+    {
+        // make sure the action is compatible with the component type
+        typedef typename components::client_base<
+                Client, Stub
+            >::server_component_type component_type;
+
+        typedef traits::is_valid_action<Action, component_type> is_valid;
+        static_assert(is_valid::value,
+            "The action to invoke is not supported by the target");
+
+        return apply_p<Action>(c.get_id(),
+            actions::action_priority<Action>(), std::forward<Ts>(vs)...);
+    }
+
     template <typename Action, typename DistPolicy, typename ...Ts>
-    inline typename boost::enable_if_c<
+    inline typename std::enable_if<
         traits::is_distribution_policy<DistPolicy>::value, bool
     >::type
     apply(DistPolicy const& policy, Ts&&... vs)
@@ -451,7 +497,7 @@ namespace hpx
 
     template <typename Action, typename ...Ts>
     inline bool
-    apply (std::vector<naming::id_type> const& gids, Ts&&... vs)
+    apply(std::vector<naming::id_type> const& gids, Ts&&... vs)
     {
         return apply_p<Action>(gids, actions::action_priority<Action>(),
             std::forward<Ts>(vs)...);
@@ -460,7 +506,7 @@ namespace hpx
     template <typename Component, typename Signature, typename Derived,
         typename ...Ts>
     inline bool
-    apply (
+    apply(
         hpx::actions::basic_action<Component, Signature, Derived> /*act*/,
         std::vector<naming::id_type> const& gids, Ts&&... vs)
     {
@@ -485,7 +531,7 @@ namespace hpx
         }
 
         template <typename Action, typename Continuation, typename ...Ts>
-        inline typename boost::enable_if_c<
+        inline typename std::enable_if<
             traits::is_continuation<Continuation>::value, bool
         >::type
         apply_r (naming::address&& addr, Continuation && c,
@@ -501,7 +547,7 @@ namespace hpx
         apply_r_sync_p(naming::address&& addr, naming::id_type const& id,
             threads::thread_priority priority)
         {
-            typedef typename hpx::actions::extract_action<Action>::type action_type_;
+            typedef typename hpx::traits::extract_action<Action>::type action_type_;
 
             // If remote, create a new parcel to be sent to the destination
             // Create a new parcel with the gid, action, and arguments
@@ -516,7 +562,7 @@ namespace hpx
 
         template <typename Action>
         inline bool
-        apply_r_sync (naming::address&& addr, naming::id_type const& gid)
+        apply_r_sync(naming::address&& addr, naming::id_type const& gid)
         {
             return apply_r_sync_p<Action>(std::move(addr), gid,
                 actions::action_priority<Action>());
@@ -529,7 +575,7 @@ namespace hpx
             naming::id_type const& target, naming::address&& addr,
             threads::thread_priority priority, Ts&&... vs)
         {
-            typedef typename hpx::actions::extract_action<
+            typedef typename hpx::traits::extract_action<
                     Action
                 >::type action_type;
 
@@ -543,7 +589,7 @@ namespace hpx
         }
 
         template <typename Action, typename Continuation, typename ...Ts>
-        inline typename boost::enable_if_c<
+        inline typename std::enable_if<
             traits::is_continuation<Continuation>::value, bool
         >::type
         apply_l (Continuation && c, naming::id_type const& target,
@@ -557,7 +603,7 @@ namespace hpx
 
     ///////////////////////////////////////////////////////////////////////////
     template <typename Action, typename Continuation, typename ...Ts>
-    inline typename boost::enable_if_c<
+    inline typename std::enable_if<
         traits::is_continuation<Continuation>::value, bool
     >::type
     apply_p(Continuation && c, naming::id_type const& gid,
@@ -567,11 +613,35 @@ namespace hpx
             std::forward<Continuation>(c), gid, priority, std::forward<Ts>(vs)...);
     }
 
+    template <typename Action, typename Continuation, typename Client,
+        typename Stub, typename ...Ts>
+    inline typename std::enable_if<
+        traits::is_continuation<Continuation>::value, bool
+    >::type
+    apply_p(Continuation && cont,
+        components::client_base<Client, Stub> const& c,
+        threads::thread_priority priority, Ts&&... vs)
+    {
+        // make sure the action is compatible with the component type
+        typedef typename components::client_base<
+                Client, Stub
+            >::server_component_type component_type;
+
+        typedef traits::is_valid_action<Action, component_type> is_valid;
+        static_assert(is_valid::value,
+            "The action to invoke is not supported by the target");
+
+        return hpx::detail::apply_impl<Action>(
+            std::forward<Continuation>(cont), c.get_id(), priority,
+            std::forward<Ts>(vs)...);
+    }
+
     template <typename Action, typename Continuation, typename DistPolicy,
         typename ...Ts>
-    inline typename boost::enable_if_c<
+    inline typename std::enable_if<
         traits::is_continuation<Continuation>::value &&
-        traits::is_distribution_policy<DistPolicy>::value, bool
+            traits::is_distribution_policy<DistPolicy>::value,
+        bool
     >::type
     apply_p(Continuation && c, DistPolicy const& policy,
         threads::thread_priority priority, Ts&&... vs)
@@ -590,7 +660,7 @@ namespace hpx
         {
             template <typename Component, typename Signature, typename Derived,
                 typename ...Ts>
-            BOOST_FORCEINLINE static bool
+            HPX_FORCEINLINE static bool
             call(Continuation && c,
                 hpx::actions::basic_action<Component, Signature, Derived>,
                 naming::id_type const& id, Ts&&... ts)
@@ -600,9 +670,31 @@ namespace hpx
                     std::forward<Ts>(ts)...);
             }
 
+            template <typename Continuation_, typename Component,
+                typename Signature, typename Derived, typename Client,
+                typename Stub, typename ...Ts>
+            HPX_FORCEINLINE static bool
+            call(Continuation_ && cont,
+                hpx::actions::basic_action<Component, Signature, Derived>,
+                components::client_base<Client, Stub> const& c, Ts&&... ts)
+            {
+                // make sure the action is compatible with the component type
+                typedef typename components::client_base<
+                        Client, Stub
+                    >::server_component_type component_type;
+
+                typedef traits::is_valid_action<Derived, component_type> is_valid;
+                static_assert(is_valid::value,
+                    "The action to invoke is not supported by the target");
+
+                return apply_p<Derived>(std::forward<Continuation>(cont),
+                    c.get_id(), actions::action_priority<Derived>(),
+                    std::forward<Ts>(ts)...);
+            }
+
             template <typename Component, typename Signature, typename Derived,
                 typename DistPolicy, typename ...Ts>
-            BOOST_FORCEINLINE static typename boost::enable_if_c<
+            HPX_FORCEINLINE static typename std::enable_if<
                 traits::is_distribution_policy<DistPolicy>::value, bool
             >::type
             call(Continuation && c,
@@ -617,26 +709,45 @@ namespace hpx
     }
 
     template <typename Action, typename Continuation, typename ...Ts>
-    inline typename boost::enable_if_c<
+    inline typename std::enable_if<
         traits::is_continuation<Continuation>::value, bool
     >::type
-    apply(Continuation && c, naming::id_type const& gid,
-        Ts&&... vs)
+    apply(Continuation && c, naming::id_type const& gid, Ts&&... vs)
     {
         return apply_p<Action>(std::forward<Continuation>(c), gid,
             actions::action_priority<Action>(),
             std::forward<Ts>(vs)...);
     }
 
+    template <typename Action, typename Continuation, typename Client,
+        typename Stub, typename ...Ts>
+    inline typename std::enable_if<
+        traits::is_continuation<Continuation>::value, bool
+    >::type
+    apply(Continuation && cont, components::client_base<Client, Stub> const& c,
+        Ts&&... vs)
+    {
+        // make sure the action is compatible with the component type
+        typedef typename components::client_base<
+                Client, Stub
+            >::server_component_type component_type;
+
+        typedef traits::is_valid_action<Action, component_type> is_valid;
+        static_assert(is_valid::value,
+            "The action to invoke is not supported by the target");
+
+        return apply_p<Action>(std::forward<Continuation>(cont), c.get_id(),
+            actions::action_priority<Action>(), std::forward<Ts>(vs)...);
+    }
+
     template <typename Action, typename Continuation, typename DistPolicy,
         typename ...Ts>
-    inline typename boost::enable_if_c<
-        traits::is_distribution_policy<DistPolicy>::value
-     && traits::is_continuation<Continuation>::value
-      , bool
+    inline typename std::enable_if<
+        traits::is_distribution_policy<DistPolicy>::value &&
+            traits::is_continuation<Continuation>::value,
+        bool
     >::type
-    apply(Continuation && c, DistPolicy const& policy,
-        Ts&&... vs)
+    apply(Continuation && c, DistPolicy const& policy, Ts&&... vs)
     {
         return apply_p<Action>(std::forward<Continuation>(c), policy,
             actions::action_priority<Action>(), std::forward<Ts>(vs)...);
@@ -652,25 +763,33 @@ namespace hpx
             Ts&&... vs)
         {
             typedef
-                typename hpx::actions::extract_action<Action>::result_type
-                result_type;
+                typename hpx::traits::extract_action<Action>::local_result_type
+                local_result_type;
+            typedef
+                typename hpx::traits::extract_action<Action>::remote_result_type
+                remote_result_type;
 
             return apply_r_p<Action>(std::move(addr),
-                actions::typed_continuation<result_type>(contgid),
+                actions::typed_continuation<
+                    local_result_type, remote_result_type>(contgid),
                 gid, priority, std::forward<Ts>(vs)...);
         }
 
         template <typename Action, typename ...Ts>
         inline bool
-        apply_c (naming::address&& addr, naming::id_type const& contgid,
+        apply_c(naming::address&& addr, naming::id_type const& contgid,
             naming::id_type const& gid, Ts&&... vs)
         {
             typedef
-                typename hpx::actions::extract_action<Action>::result_type
-                result_type;
+                typename hpx::traits::extract_action<Action>::local_result_type
+                local_result_type;
+            typedef
+                typename hpx::traits::extract_action<Action>::remote_result_type
+                remote_result_type;
 
             return apply_r_p<Action>(std::move(addr),
-                actions::typed_continuation<result_type>(contgid),
+                actions::typed_continuation<
+                    local_result_type, remote_result_type>(contgid),
                 gid, actions::action_priority<Action>(),
                 std::forward<Ts>(vs)...);
         }
@@ -683,25 +802,31 @@ namespace hpx
         threads::thread_priority priority, Ts&&... vs)
     {
         typedef
-            typename hpx::actions::extract_action<Action>::result_type
-            result_type;
+            typename hpx::traits::extract_action<Action>::local_result_type
+            local_result_type;
+        typedef
+            typename hpx::traits::extract_action<Action>::remote_result_type
+            remote_result_type;
 
         return apply_p<Action>(
-            actions::typed_continuation<result_type>(contgid),
+            actions::typed_continuation<local_result_type, remote_result_type>(contgid),
             gid, priority, std::forward<Ts>(vs)...);
     }
 
     template <typename Action, typename ...Ts>
     inline bool
-    apply_c (naming::id_type const& contgid, naming::id_type const& gid,
+    apply_c(naming::id_type const& contgid, naming::id_type const& gid,
         Ts&&... vs)
     {
         typedef
-            typename hpx::actions::extract_action<Action>::result_type
-            result_type;
+            typename hpx::traits::extract_action<Action>::local_result_type
+            local_result_type;
+        typedef
+            typename hpx::traits::extract_action<Action>::remote_result_type
+            remote_result_type;
 
         return apply_p<Action>(
-            actions::typed_continuation<result_type>(contgid),
+            actions::typed_continuation<local_result_type, remote_result_type>(contgid),
             gid, actions::action_priority<Action>(),
             std::forward<Ts>(vs)...);
     }
@@ -709,17 +834,20 @@ namespace hpx
     template <typename Component, typename Signature, typename Derived,
         typename ...Ts>
     inline bool
-    apply_c (
+    apply_c(
         hpx::actions::basic_action<Component, Signature, Derived> /*act*/,
         naming::id_type const& contgid, naming::id_type const& gid,
         Ts&&... vs)
     {
         typedef
-            typename hpx::actions::extract_action<Derived>::result_type
-            result_type;
+            typename hpx::traits::extract_action<Derived>::local_result_type
+            local_result_type;
+        typedef
+            typename hpx::traits::extract_action<Derived>::remote_result_type
+            remote_result_type;
 
         return apply_p<Derived>(
-            actions::typed_continuation<result_type>(contgid),
+            actions::typed_continuation<local_result_type, remote_result_type>(contgid),
             gid, actions::action_priority<Derived>(),
             std::forward<Ts>(vs)...);
     }

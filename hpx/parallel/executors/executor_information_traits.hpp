@@ -9,8 +9,6 @@
 #define HPX_PARALLEL_EXECUTOR_INFORMATION_TRAITS_AUG_26_2015_1133AM
 
 #include <hpx/config.hpp>
-#include <hpx/exception.hpp>
-#include <hpx/exception_list.hpp>
 #include <hpx/async.hpp>
 #include <hpx/traits/is_executor.hpp>
 #include <hpx/runtime/threads/policies/topology.hpp>
@@ -47,8 +45,8 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v3)
         struct processing_units_count_helper
         {
             template <typename Executor, typename Parameters>
-            static std::size_t call(wrap_int, Executor& exec,
-                Parameters& params)
+            static std::size_t call(hpx::traits::detail::wrap_int,
+                Executor& exec, Parameters& params)
             {
                 return call_processing_units_parameter_count(params);
             }
@@ -72,7 +70,8 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v3)
         struct has_pending_closures_helper
         {
             template <typename Executor>
-            static auto call(wrap_int, Executor const& exec) -> bool
+            static auto call(hpx::traits::detail::wrap_int,
+                Executor const& exec) -> bool
             {
                 return false;   // assume stateless scheduling
             }
@@ -95,8 +94,8 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v3)
         struct get_pu_mask_helper
         {
             template <typename Executor>
-            static threads::mask_cref_type call(wrap_int, Executor const&,
-                threads::topology& topo, std::size_t thread_num)
+            static threads::mask_cref_type call(hpx::traits::detail::wrap_int,
+                Executor const&, threads::topology& topo, std::size_t thread_num)
             {
                 return hpx::threads::get_pu_mask(topo, thread_num);
             }
@@ -121,7 +120,8 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v3)
         struct set_scheduler_mode_helper
         {
             template <typename Executor, typename Mode>
-            static void call(wrap_int, Executor& exec, Mode const& mode)
+            static void call(hpx::traits::detail::wrap_int, Executor& exec,
+                Mode const& mode)
             {
             }
 

@@ -16,7 +16,6 @@
 #include <hpx/async.hpp>
 
 #include <boost/config.hpp>
-#include <boost/lexical_cast.hpp>
 
 #include <hpx/util/backtrace/backtrace.hpp>
 
@@ -48,13 +47,15 @@
 #include <unwind.h>
 #include <boost/cstdint.hpp>
 #endif
-#include <string.h>
-#include <stdlib.h>
+#include <iomanip>
 #include <ostream>
 #include <sstream>
-#include <iomanip>
+#include <string>
+#include <vector>
+#include <string.h>
+#include <stdlib.h>
 
-#if defined(BOOST_MSVC)
+#if defined(HPX_MSVC)
 #include <windows.h>
 #include <winbase.h>
 #include <stdlib.h>
@@ -64,10 +65,9 @@
 
 namespace hpx { namespace util {
 
-    namespace stack_trace {
-#if defined(BOOST_HAVE_EXECINFO) && defined(BOOST_HAVE_UNWIND) && \
-        defined(BOOST_HAVE_EXECINFO)
-
+    namespace stack_trace
+    {
+#if defined(BOOST_HAVE_EXECINFO) && defined(BOOST_HAVE_UNWIND)
         struct trace_data
         {
             trace_data(void **array,std::size_t size)
@@ -114,7 +114,7 @@ namespace hpx { namespace util {
             return _URC_NO_REASON;
         }
 
-        HPX_BACKTRACE_DECL std::size_t trace(void **array,std::size_t n)
+        HPX_API_EXPORT std::size_t trace(void **array,std::size_t n)
         {
             trace_data d(array,n);
 
@@ -129,14 +129,14 @@ namespace hpx { namespace util {
 
 #elif defined(BOOST_HAVE_EXECINFO)
 
-        HPX_BACKTRACE_DECL std::size_t trace(void **array,std::size_t n)
+        HPX_API_EXPORT std::size_t trace(void **array,std::size_t n)
         {
             return :: backtrace(array,n);
         }
 
-#elif defined(BOOST_MSVC)
+#elif defined(HPX_MSVC)
 
-        HPX_BACKTRACE_DECL std::size_t trace(void **array,std::size_t n)
+        HPX_API_EXPORT std::size_t trace(void **array,std::size_t n)
         {
 #if _WIN32_WINNT < 0x0600
             // for Windows XP/Windows Server 2003
@@ -148,7 +148,7 @@ namespace hpx { namespace util {
 
 #else
 
-        HPX_BACKTRACE_DECL std::size_t trace(void ** /*array*/,std::size_t /*n*/)
+        HPX_API_EXPORT std::size_t trace(void ** /*array*/,std::size_t /*n*/)
         {
             return 0;
         }
@@ -157,7 +157,7 @@ namespace hpx { namespace util {
 
 #if defined(BOOST_HAVE_DLFCN) && defined(BOOST_HAVE_ABI_CXA_DEMANGLE)
 
-        HPX_BACKTRACE_DECL std::string get_symbol(void *ptr)
+        HPX_API_EXPORT std::string get_symbol(void *ptr)
         {
             if(!ptr)
                 return std::string();
@@ -195,10 +195,10 @@ namespace hpx { namespace util {
            return res.str();
         }
 
-        HPX_BACKTRACE_DECL std::string get_symbols(void *const *addresses,
+        HPX_API_EXPORT std::string get_symbols(void *const *addresses,
             std::size_t size)
         {
-            std::string res = boost::lexical_cast<std::string>(size)
+            std::string res = std::to_string(size)
                 + ((1==size)?" frame:":" frames:");
             for(std::size_t i=0;i<size;i++) {
                 std::string tmp = get_symbol(addresses[i]);
@@ -209,7 +209,7 @@ namespace hpx { namespace util {
             }
             return res;
         }
-        HPX_BACKTRACE_DECL void write_symbols(void *const *addresses,
+        HPX_API_EXPORT void write_symbols(void *const *addresses,
             std::size_t size,std::ostream &out)
         {
             out << size << ((1==size)?" frame:":" frames:");
@@ -224,7 +224,7 @@ namespace hpx { namespace util {
 
 #elif defined(BOOST_HAVE_EXECINFO)
 
-        HPX_BACKTRACE_DECL std::string get_symbol(void *address)
+        HPX_API_EXPORT std::string get_symbol(void *address)
         {
             char ** ptr = backtrace_symbols(&address,1);
             try {
@@ -241,14 +241,14 @@ namespace hpx { namespace util {
             }
         }
 
-        HPX_BACKTRACE_DECL std::string get_symbols(void * const *address,
+        HPX_API_EXPORT std::string get_symbols(void * const *address,
             std::size_t size)
         {
             char ** ptr = backtrace_symbols(address,size);
             try {
                 if(ptr==0)
                     return std::string();
-                std::string res = boost::lexical_cast<std::string>(size)
+                std::string res = std::to_string(size)
                     + ((1==size)?" frame:":" frames:");
                 for(std::size_t i=0;i<size;i++) {
                     res+='\n';
@@ -264,7 +264,7 @@ namespace hpx { namespace util {
             }
         }
 
-        HPX_BACKTRACE_DECL void write_symbols(void *const *addresses,std::size_t size,
+        HPX_API_EXPORT void write_symbols(void *const *addresses,std::size_t size,
             std::ostream &out)
         {
             char ** ptr = backtrace_symbols(addresses,size);
@@ -284,7 +284,7 @@ namespace hpx { namespace util {
             }
         }
 
-#elif defined(BOOST_MSVC)
+#elif defined(HPX_MSVC)
 
         namespace {
             HANDLE hProcess = 0;
@@ -304,7 +304,7 @@ namespace hpx { namespace util {
             }
         }
 
-        HPX_BACKTRACE_DECL std::string get_symbol(void *ptr)
+        HPX_API_EXPORT std::string get_symbol(void *ptr)
         {
             if(ptr==0)
                 return std::string();
@@ -333,10 +333,10 @@ namespace hpx { namespace util {
             return ss.str();
         }
 
-        HPX_BACKTRACE_DECL std::string get_symbols(void *const *addresses,
+        HPX_API_EXPORT std::string get_symbols(void *const *addresses,
             std::size_t size)
         {
-            std::string res = boost::lexical_cast<std::string>(size)
+            std::string res = std::to_string(size)
                 + ((1==size)?" frame:":" frames:");
             for(std::size_t i=0;i<size;i++) {
                 std::string tmp = get_symbol(addresses[i]);
@@ -348,7 +348,7 @@ namespace hpx { namespace util {
             return res;
         }
 
-        HPX_BACKTRACE_DECL void write_symbols(void *const *addresses,
+        HPX_API_EXPORT void write_symbols(void *const *addresses,
             std::size_t size,std::ostream &out)
         {
             out << size << ((1==size)?" frame:":" frames:"); //-V128
@@ -363,7 +363,7 @@ namespace hpx { namespace util {
 
 #else
 
-        HPX_BACKTRACE_DECL std::string get_symbol(void *ptr)
+        HPX_API_EXPORT std::string get_symbol(void *ptr)
         {
             if(!ptr)
                 return std::string();
@@ -373,7 +373,7 @@ namespace hpx { namespace util {
             return res.str();
         }
 
-        HPX_BACKTRACE_DECL std::string get_symbols(void *const *ptrs,std::size_t size)
+        HPX_API_EXPORT std::string get_symbols(void *const *ptrs,std::size_t size)
         {
             if(!ptrs)
                 return std::string();
@@ -383,7 +383,7 @@ namespace hpx { namespace util {
             return res.str();
         }
 
-        HPX_BACKTRACE_DECL void write_symbols(void *const *addresses,
+        HPX_API_EXPORT void write_symbols(void *const *addresses,
             std::size_t size,std::ostream &out)
         {
             out << size << ((1 == size)?" frame:":" frames:"); //-V128

@@ -6,11 +6,20 @@
 #ifndef HPX_PARCELSET_POLICIES_MPI_SENDER_CONNECTION_HPP
 #define HPX_PARCELSET_POLICIES_MPI_SENDER_CONNECTION_HPP
 
+#include <hpx/config.hpp>
+
+#if defined(HPX_HAVE_PARCELPORT_MPI)
+
+#include <hpx/runtime/parcelset_fwd.hpp>
 #include <hpx/runtime/parcelset/parcelport_connection.hpp>
+#include <hpx/performance_counters/parcels/gatherer.hpp>
 #include <hpx/plugins/parcelport/mpi/header.hpp>
 #include <hpx/plugins/parcelport/mpi/locality.hpp>
+#include <hpx/util/high_resolution_clock.hpp>
+#include <hpx/util/unique_function.hpp>
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
+#include <vector>
 
 namespace hpx { namespace parcelset { namespace policies { namespace mpi
 {
@@ -18,7 +27,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace mpi
     struct sender_connection;
 
     int acquire_tag(sender *);
-    void add_connection(sender *, boost::shared_ptr<sender_connection> const&);
+    void add_connection(sender *, std::shared_ptr<sender_connection> const&);
 
     struct sender_connection
       : parcelset::parcelport_connection<
@@ -290,7 +299,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace mpi
             void(
                 error_code const&
               , parcelset::locality const&
-              , boost::shared_ptr<sender_connection>
+              , std::shared_ptr<sender_connection>
             )
         > postprocess_handler_;
 
@@ -306,6 +315,8 @@ namespace hpx { namespace parcelset { namespace policies { namespace mpi
         parcelset::locality there_;
     };
 }}}}
+
+#endif
 
 #endif
 

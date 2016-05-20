@@ -50,6 +50,14 @@ set(tests
     foreachn_projection
     foreachn_projection_exception
     foreachn_projection_bad_alloc
+    for_loop
+    for_loop_induction
+    for_loop_induction_async
+    for_loop_n
+    for_loop_n_strided
+    for_loop_reduction
+    for_loop_reduction_async
+    for_loop_strided
     generate
     generaten
     includes
@@ -71,6 +79,7 @@ set(tests
     move
     none_of
     reduce_
+    reduce_by_key
     remove_copy
     remove_copy_if
     replace
@@ -88,6 +97,7 @@ set(tests
     set_symmetric_difference
     set_union
     sort
+    sort_by_key
     sort_exceptions
     swapranges
     transform

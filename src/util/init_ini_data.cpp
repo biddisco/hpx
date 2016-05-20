@@ -4,27 +4,31 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <hpx/exception.hpp>
+#include <hpx/config.hpp>
 #include <hpx/config/defaults.hpp>
+#include <hpx/exception.hpp>
+#include <hpx/util/filesystem_compatibility.hpp>
 #include <hpx/util/init_ini_data.hpp>
 #include <hpx/util/ini.hpp>
-#include <hpx/util/filesystem_compatibility.hpp>
+#include <hpx/util/logging.hpp>
+#include <hpx/util/plugin.hpp>
 #include <hpx/runtime/components/component_registry_base.hpp>
 #include <hpx/plugins/plugin_registry_base.hpp>
 
-#include <string>
-#include <iostream>
-#include <algorithm>
-#include <vector>
-
+#include <boost/assign/std/vector.hpp>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/exception.hpp>
 #include <boost/filesystem/convenience.hpp>
-#include <boost/tokenizer.hpp>
-#include <hpx/util/plugin.hpp>
-#include <boost/assign/std/vector.hpp>
 #include <boost/range/iterator_range.hpp>
+#include <boost/tokenizer.hpp>
+
+#include <algorithm>
+#include <iostream>
+#include <map>
+#include <memory>
+#include <string>
+#include <vector>
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx { namespace util
@@ -116,7 +120,7 @@ namespace hpx { namespace util
         result = handle_ini_file_env (ini, "HPX_INI") || result;
 
         // afterwards in the standard locations
-#if !defined(BOOST_WINDOWS)   // /etc/hpx.ini doesn't make sense for Windows
+#if !defined(HPX_WINDOWS)   // /etc/hpx.ini doesn't make sense for Windows
         {
             bool result2 = handle_ini_file(ini, "/etc/hpx.ini");
             if (result2) {
@@ -244,7 +248,7 @@ namespace hpx { namespace util
             for (std::string const& s : names)
             {
                 // create the component registry object
-                boost::shared_ptr<components::component_registry_base>
+                std::shared_ptr<components::component_registry_base>
                     registry (pf.create(s, ec));
                 if (ec) continue;
 
@@ -290,7 +294,7 @@ namespace hpx { namespace util
             for (std::string const& s : names)
             {
                 // create the component registry object
-                boost::shared_ptr<components::component_registry_base>
+                std::shared_ptr<components::component_registry_base>
                     registry (pf.create(s, ec));
                 if (ec) return;
 
@@ -304,11 +308,11 @@ namespace hpx { namespace util
     }
 
     ///////////////////////////////////////////////////////////////////////////
-    std::vector<boost::shared_ptr<plugins::plugin_registry_base> >
+    std::vector<std::shared_ptr<plugins::plugin_registry_base> >
     load_plugin_factory(hpx::util::plugin::dll& d, util::section& ini,
         std::string const& curr, std::string const& name, error_code& ec)
     {
-        typedef std::vector<boost::shared_ptr<plugins::plugin_registry_base> >
+        typedef std::vector<std::shared_ptr<plugins::plugin_registry_base> >
             plugin_list_type;
 
         plugin_list_type plugin_registries;
@@ -326,7 +330,7 @@ namespace hpx { namespace util
             for (std::string const& s : names)
             {
                 // create the plugin registry object
-                boost::shared_ptr<plugins::plugin_registry_base>
+                std::shared_ptr<plugins::plugin_registry_base>
                     registry(pf.create(s, ec));
                 if (ec) continue;
 
@@ -359,7 +363,7 @@ namespace hpx { namespace util
     }
 
     ///////////////////////////////////////////////////////////////////////////
-    std::vector<boost::shared_ptr<plugins::plugin_registry_base> >
+    std::vector<std::shared_ptr<plugins::plugin_registry_base> >
     init_ini_data_default(std::string const& libs, util::section& ini,
         std::map<std::string, boost::filesystem::path>& basenames,
         std::map<std::string, hpx::util::plugin::dll>& modules)
@@ -369,7 +373,7 @@ namespace hpx { namespace util
         typedef std::vector<std::pair<fs::path, std::string> >::iterator
             iterator_type;
 
-        typedef std::vector<boost::shared_ptr<plugins::plugin_registry_base> >
+        typedef std::vector<std::shared_ptr<plugins::plugin_registry_base> >
             plugin_list_type;
 
         plugin_list_type plugin_registries;
@@ -405,7 +409,7 @@ namespace hpx { namespace util
                 // instance name and module name are the same
                 std::string name(fs::basename(curr));
 
-#if !defined(BOOST_WINDOWS)
+#if !defined(HPX_WINDOWS)
                 if (0 == name.find("lib"))
                     name = name.substr(3);
 #endif
@@ -450,8 +454,7 @@ namespace hpx { namespace util
         std::random_shuffle(libdata.begin(), libdata.end());
 
         typedef std::pair<fs::path, std::string> libdata_type;
-        for (libdata_type const& p :
-            boost::iterator_range<iterator_type>(libdata.begin(), libdata.end()))
+        for (libdata_type const& p : libdata)
         {
             // get the handle of the library
             error_code ec(lightweight);

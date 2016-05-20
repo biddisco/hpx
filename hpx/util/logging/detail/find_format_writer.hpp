@@ -17,12 +17,13 @@
 #ifndef JT28092007_logger_to_writer_HPP_DEFINED
 #define JT28092007_logger_to_writer_HPP_DEFINED
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(HPX_MSVC) && (HPX_MSVC >= 1020)
 # pragma once
 #endif
 
 #include <hpx/util/logging/detail/fwd.hpp>
 #include <hpx/util/logging/format_fwd.hpp>
+#include <memory>
 
 namespace hpx { namespace util { namespace logging {
 

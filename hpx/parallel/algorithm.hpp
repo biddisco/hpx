@@ -1,4 +1,4 @@
-//  Copyright (c) 2007-2015 Hartmut Kaiser
+//  Copyright (c) 2007-2016 Hartmut Kaiser
 //  Copyright (c) 2014 Grant Mercer
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -7,11 +7,12 @@
 #if !defined(HPX_PARALLEL_ALGORITHM_MAY_28_2014_0522PM)
 #define HPX_PARALLEL_ALGORITHM_MAY_28_2014_0522PM
 
-#include <hpx/hpx_fwd.hpp>
+#include <hpx/config.hpp>
 
 /// See N4310: 1.3/3
 #include <algorithm>
 
+// Parallelism TS V1
 #include <hpx/parallel/algorithms/adjacent_find.hpp>
 #include <hpx/parallel/algorithms/all_any_none.hpp>
 #include <hpx/parallel/algorithms/copy.hpp>
@@ -21,6 +22,7 @@
 #include <hpx/parallel/algorithms/find.hpp>
 #include <hpx/parallel/algorithms/for_each.hpp>
 #include <hpx/parallel/algorithms/generate.hpp>
+#include <hpx/parallel/algorithms/includes.hpp>
 #include <hpx/parallel/algorithms/is_partitioned.hpp>
 #include <hpx/parallel/algorithms/is_sorted.hpp>
 #include <hpx/parallel/algorithms/lexicographical_compare.hpp>
@@ -38,5 +40,8 @@
 #include <hpx/parallel/algorithms/set_union.hpp>
 #include <hpx/parallel/algorithms/sort.hpp>
 #include <hpx/parallel/algorithms/swap_ranges.hpp>
+
+// Parallelism TS V2
+#include <hpx/parallel/algorithms/for_loop.hpp>
 
 #endif

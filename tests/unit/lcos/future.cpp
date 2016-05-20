@@ -11,19 +11,19 @@
 #include <hpx/include/lcos.hpp>
 #include <hpx/util/lightweight_test.hpp>
 
-#include <utility>
-#include <memory>
-#include <string>
-
-#include <boost/move/move.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/assign/std/vector.hpp>
+
+#include <memory>
+#include <mutex>
+#include <string>
+#include <utility>
+#include <vector>
 
 ///////////////////////////////////////////////////////////////////////////////
 struct X
 {
 private:
-    HPX_MOVABLE_BUT_NOT_COPYABLE(X);
+    HPX_MOVABLE_ONLY(X);
 
 public:
     int i;
@@ -108,9 +108,8 @@ void test_initial_state()
     HPX_TEST(!fi.is_ready());
     HPX_TEST(!fi.has_value());
     HPX_TEST(!fi.has_exception());
-    int i;
     try {
-        i = fi.get();
+        fi.get();
         HPX_TEST(false);
     }
     catch (hpx::exception const& e) {
@@ -395,7 +394,7 @@ unsigned callback_called = 0;
 
 void wait_callback(hpx::lcos::future<int>)
 {
-    boost::lock_guard<hpx::lcos::local::spinlock> lk(callback_mutex);
+    std::lock_guard<hpx::lcos::local::spinlock> lk(callback_mutex);
     ++callback_called;
 }
 
@@ -430,7 +429,7 @@ void test_wait_callback()
 
 void do_nothing_callback(hpx::lcos::local::promise<int>& /*pi*/)
 {
-    boost::lock_guard<hpx::lcos::local::spinlock> lk(callback_mutex);
+    std::lock_guard<hpx::lcos::local::spinlock> lk(callback_mutex);
     ++callback_called;
 }
 
@@ -582,7 +581,7 @@ int main(int argc, char* argv[])
     using namespace boost::assign;
     std::vector<std::string> cfg;
     cfg += "hpx.os_threads=" +
-        boost::lexical_cast<std::string>(hpx::threads::hardware_concurrency());
+        std::to_string(hpx::threads::hardware_concurrency());
 
     // Initialize and run HPX
     return hpx::init(cmdline, argc, argv, cfg);

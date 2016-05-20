@@ -4,27 +4,32 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <hpx/hpx_fwd.hpp>
-
+#include <hpx/config.hpp>
 #include <hpx/state.hpp>
 #include <hpx/exception.hpp>
 #include <hpx/version.hpp>
-#include <hpx/include/runtime.hpp>
+#include <hpx/runtime.hpp>
+#include <hpx/runtime/agas/addressing_service.hpp>
 #include <hpx/runtime/agas/big_boot_barrier.hpp>
 #include <hpx/runtime/components/runtime_support.hpp>
-#include <hpx/runtime/components/server/runtime_support.hpp>
+#include <hpx/runtime/components/server/memory.hpp>
 #include <hpx/runtime/components/server/memory_block.hpp>
+#include <hpx/runtime/components/server/runtime_support.hpp>
+#include <hpx/runtime/components/server/simple_component_base.hpp> // EXPORTS get_next_id
+#include <hpx/runtime/get_config_entry.hpp>
 #include <hpx/runtime/threads/threadmanager.hpp>
+#include <hpx/runtime/threads/coroutines/coroutine.hpp>
 #include <hpx/runtime/threads/policies/topology.hpp>
 #include <hpx/runtime/threads/policies/scheduler_mode.hpp>
-#include <hpx/include/performance_counters.hpp>
+#include <hpx/performance_counters/counters.hpp>
+#include <hpx/performance_counters/counter_creators.hpp>
+#include <hpx/performance_counters/manage_counter_type.hpp>
 #include <hpx/performance_counters/registry.hpp>
 #include <hpx/util/command_line_handling.hpp>
 #include <hpx/util/high_resolution_clock.hpp>
 #include <hpx/util/backtrace.hpp>
 #include <hpx/util/query_counters.hpp>
 #include <hpx/util/thread_mapper.hpp>
-#include <hpx/util/coroutine/coroutine.hpp>
 
 #if defined(HPX_HAVE_SECURITY)
 #include <hpx/components/security/parcel_suffix.hpp>
@@ -34,11 +39,14 @@
 #include <hpx/util/security/subordinate_certificate_authority.hpp>
 #endif
 
-#include <boost/thread/locks.hpp>
+#include <boost/atomic.hpp>
+#include <boost/exception_ptr.hpp>
 
 #include <iostream>
-#include <vector>
 #include <memory>
+#include <mutex>
+#include <string>
+#include <vector>
 
 #if defined(_WIN64) && defined(_DEBUG) && !defined(HPX_HAVE_FIBER_BASED_COROUTINES)
 #include <io.h>
@@ -47,10 +55,11 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Make sure the system gets properly shut down while handling Ctrl-C and other
 // system signals
-#if defined(BOOST_WINDOWS)
+#if defined(HPX_WINDOWS)
 
 namespace hpx
 {
+    ///////////////////////////////////////////////////////////////////////////
     void handle_termination(char const* reason)
     {
         if (get_config_entry("hpx.attach_debugger", "") == "exception")
@@ -103,6 +112,7 @@ namespace hpx
 
 namespace hpx
 {
+    ///////////////////////////////////////////////////////////////////////////
     HPX_EXPORT void termination_handler(int signum)
     {
         if (signum != SIGINT &&
@@ -128,6 +138,13 @@ namespace hpx
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx
 {
+    ///////////////////////////////////////////////////////////////////////////
+    // There is no need to protect these global from thread concurrent access
+    // as they are access during early startup only.
+    std::vector<hpx::util::tuple<char const*, char const*> >
+        message_handler_registrations;
+
+    ///////////////////////////////////////////////////////////////////////////
     HPX_EXPORT void new_handler()
     {
         HPX_THROW_EXCEPTION(out_of_memory, "new_handler",
@@ -136,7 +153,7 @@ namespace hpx
 
     void set_error_handlers()
     {
-#if defined(BOOST_WINDOWS)
+#if defined(HPX_WINDOWS)
         // Set console control handler to allow server to be stopped.
         SetConsoleCtrlHandler(hpx::termination_handler, TRUE);
 #else
@@ -258,7 +275,7 @@ namespace hpx
 
             {
                 // Initialize the root-CA
-                boost::lock_guard<lcos::local::spinlock> l(security_mtx_);
+                std::lock_guard<lcos::local::spinlock> l(security_mtx_);
 
                 root_ca.initialize();
 
@@ -294,7 +311,7 @@ namespace hpx
     components::security::signed_certificate_signing_request
         runtime::get_certificate_signing_request() const
     {
-        boost::lock_guard<lcos::local::spinlock> l(security_mtx_);
+        std::lock_guard<lcos::local::spinlock> l(security_mtx_);
 
         // Initialize the sub-CA
         security_data_->subordinate_certificate_authority_.initialize();
@@ -314,7 +331,7 @@ namespace hpx
 
         {
             // tend to the given CSR
-            boost::lock_guard<lcos::local::spinlock> l(security_mtx_);
+            std::lock_guard<lcos::local::spinlock> l(security_mtx_);
             cert = security_data_->root_certificate_authority_.
                 sign_certificate_signing_request(csr);
         }
@@ -341,7 +358,7 @@ namespace hpx
                 "root-CA(%1%)") % root_cert);
 
             // initialize our certificate store
-            boost::lock_guard<lcos::local::spinlock> l(security_mtx_);
+            std::lock_guard<lcos::local::spinlock> l(security_mtx_);
 
             HPX_ASSERT(security_data_->cert_store_.get() == 0);
             security_data_->cert_store_.reset(
@@ -364,7 +381,7 @@ namespace hpx
 
             {
                 // finish initializing our sub-CA
-                boost::lock_guard<lcos::local::spinlock> l(security_mtx_);
+                std::lock_guard<lcos::local::spinlock> l(security_mtx_);
                 security_data_->locality_certificate_ = subca_cert;
                 security_data_
                     ->subordinate_certificate_authority_.set_certificate(subca_cert);
@@ -388,7 +405,7 @@ namespace hpx
             return components::security::signed_certificate::invalid_signed_type;
         }
 
-        boost::lock_guard<lcos::local::spinlock> l(security_mtx_);
+        std::lock_guard<lcos::local::spinlock> l(security_mtx_);
         HPX_ASSERT(security_data_.get() != 0);
         return security_data_->root_certificate_authority_.get_certificate(ec);
     }
@@ -396,7 +413,7 @@ namespace hpx
     components::security::signed_certificate
         runtime::get_certificate(error_code& ec) const
     {
-        boost::lock_guard<lcos::local::spinlock> l(security_mtx_);
+        std::lock_guard<lcos::local::spinlock> l(security_mtx_);
         HPX_ASSERT(security_data_.get() != 0);
         return security_data_->subordinate_certificate_authority_.get_certificate(ec);
     }
@@ -412,7 +429,7 @@ namespace hpx
             "runtime::add_locality_certificate: locality(%1%): adding locality "
             "certificate: %2%") % here() % cert);
 
-        boost::lock_guard<lcos::local::spinlock> l(security_mtx_);
+        std::lock_guard<lcos::local::spinlock> l(security_mtx_);
         HPX_ASSERT(0 != security_data_->cert_store_.get());
         // should have been created
         security_data_->cert_store_->insert(cert);
@@ -430,7 +447,7 @@ namespace hpx
             return components::security::signed_certificate::invalid_signed_type;
         }
 
-        boost::lock_guard<lcos::local::spinlock> l(security_mtx_);
+        std::lock_guard<lcos::local::spinlock> l(security_mtx_);
         return security_data_->locality_certificate_;
     }
 
@@ -447,7 +464,7 @@ namespace hpx
             return components::security::signed_certificate::invalid_signed_type;
         }
 
-        boost::lock_guard<lcos::local::spinlock> l(security_mtx_);
+        std::lock_guard<lcos::local::spinlock> l(security_mtx_);
 
         using util::security::get_subordinate_certificate_authority_gid;
         return security_data_->cert_store_->at(
@@ -470,7 +487,7 @@ namespace hpx
             return;
         }
 
-        boost::lock_guard<lcos::local::spinlock> l(security_mtx_);
+        std::lock_guard<lcos::local::spinlock> l(security_mtx_);
         signed_suffix = security_data_->subordinate_certificate_authority_.
             get_key_pair().sign(suffix, ec);
     }
@@ -509,7 +526,7 @@ namespace hpx
     boost::atomic<int> runtime::instance_number_counter_(-1);
 
     ///////////////////////////////////////////////////////////////////////////
-    util::thread_specific_ptr<runtime *, runtime::tls_tag> runtime::runtime_;
+    util::thread_specific_ptr<runtime*, runtime::tls_tag> runtime::runtime_;
     util::thread_specific_ptr<std::string, runtime::tls_tag> runtime::thread_name_;
     util::thread_specific_ptr<boost::uint64_t, runtime::tls_tag> runtime::uptime_;
 
@@ -518,22 +535,25 @@ namespace hpx
         // initialize our TSS
         if (NULL == runtime::runtime_.get())
         {
-            HPX_ASSERT(NULL == threads::coroutine_type::impl_type::get_self());
+            HPX_ASSERT(NULL == threads::thread_self::get_self());
 
             runtime::runtime_.reset(new runtime* (this));
             runtime::uptime_.reset(new boost::uint64_t);
             *runtime::uptime_.get() = util::high_resolution_clock::now();
 
-            threads::coroutine_type::impl_type::init_self();
+            threads::thread_self::init_self();
         }
     }
 
     void runtime::deinit_tss()
     {
         // reset our TSS
-        threads::coroutine_type::impl_type::reset_self();
+        threads::thread_self::reset_self();
         runtime::uptime_.reset();
         runtime::runtime_.reset();
+        util::reset_held_lock_data();
+
+        threads::reset_continuation_recursion_count();
     }
 
     std::string runtime::get_thread_name()
@@ -566,7 +586,7 @@ namespace hpx
 
     ///////////////////////////////////////////////////////////////////////////
     void runtime::register_query_counters(
-        boost::shared_ptr<util::query_counters> const& active_counters)
+        std::shared_ptr<util::query_counters> const& active_counters)
     {
         active_counters_ = active_counters;
     }
@@ -600,6 +620,13 @@ namespace hpx
     {
         if (active_counters_.get())
             active_counters_->stop_evaluating_counters();
+    }
+
+    void runtime::register_message_handler(char const* message_handler_type,
+        char const* action, error_code& ec)
+    {
+        return runtime_support_->register_message_handler(
+            message_handler_type, action, ec);
     }
 
     parcelset::policies::message_handler* runtime::create_message_handler(
@@ -713,7 +740,7 @@ namespace hpx
             },
 
             // action invocation counters
-            { "/runtime/count/action_invocation", performance_counters::counter_raw,
+            { "/runtime/count/action-invocation", performance_counters::counter_raw,
               "returns the number of (local) invocations of a specific action "
               "on this locality (the action type has to be specified as the "
               "counter parameter)",
@@ -723,7 +750,7 @@ namespace hpx
               ""
             },
 
-            { "/runtime/count/remote_action_invocation",
+            { "/runtime/count/remote-action-invocation",
               performance_counters::counter_raw,
               "returns the number of (remote) invocations of a specific action "
               "on this locality (the action type has to be specified as the "
@@ -789,7 +816,7 @@ namespace hpx
     boost::uint32_t runtime::assign_cores(std::string const& locality_basename,
         boost::uint32_t cores_needed)
     {
-        boost::lock_guard<boost::mutex> l(mtx_);
+        std::lock_guard<boost::mutex> l(mtx_);
 
         used_cores_map_type::iterator it = used_cores_map_.find(locality_basename);
         if (it == used_cores_map_.end())
@@ -817,7 +844,7 @@ namespace hpx
             this->get_thread_manager().init(affinity_init_));
     }
 
-    boost::shared_ptr<util::one_size_heap_list_base> runtime::get_promise_heap(
+    std::shared_ptr<util::one_size_heap_list_base> runtime::get_promise_heap(
         components::component_type type)
     {
         return runtime_support_->get_promise_heap(type);
@@ -1178,7 +1205,7 @@ namespace hpx
         if (NULL != rt)
         {
             state st = rt->get_state();
-            return st == state_stopped || st == state_shutdown;
+            return st >= state_shutdown;
         }
         return true;        // assume stopped
     }
@@ -1263,7 +1290,7 @@ namespace hpx { namespace threads
 
 namespace hpx { namespace components { namespace detail
 {
-    boost::shared_ptr<util::one_size_heap_list_base> get_promise_heap(
+    std::shared_ptr<util::one_size_heap_list_base> get_promise_heap(
         components::component_type type)
     {
         return get_runtime().get_promise_heap(type);
@@ -1443,6 +1470,19 @@ namespace hpx
 
     ///////////////////////////////////////////////////////////////////////////
     // Create an instance of a message handler plugin
+    void register_message_handler(char const* message_handler_type,
+        char const* action, error_code& ec)
+    {
+        runtime* rt = get_runtime_ptr();
+        if (NULL != rt) {
+            return rt->register_message_handler(message_handler_type, action, ec);
+        }
+
+        // store the request for later
+        message_handler_registrations.push_back(
+            hpx::util::make_tuple(message_handler_type, action));
+    }
+
     parcelset::policies::message_handler* create_message_handler(
         char const* message_handler_type, char const* action,
         parcelset::parcelport* pp, std::size_t num_messages,

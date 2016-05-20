@@ -7,10 +7,13 @@
 #define HPX_PARALLEL_TRAITS_PROJECTED_JUL_18_2015_1001PM
 
 #include <hpx/config.hpp>
+#include <hpx/traits/is_callable.hpp>
+#include <hpx/traits/is_iterator.hpp>
 #include <hpx/traits/segmented_iterator_traits.hpp>
-#include <hpx/util/result_of.hpp>
+#include <hpx/util/always_void.hpp>
 #include <hpx/util/decay.hpp>
 #include <hpx/util/detail/pack.hpp>
+#include <hpx/util/result_of.hpp>
 
 #include <type_traits>
 #include <iterator>
@@ -39,30 +42,13 @@ namespace hpx { namespace parallel { namespace traits
     ///////////////////////////////////////////////////////////////////////////
     namespace detail
     {
-        template <typename T>
-        struct is_iterator
-        {
-            template <typename U>
-            static char test(typename std::iterator_traits<U>::pointer* x);
-
-            template <typename U>
-            static long test(...);
-
-            static bool const value =
-                sizeof(test<T>(0)) == sizeof(char);
-        };
-    }
-
-    ///////////////////////////////////////////////////////////////////////////
-    namespace detail
-    {
         template <typename F, typename Iter, typename Enable = void>
         struct projected_result_of
         {};
 
         template <typename Proj, typename Iter>
         struct projected_result_of<Proj, Iter,
-                typename std::enable_if<detail::is_iterator<Iter>::value>::type>
+                typename std::enable_if<hpx::traits::is_iterator<Iter>::value>::type>
           : hpx::util::result_of<Proj(
                     typename std::iterator_traits<Iter>::reference
                 )>
@@ -93,7 +79,7 @@ namespace hpx { namespace parallel { namespace traits
 
         template <typename Proj, typename Iter>
         struct is_projected<Proj, Iter,
-                typename std::enable_if<detail::is_iterator<Iter>::value>::type>
+                typename std::enable_if<hpx::traits::is_iterator<Iter>::value>::type>
           : hpx::traits::is_callable<Proj(
                     typename std::iterator_traits<Iter>::reference
                 )>

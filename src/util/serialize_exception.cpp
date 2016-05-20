@@ -8,13 +8,11 @@
 #include <hpx/runtime/serialization/serialize.hpp>
 
 #include <boost/version.hpp>
-#include <boost/config.hpp>
 #include <boost/exception_ptr.hpp>
 
 #include <stdexcept>
-#ifndef BOOST_NO_TYPEID
+#include <string>
 #include <typeinfo>
-#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx { namespace serialization
@@ -174,7 +172,6 @@ namespace hpx { namespace serialization
             type = hpx::util::std_bad_alloc;
             what = e.what();
         }
-#ifndef BOOST_NO_TYPEID
         catch (std::bad_cast const& e) {
             type = hpx::util::std_bad_cast;
             what = e.what();
@@ -183,7 +180,6 @@ namespace hpx { namespace serialization
             type = hpx::util::std_bad_typeid;
             what = e.what();
         }
-#endif
         catch (std::bad_exception const& e) {
             type = hpx::util::std_bad_exception;
             what = e.what();
@@ -309,7 +305,6 @@ namespace hpx { namespace serialization
                     throw_env_, throw_config_, throw_state_, throw_auxinfo_);
             break;
 
-#ifndef BOOST_NO_TYPEID
         case hpx::util::std_bad_cast:
             e = hpx::detail::construct_exception(
                     hpx::detail::bad_cast(what),
@@ -326,7 +321,6 @@ namespace hpx { namespace serialization
                     throw_shepherd_, throw_thread_id_, throw_thread_name_,
                     throw_env_, throw_config_, throw_state_, throw_auxinfo_);
             break;
-#endif
         case hpx::util::std_bad_exception:
             e = hpx::detail::construct_exception(
                     hpx::detail::bad_exception(what),

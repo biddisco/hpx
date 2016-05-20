@@ -6,7 +6,7 @@
 #if !defined(HPX_MESSAGE_HANDLER_FACTORY_BASE_MAR_24_2013_0339PM)
 #define HPX_MESSAGE_HANDLER_FACTORY_BASE_MAR_24_2013_0339PM
 
-#include <hpx/hpx_fwd.hpp>
+#include <hpx/config.hpp>
 #include <hpx/plugins/plugin_factory_base.hpp>
 
 #include <hpx/util/plugin.hpp>
@@ -22,6 +22,10 @@ namespace hpx { namespace plugins
     struct HPX_EXPORT message_handler_factory_base : plugin_factory_base
     {
         virtual ~message_handler_factory_base() {}
+
+        /// Register a action for this message handler type
+        virtual void register_action(
+            char const* action, error_code& ec) = 0;
 
         /// Create a new instance of a message handler
         ///

@@ -12,6 +12,9 @@
 
 #include <hpx/util/lightweight_test.hpp>
 
+#include <string>
+#include <vector>
+
 template <typename T>
 struct A
 {
@@ -29,7 +32,7 @@ struct A
 
     friend std::ostream& operator<<(std::ostream& os, A a)
     {
-        os << a;
+        os << a.t_;
         return os;
     }
 

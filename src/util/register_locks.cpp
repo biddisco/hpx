@@ -4,7 +4,7 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <hpx/config/defines.hpp>
+#include <hpx/config.hpp>
 #include <hpx/exception.hpp>
 #include <hpx/runtime/get_config_entry.hpp>
 #include <hpx/util/logging.hpp>
@@ -12,7 +12,9 @@
 #include <hpx/util/thread_specific_ptr.hpp>
 #include <hpx/lcos/local/spinlock.hpp>
 
-#include <boost/ptr_container/ptr_map.hpp>
+#include <map>
+#include <string>
+#include <utility>
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx { namespace util
@@ -55,12 +57,13 @@ namespace hpx { namespace util
         struct register_locks
         {
             typedef lcos::local::spinlock mutex_type;
-            typedef boost::ptr_map<void const*, lock_data> held_locks_map;
+            typedef std::map<void const*, lock_data> held_locks_map;
 
             struct held_locks_data
             {
                 held_locks_data()
                   : enabled_(true)
+                  , ignore_all_locks_(false)
                 {}
 
                 held_locks_map data_;
@@ -135,6 +138,11 @@ namespace hpx { namespace util
 
                 m->ignore_all_locks_ = enable;
             }
+
+            static void reset_held_lock_data()
+            {
+                held_locks_.reset();
+            }
         };
 
         hpx::util::thread_specific_ptr<
@@ -181,10 +189,10 @@ namespace hpx { namespace util
 
             std::pair<register_locks::held_locks_map::iterator, bool> p;
             if (!data) {
-                p = held_locks.insert(lock, new detail::lock_data);
+                p = held_locks.insert(std::make_pair(lock, detail::lock_data()));
             }
             else {
-                p = held_locks.insert(lock, new detail::lock_data(data));
+                p = held_locks.insert(std::make_pair(lock, detail::lock_data(data)));
             }
             return p.second;
         }
@@ -223,7 +231,7 @@ namespace hpx { namespace util
             for (iterator it = held_locks.begin(); it != end; ++it)
             {
                 //lock_data const& data = *(*it).second;
-                if (!(*it).second->ignore_)
+                if (!it->second.ignore_)
                     return true;
             }
 
@@ -335,7 +343,7 @@ namespace hpx { namespace util
                     return;
                 }
 
-                it->second->ignore_ = status;
+                it->second.ignore_ = status;
             }
         }
     }
@@ -358,6 +366,11 @@ namespace hpx { namespace util
     void reset_ignored_all()
     {
         detail::register_locks::set_ignore_all_locks(false);
+    }
+
+    void reset_held_lock_data()
+    {
+        detail::register_locks::reset_held_lock_data();
     }
 #else
 
@@ -394,7 +407,9 @@ namespace hpx { namespace util
     void reset_ignored_all()
     {
     }
+
+    void reset_held_lock_data()
+    {
+    }
 #endif
 }}
-
-

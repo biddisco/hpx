@@ -1,25 +1,30 @@
-//  Copyright (c) 1998-2013 Hartmut Kaiser
+//  Copyright (c) 1998-2015 Hartmut Kaiser
 //  Copyright (c)      2011 Bryce Lelbach
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#if !defined(HPX_041EF599_BA27_47ED_B1F0_2691B28966B3)
-#define HPX_041EF599_BA27_47ED_B1F0_2691B28966B3
+#ifndef HPX_UTIL_ONE_SIZE_HEAP_LIST_HPP
+#define HPX_UTIL_ONE_SIZE_HEAP_LIST_HPP
 
 #include <hpx/config.hpp>
 #include <hpx/state.hpp>
-#include <hpx/exception.hpp>
-#include <hpx/runtime/threads/thread_helpers.hpp>
-#include <hpx/util/assert.hpp>
+#include <hpx/throw_exception.hpp>
+#include <hpx/lcos/local/spinlock.hpp>
+#include <hpx/runtime/threads/thread_data_fwd.hpp>
 #include <hpx/util/bind.hpp>
+#if defined(HPX_DEBUG)
+#include <hpx/util/logging.hpp>
+#endif
 #include <hpx/util/one_size_heap_list_base.hpp>
+#include <hpx/util/unlock_guard.hpp>
 
-#include <boost/thread.hpp>
-#include <boost/shared_ptr.hpp>
 #include <boost/format.hpp>
 
+#include <cstddef>
 #include <list>
+#include <memory>
+#include <mutex>
 #include <string>
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -34,7 +39,7 @@ namespace hpx { namespace util
         typedef typename heap_type::allocator_type allocator_type;
         typedef typename heap_type::value_type value_type;
 
-        typedef std::list<boost::shared_ptr<heap_type> > list_type;
+        typedef std::list<std::shared_ptr<heap_type> > list_type;
         typedef typename list_type::iterator iterator;
         typedef typename list_type::const_iterator const_iterator;
 
@@ -46,7 +51,7 @@ namespace hpx { namespace util
 
         typedef Mutex mutex_type;
 
-        typedef typename mutex_type::scoped_lock unique_lock_type;
+        typedef std::unique_lock<mutex_type> unique_lock_type;
 
         explicit one_size_heap_list(char const* class_name = "")
             : class_name_(class_name)
@@ -334,5 +339,4 @@ namespace hpx { namespace util
     };
 }} // namespace hpx::util
 
-#endif // HPX_041EF599_BA27_47ED_B1F0_2691B28966B3
-
+#endif /*HPX_UTIL_ONE_SIZE_HEAP_LIST_HPP*/

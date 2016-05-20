@@ -8,6 +8,8 @@
 
 #include <hpx/config.hpp>
 
+#if defined(HPX_HAVE_PARCELPORT_IBVERBS)
+
 #include <hpx/util/memory_chunk_pool.hpp>
 
 namespace hpx { namespace parcelset { namespace policies { namespace ibverbs
@@ -79,5 +81,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ibverbs
         util::memory_chunk_pool * memory_pool_;
     };
 }}}}
+
+#endif
 
 #endif

@@ -8,6 +8,7 @@
 #define HPX_SERIALIZATION_DETAIL_POINTER_HPP
 
 #include <hpx/runtime/serialization/serialization_fwd.hpp>
+#include <hpx/runtime/serialization/access.hpp>
 #include <hpx/runtime/serialization/basic_archive.hpp>
 #include <hpx/runtime/serialization/detail/polymorphic_intrusive_factory.hpp>
 #include <hpx/runtime/serialization/detail/polymorphic_id_factory.hpp>
@@ -15,12 +16,29 @@
 #include <hpx/runtime/serialization/string.hpp>
 #include <hpx/traits/polymorphic_traits.hpp>
 
-#include <boost/shared_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
 #include <boost/mpl/eval_if.hpp>
 
+#include <memory>
+#include <string>
+#include <utility>
+
 namespace hpx { namespace serialization
 {
+    namespace detail
+    {
+        struct ptr_helper;
+
+        typedef std::unique_ptr<ptr_helper> ptr_helper_ptr;
+    }
+
+    HPX_FORCEINLINE
+        void register_pointer(input_archive & ar, boost::uint64_t pos,
+            detail::ptr_helper_ptr helper);
+
+    template <typename Helper>
+    Helper & tracked_pointer(input_archive & ar, boost::uint64_t pos);
+
     namespace detail
     {
         template <class Pointer>
@@ -151,7 +169,7 @@ namespace hpx { namespace serialization
         };
 
         // forwarded serialize pointer functions
-        template <typename Pointer> BOOST_FORCEINLINE
+        template <typename Pointer> HPX_FORCEINLINE
         void serialize_pointer_tracked(output_archive & ar, const Pointer& ptr)
         {
             bool valid = static_cast<bool>(ptr);
@@ -169,7 +187,7 @@ namespace hpx { namespace serialization
             }
         }
 
-        template <class Pointer> BOOST_FORCEINLINE
+        template <class Pointer> HPX_FORCEINLINE
         void serialize_pointer_tracked(input_archive& ar, Pointer& ptr)
         {
             bool valid = false;
@@ -197,7 +215,7 @@ namespace hpx { namespace serialization
             }
         }
 
-        template <typename Pointer> BOOST_FORCEINLINE
+        template <typename Pointer> HPX_FORCEINLINE
         void serialize_pointer_untracked(output_archive & ar, const Pointer& ptr)
         {
             bool valid = static_cast<bool>(ptr);
@@ -208,7 +226,7 @@ namespace hpx { namespace serialization
             }
         }
 
-        template <class Pointer> BOOST_FORCEINLINE
+        template <class Pointer> HPX_FORCEINLINE
         void serialize_pointer_untracked(input_archive& ar, Pointer& ptr)
         {
             bool valid = false;

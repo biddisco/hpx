@@ -1,26 +1,32 @@
-//  Copyright (c) 2007-2015 Hartmut Kaiser
+//  Copyright (c) 2007-2016 Hartmut Kaiser
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <hpx/hpx_fwd.hpp>
+#include <hpx/runtime/threads/executors/thread_pool_attached_executors.hpp>
 
+#include <hpx/error_code.hpp>
 #if defined(HPX_HAVE_LOCAL_SCHEDULER)
-#include <hpx/runtime/threads/policies/local_queue_scheduler.hpp>
-#endif
-#if defined(HPX_HAVE_STATIC_SCHEDULER)
-#include <hpx/runtime/threads/policies/static_queue_scheduler.hpp>
+#  include <hpx/runtime/threads/policies/local_queue_scheduler.hpp>
 #endif
 #include <hpx/runtime/threads/policies/local_priority_queue_scheduler.hpp>
 #if defined(HPX_HAVE_STATIC_PRIORITY_SCHEDULER)
-#include <hpx/runtime/threads/policies/static_priority_queue_scheduler.hpp>
+#  include <hpx/runtime/threads/policies/static_priority_queue_scheduler.hpp>
 #endif
-#include <hpx/runtime/threads/executors/thread_pool_attached_executors.hpp>
+#if defined(HPX_HAVE_STATIC_SCHEDULER)
+#  include <hpx/runtime/threads/policies/static_queue_scheduler.hpp>
+#endif
+#include <hpx/runtime/threads/thread_enums.hpp>
 #include <hpx/util/assert.hpp>
-#include <hpx/util/bind.hpp>
-#include <hpx/util/safe_lexical_cast.hpp>
+#include <hpx/util/date_time_chrono.hpp>
+#include <hpx/util/thread_description.hpp>
+#include <hpx/util/unique_function.hpp>
 
-#include <boost/thread/locks.hpp>
+#include <boost/chrono/chrono.hpp>
+
+#include <cstddef>
+#include <cstdint>
+#include <utility>
 
 namespace hpx
 {
@@ -57,7 +63,8 @@ namespace hpx { namespace threads { namespace executors { namespace detail
     // situations.
     template <typename Scheduler>
     void thread_pool_attached_executor<Scheduler>::add(closure_type && f,
-        char const* desc, threads::thread_state_enum initial_state,
+        util::thread_description const& desc,
+        threads::thread_state_enum initial_state,
         bool run_now, threads::thread_stacksize stacksize, error_code& ec)
     {
         if (stacksize == threads::thread_stacksize_default)
@@ -73,7 +80,7 @@ namespace hpx { namespace threads { namespace executors { namespace detail
     template <typename Scheduler>
     void thread_pool_attached_executor<Scheduler>::add_at(
         boost::chrono::steady_clock::time_point const& abs_time,
-        closure_type && f, char const* description,
+        closure_type && f, util::thread_description const& description,
         threads::thread_stacksize stacksize, error_code& ec)
     {
         if (stacksize == threads::thread_stacksize_default)
@@ -97,7 +104,7 @@ namespace hpx { namespace threads { namespace executors { namespace detail
     template <typename Scheduler>
     void thread_pool_attached_executor<Scheduler>::add_after(
         boost::chrono::steady_clock::duration const& rel_time,
-        closure_type && f, char const* description,
+        closure_type && f, util::thread_description const& description,
         threads::thread_stacksize stacksize, error_code& ec)
     {
         return add_at(boost::chrono::steady_clock::now() + rel_time,
@@ -106,7 +113,7 @@ namespace hpx { namespace threads { namespace executors { namespace detail
 
     // Return an estimate of the number of waiting tasks.
     template <typename Scheduler>
-    boost::uint64_t thread_pool_attached_executor<Scheduler>::num_pending_closures(
+    std::uint64_t thread_pool_attached_executor<Scheduler>::num_pending_closures(
         error_code& ec) const
     {
         if (&ec != &throws)

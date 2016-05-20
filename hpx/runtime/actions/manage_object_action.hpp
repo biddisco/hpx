@@ -7,16 +7,18 @@
 #if !defined(HPX_RUNTIME_ACTIONS_MANAGE_OBJECT_ACTION_JAN_26_2010_0141PM)
 #define HPX_RUNTIME_ACTIONS_MANAGE_OBJECT_ACTION_JAN_26_2010_0141PM
 
-#include <cstring>
-#include <boost/config.hpp>
-
-#include <hpx/config/warnings_prefix.hpp>
-#include <hpx/exception.hpp>
+#include <hpx/config.hpp>
 #include <hpx/runtime/actions/action_support.hpp>
 #include <hpx/runtime/serialization/array.hpp>
 #include <hpx/runtime/serialization/base_object.hpp>
 #include <hpx/runtime/serialization/serialize_buffer.hpp>
 #include <hpx/util/reinitializable_static.hpp>
+
+#include <boost/cstdint.hpp>
+
+#include <cstring>
+
+#include <hpx/config/warnings_prefix.hpp>
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx { namespace actions
@@ -93,11 +95,11 @@ namespace hpx { namespace actions
         virtual manage_object_action_base const& get_instance() const;
 
         // serialization support
-        virtual serialize_save_function save() const
+        virtual serialize_save_function save_function() const
         {
             return &manage_object_action_base::save_;
         }
-        virtual serialize_load_function load() const
+        virtual serialize_load_function load_function() const
         {
             return &manage_object_action_base::load_;
         }
@@ -109,7 +111,7 @@ namespace hpx { namespace actions
         template<class Archive>
         void serialize(Archive&, const unsigned int) {}
 
-        HPX_SERIALIZATION_POLYMORPHIC(manage_object_action_base);
+        HPX_SERIALIZATION_POLYMORPHIC(manage_object_action_base)
     };
 
     ///////////////////////////////////////////////////////////////////////////
@@ -178,11 +180,11 @@ namespace hpx { namespace actions
         }
 
         // serialization support
-        serialize_save_function save() const
+        serialize_save_function save_function() const
         {
             return &manage_object_action::save_;
         }
-        serialize_load_function load() const
+        serialize_load_function load_function() const
         {
             return &manage_object_action::load_;
         }
@@ -207,7 +209,7 @@ namespace hpx { namespace actions
             ar & hpx::serialization::base_object<manage_object_action_base>(*this);
         }
 
-        HPX_SERIALIZATION_POLYMORPHIC_TEMPLATE(manage_object_action);
+        HPX_SERIALIZATION_POLYMORPHIC_TEMPLATE(manage_object_action)
     };
 
     ///////////////////////////////////////////////////////////////////////////
@@ -226,7 +228,7 @@ namespace hpx { namespace actions
             ar & hpx::serialization::base_object<manage_object_action_base>(*this);
         }
 
-        HPX_SERIALIZATION_POLYMORPHIC(manage_object_action);
+        HPX_SERIALIZATION_POLYMORPHIC(manage_object_action)
     };
 
     inline manage_object_action_base const&
@@ -271,11 +273,11 @@ namespace hpx { namespace actions
 
     private:
         // serialization support
-        serialize_save_function save() const
+        serialize_save_function save_function() const
         {
             return &manage_object_action::save_;
         }
-        serialize_load_function load() const
+        serialize_load_function load_function() const
         {
             return &manage_object_action::load_;
         }

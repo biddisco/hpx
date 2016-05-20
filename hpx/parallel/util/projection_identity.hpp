@@ -1,4 +1,4 @@
-//  Copyright (c) 2015 Hartmut Kaiser
+//  Copyright (c) 2015-2016 Hartmut Kaiser
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -7,7 +7,8 @@
 #define HPX_PARALLEL_UTIL_PROJECTION_IDENTITY_JUL_18_2015_1105AM
 
 #include <hpx/config.hpp>
-#include <hpx/util/decay.hpp>
+
+#include <utility>
 
 namespace hpx { namespace parallel { namespace util
 {
@@ -15,7 +16,7 @@ namespace hpx { namespace parallel { namespace util
     struct projection_identity
     {
         template <typename T>
-        BOOST_FORCEINLINE T && operator()(T && val) const
+        HPX_FORCEINLINE T && operator()(T && val) const
         {
             return std::forward<T>(val);
         }

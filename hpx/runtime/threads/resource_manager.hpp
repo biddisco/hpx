@@ -1,4 +1,4 @@
-//  Copyright (c) 2007-2015 Hartmut Kaiser
+//  Copyright (c) 2007-2016 Hartmut Kaiser
 //  Copyright (c) 2015 Nidhi Makhijani
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -7,29 +7,27 @@
 #if !defined(HPX_RUNTIME_THREADS_RESOURCE_MANAGER_JAN_16_2013_0830AM)
 #define HPX_RUNTIME_THREADS_RESOURCE_MANAGER_JAN_16_2013_0830AM
 
-#include <hpx/hpx_fwd.hpp>
-#include <hpx/util/move.hpp>
+#include <hpx/config.hpp>
 #include <hpx/runtime/threads/topology.hpp>
 #include <hpx/runtime/threads/thread_executor.hpp>
 #include <hpx/lcos/local/spinlock.hpp>
-#include <boost/detail/scoped_enum_emulation.hpp>
 
 #include <boost/atomic.hpp>
-#include <boost/shared_ptr.hpp>
 
+#include <map>
+#include <memory>
 #include <vector>
 
 namespace hpx { namespace  threads
 {
     ///////////////////////////////////////////////////////////////////////////
     /// Status of a given processing unit
-    BOOST_SCOPED_ENUM_START(punit_status)
+    enum class punit_status
     {
         unassigned = 0,
         reserved = 1,
         assigned = 2
     };
-    BOOST_SCOPED_ENUM_END
 
     /// In short, there are two main responsibilities of the Resource Manager:
     ///
@@ -73,12 +71,12 @@ namespace hpx { namespace  threads
         // reserve virtual cores for scheduler
         std::size_t reserve_processing_units(
                 std::size_t use_count, std::size_t desired,
-                std::vector<BOOST_SCOPED_ENUM(punit_status)>& available_punits);
+                std::vector<punit_status>& available_punits);
 
         // reserve virtual cores for scheduler at higher use count
         std::size_t reserve_at_higher_use_count(
                 std::size_t desired,
-                std::vector<BOOST_SCOPED_ENUM(punit_status)>& available_punits);
+                std::vector<punit_status>& available_punits);
 
     private:
         mutable mutex_type mtx_;
@@ -139,7 +137,7 @@ namespace hpx { namespace  threads
             }
 
             // hold on to proxy
-            boost::shared_ptr<detail::manage_executor> proxy_;
+            std::shared_ptr<detail::manage_executor> proxy_;
 
             // map physical to logical puinit ids
             std::vector<coreids_type> core_ids_;
@@ -162,7 +160,7 @@ namespace hpx { namespace  threads
             {}
 
             // The scheduler proxy this allocation data is for.
-            boost::shared_ptr<detail::manage_executor> proxy_;  // hold on to proxy
+            std::shared_ptr<detail::manage_executor> proxy_;  // hold on to proxy
 
             // Additional allocation to give to a scheduler after proportional
             // allocation decisions are made.
@@ -208,19 +206,19 @@ namespace hpx { namespace  threads
         bool release_scheduler_resources(
             allocation_data_map_type::iterator it,
             std::size_t number_to_free,
-            std::vector<BOOST_SCOPED_ENUM(punit_status)>& available_punits);
+            std::vector<punit_status>& available_punits);
 
         // release cores from all schedulers
         // calls release_scheduler_resources
         std::size_t release_cores_on_existing_schedulers(
             std::size_t number_to_free,
-            std::vector<BOOST_SCOPED_ENUM(punit_status)>& available_punits);
+            std::vector<punit_status>& available_punits);
 
         // distribute cores to schedulers proportional to max_punits of
         // the schedulers
         std::size_t redistribute_cores_among_all(std::size_t reserved,
             std::size_t min_punits, std::size_t max_punits,
-            std::vector<BOOST_SCOPED_ENUM(punit_status)>& available_punits);
+            std::vector<punit_status>& available_punits);
 
         void roundup_scaled_allocations(
             allocation_data_map_type &scaled_static_allocation_data,

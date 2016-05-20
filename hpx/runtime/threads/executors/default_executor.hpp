@@ -1,14 +1,24 @@
-//  Copyright (c) 2007-2013 Hartmut Kaiser
+//  Copyright (c) 2007-2016 Hartmut Kaiser
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#if !defined(HPX_RUNTIME_THREADS_EXECUTORS_DEFAULT_EXECUTOR_JAN_11_2013_0700PM)
-#define HPX_RUNTIME_THREADS_EXECUTORS_DEFAULT_EXECUTOR_JAN_11_2013_0700PM
+#ifndef HPX_RUNTIME_THREADS_EXECUTORS_DEFAULT_EXECUTOR_HPP
+#define HPX_RUNTIME_THREADS_EXECUTORS_DEFAULT_EXECUTOR_HPP
 
-#include <hpx/hpx_fwd.hpp>
+#include <hpx/config.hpp>
+#include <hpx/error_code.hpp>
 #include <hpx/runtime/threads/policies/scheduler_mode.hpp>
+#include <hpx/runtime/threads/thread_enums.hpp>
 #include <hpx/runtime/threads/thread_executor.hpp>
+#include <hpx/util/date_time_chrono.hpp>
+#include <hpx/util/thread_description.hpp>
+#include <hpx/util/unique_function.hpp>
+
+#include <boost/chrono/chrono.hpp>
+
+#include <cstddef>
+#include <cstdint>
 
 #include <hpx/config/warnings_prefix.hpp>
 
@@ -28,7 +38,8 @@ namespace hpx { namespace threads { namespace executors
             // Schedule the specified function for execution in this executor.
             // Depending on the subclass implementation, this may block in some
             // situations.
-            void add(closure_type && f, char const* description,
+            void add(closure_type&& f,
+                util::thread_description const& description,
                 threads::thread_state_enum initial_state, bool run_now,
                 threads::thread_stacksize stacksize, error_code& ec);
 
@@ -37,7 +48,7 @@ namespace hpx { namespace threads { namespace executors
             // bounds on the executor's queue size.
             void add_at(
                 boost::chrono::steady_clock::time_point const& abs_time,
-                closure_type && f, char const* description,
+                closure_type&& f, util::thread_description const& description,
                 threads::thread_stacksize stacksize, error_code& ec);
 
             // Schedule given function for execution in this executor no sooner
@@ -45,7 +56,7 @@ namespace hpx { namespace threads { namespace executors
             // violate bounds on the executor's queue size.
             inline void add_after(
                 boost::chrono::steady_clock::duration const& rel_time,
-                closure_type && f, char const* description,
+                closure_type&& f, util::thread_description const& description,
                 threads::thread_stacksize stacksize, error_code& ec)
             {
                 return add_at(boost::chrono::steady_clock::now() + rel_time,
@@ -53,7 +64,7 @@ namespace hpx { namespace threads { namespace executors
             }
 
             // Return an estimate of the number of waiting tasks.
-            boost::uint64_t num_pending_closures(error_code& ec) const;
+            std::uint64_t num_pending_closures(error_code& ec) const;
 
             // Reset internal (round robin) thread distribution scheme
             void reset_thread_distribution();
@@ -101,5 +112,4 @@ namespace hpx { namespace threads { namespace executors
 
 #include <hpx/config/warnings_suffix.hpp>
 
-#endif
-
+#endif /*HPX_RUNTIME_THREADS_EXECUTORS_DEFAULT_EXECUTOR_HPP*/

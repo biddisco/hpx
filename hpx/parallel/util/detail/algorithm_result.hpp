@@ -1,4 +1,4 @@
-//  Copyright (c) 2007-2014 Hartmut Kaiser
+//  Copyright (c) 2007-2016 Hartmut Kaiser
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -6,12 +6,14 @@
 #if !defined(HPX_PARALLEL_DETAIL_ALGORITHM_RESULT_MAY_28_2014_1020PM)
 #define HPX_PARALLEL_DETAIL_ALGORITHM_RESULT_MAY_28_2014_1020PM
 
-#include <hpx/hpx_fwd.hpp>
+#include <hpx/config.hpp>
+#include <hpx/traits/concepts.hpp>
 #include <hpx/lcos/future.hpp>
-#include <hpx/parallel/execution_policy.hpp>
 #include <hpx/util/unused.hpp>
+#include <hpx/util/invoke.hpp>
+#include <hpx/parallel/execution_policy.hpp>
 
-#include <boost/type_traits/is_lvalue_reference.hpp>
+#include <type_traits>
 
 namespace hpx { namespace parallel { namespace util { namespace detail
 {
@@ -23,6 +25,11 @@ namespace hpx { namespace parallel { namespace util { namespace detail
         typedef T type;
 
         // Obtain initiating function's return type.
+        static type get()
+        {
+            return T();
+        }
+
         static type get(T && t)
         {
             return t;
@@ -181,9 +188,32 @@ namespace hpx { namespace parallel { namespace util { namespace detail
     struct algorithm_result
       : algorithm_result_impl<typename hpx::util::decay<ExPolicy>::type, T>
     {
-        static_assert(!boost::is_lvalue_reference<T>::value,
+        static_assert(!std::is_lvalue_reference<T>::value,
             "T shouldn't be a lvalue reference");
     };
+
+    ///////////////////////////////////////////////////////////////////////////
+    template <typename U, typename Conv,
+    HPX_CONCEPT_REQUIRES_(
+        hpx::traits::is_callable<Conv(U)>::value)>
+    typename hpx::util::result_of<Conv(U)>::type
+    convert_to_result(U && val, Conv && conv)
+    {
+        return hpx::util::invoke(conv, val);
+    }
+
+    template <typename U, typename Conv,
+    HPX_CONCEPT_REQUIRES_(
+        hpx::traits::is_callable<Conv(U)>::value)>
+    hpx::future<typename hpx::util::result_of<Conv(U)>::type>
+    convert_to_result(hpx::future<U> && f, Conv && conv)
+    {
+        typedef typename hpx::util::result_of<Conv(U)>::type result_type;
+
+        return lcos::make_future<result_type>(
+                std::move(f), std::forward<Conv>(conv)
+            );
+    }
 }}}}
 
 #endif

@@ -1,4 +1,4 @@
-//  Copyright (c) 2007-2014 Hartmut Kaiser
+//  Copyright (c) 2007-2016 Hartmut Kaiser
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -6,13 +6,13 @@
 #if !defined(HPX_PARALLEL_UTIL_CANCELLATION_TOKEN_OCT_05_1205PM)
 #define HPX_PARALLEL_UTIL_CANCELLATION_TOKEN_OCT_05_1205PM
 
-#include <hpx/hpx_fwd.hpp>
-
-#include <algorithm>
+#include <hpx/config.hpp>
 
 #include <boost/atomic.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
+
+#include <algorithm>
+#include <functional>
+#include <memory>
 
 namespace hpx { namespace parallel { namespace util
 {
@@ -31,19 +31,19 @@ namespace hpx { namespace parallel { namespace util
     {
     private:
         typedef boost::atomic<T> flag_type;
-        boost::shared_ptr<flag_type> was_cancelled_;
+        std::shared_ptr<flag_type> was_cancelled_;
 
     public:
         cancellation_token(T data)
-          : was_cancelled_(boost::make_shared<flag_type>(data))
+          : was_cancelled_(std::make_shared<flag_type>(data))
         {}
 
-        bool was_cancelled(T data) const BOOST_NOEXCEPT
+        bool was_cancelled(T data) const HPX_NOEXCEPT
         {
             return Pred()(was_cancelled_->load(boost::memory_order_relaxed), data);
         }
 
-        void cancel(T data) BOOST_NOEXCEPT
+        void cancel(T data) HPX_NOEXCEPT
         {
             T old_data = was_cancelled_->load(boost::memory_order_relaxed);
 
@@ -55,7 +55,7 @@ namespace hpx { namespace parallel { namespace util
                 boost::memory_order_relaxed));
         }
 
-        T get_data() const BOOST_NOEXCEPT
+        T get_data() const HPX_NOEXCEPT
         {
             return was_cancelled_->load(boost::memory_order_relaxed);
         }
@@ -68,19 +68,19 @@ namespace hpx { namespace parallel { namespace util
     {
     private:
         typedef boost::atomic<bool> flag_type;
-        boost::shared_ptr<flag_type> was_cancelled_;
+        std::shared_ptr<flag_type> was_cancelled_;
 
     public:
         cancellation_token()
-          : was_cancelled_(boost::make_shared<flag_type>(false))
+          : was_cancelled_(std::make_shared<flag_type>(false))
         {}
 
-        bool was_cancelled() const BOOST_NOEXCEPT
+        bool was_cancelled() const HPX_NOEXCEPT
         {
             return was_cancelled_->load(boost::memory_order_relaxed);
         }
 
-        void cancel() BOOST_NOEXCEPT
+        void cancel() HPX_NOEXCEPT
         {
             was_cancelled_->store(true, boost::memory_order_relaxed);
         }

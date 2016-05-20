@@ -38,6 +38,12 @@ macro(add_hpx_config_test variable)
     foreach(def ${COMPILE_DEFINITIONS_TMP})
       set(CONFIG_TEST_COMPILE_DEFINITIONS "${CONFIG_TEST_COMPILE_DEFINITIONS} -D${def}")
     endforeach()
+    get_property(HPX_TARGET_COMPILE_OPTIONS_VAR GLOBAL PROPERTY HPX_TARGET_COMPILE_OPTIONS)
+    foreach(_flag ${HPX_TARGET_COMPILE_OPTIONS_VAR})
+      if(NOT "${_flag}" MATCHES "^\\$.*")
+        set(CONFIG_TEST_COMPILE_DEFINITIONS "${CONFIG_TEST_COMPILE_DEFINITIONS} ${_flag}")
+      endif()
+    endforeach()
 
     set(CONFIG_TEST_INCLUDE_DIRS ${CONFIG_TEST_INCLUDE_DIRS} ${${variable}_INCLUDE_DIRS})
     set(CONFIG_TEST_LINK_DIRS ${CONFIG_TEST_LINK_DIRS} ${${variable}_LINK_DIRS})
@@ -76,6 +82,8 @@ macro(add_hpx_config_test variable)
           "-DCOMPILE_DEFINITIONS=${CONFIG_TEST_COMPILE_DEFINITIONS}"
         OUTPUT_VARIABLE ${variable}_OUTPUT
         COPY_FILE ${test_binary})
+       hpx_debug("Compile test: ${variable}")
+       hpx_debug("Compilation output: \n\n${${variable}_OUTPUT}")
     endif()
 
     set(_run_msg "Success")
@@ -101,6 +109,7 @@ macro(add_hpx_config_test variable)
       hpx_add_config_define(${definition})
     endforeach()
   elseif(${variable}_REQUIRED)
+    hpx_warn("Test failed, detailed output:\n\n${${variable}_OUTPUT}")
     hpx_error(${${variable}_REQUIRED})
   endif()
 endmacro()
@@ -111,6 +120,13 @@ macro(hpx_cpuid target variable)
     SOURCE cmake/tests/cpuid.cpp
     FLAGS "${boost_include_dir}" "${include_dir}"
     FILE EXECUTE ARGS "${target}" ${ARGN})
+endmacro()
+
+###############################################################################
+macro(hpx_check_for_unistd_h)
+  add_hpx_config_test(HPX_WITH_UNISTD_H
+    SOURCE cmake/tests/unistd_h.cpp
+    FILE ${ARGN})
 endmacro()
 
 ###############################################################################
@@ -149,6 +165,13 @@ macro(hpx_check_for_cxx11_decltype_n3276)
 endmacro()
 
 ###############################################################################
+macro(hpx_check_for_cxx11_sfinae_expression)
+  add_hpx_config_test(HPX_WITH_CXX11_SFINAE_EXPRESSION
+    SOURCE cmake/tests/cxx11_sfinae_expression.cpp
+    FILE ${ARGN})
+endmacro()
+
+###############################################################################
 macro(hpx_check_for_cxx11_defaulted_functions)
   add_hpx_config_test(HPX_WITH_CXX11_DEFAULTED_FUNCTIONS
     SOURCE cmake/tests/cxx11_defaulted_functions.cpp
@@ -166,6 +189,20 @@ endmacro()
 macro(hpx_check_for_cxx11_explicit_cvt_ops)
   add_hpx_config_test(HPX_WITH_CXX11_EXPLICIT_CONVERSION_OPERATORS
     SOURCE cmake/tests/cxx11_explicit_cvt_ops.cpp
+    FILE ${ARGN})
+endmacro()
+
+###############################################################################
+macro(hpx_check_for_cxx11_explicit_variadic_templates)
+  add_hpx_config_test(HPX_WITH_CXX11_EXPLICIT_VARIADIC_TEMPLATES
+    SOURCE cmake/tests/cxx11_explicit_variadic_templates.cpp
+    FILE ${ARGN})
+endmacro()
+
+###############################################################################
+macro(hpx_check_for_cxx11_extended_friend_declarations)
+  add_hpx_config_test(HPX_WITH_CXX11_EXTENDED_FRIEND_DECLARATIONS
+    SOURCE cmake/tests/cxx11_extended_friend_declarations.cpp
     FILE ${ARGN})
 endmacro()
 
@@ -254,9 +291,30 @@ macro(hpx_check_for_cxx11_variadic_templates)
 endmacro()
 
 ###############################################################################
+macro(hpx_check_for_cxx11_std_array)
+  add_hpx_config_test(HPX_WITH_CXX11_ARRAY
+    SOURCE cmake/tests/cxx11_std_array.cpp
+    FILE ${ARGN})
+endmacro()
+
+###############################################################################
 macro(hpx_check_for_cxx11_std_chrono)
   add_hpx_config_test(HPX_WITH_CXX11_CHRONO
     SOURCE cmake/tests/cxx11_std_chrono.cpp
+    FILE ${ARGN})
+endmacro()
+
+###############################################################################
+macro(hpx_check_for_cxx11_std_cstdint)
+  add_hpx_config_test(HPX_WITH_CXX11_CSTDINT
+    SOURCE cmake/tests/cxx11_std_cstdint.cpp
+    FILE ${ARGN})
+endmacro()
+
+###############################################################################
+macro(hpx_check_for_cxx11_std_initializer_list)
+  add_hpx_config_test(HPX_WITH_CXX11_STD_INITIALIZER_LIST
+    SOURCE cmake/tests/cxx11_std_initializer_list.cpp
     FILE ${ARGN})
 endmacro()
 
@@ -289,6 +347,20 @@ macro(hpx_check_for_cxx11_std_is_placeholder)
 endmacro()
 
 ###############################################################################
+macro(hpx_check_for_cxx11_std_is_trivially_copyable)
+  add_hpx_config_test(HPX_WITH_CXX11_IS_TRIVIALLY_COPYABLE
+    SOURCE cmake/tests/cxx11_std_is_trivially_copyable.cpp
+    FILE ${ARGN})
+endmacro()
+
+###############################################################################
+macro(hpx_check_for_cxx11_std_lock_guard)
+  add_hpx_config_test(HPX_WITH_CXX11_LOCK_GUARD
+    SOURCE cmake/tests/cxx11_std_lock_guard.cpp
+    FILE ${ARGN})
+endmacro()
+
+###############################################################################
 macro(hpx_check_for_cxx11_std_reference_wrapper)
   add_hpx_config_test(HPX_WITH_CXX11_REFERENCE_WRAPPER
     SOURCE cmake/tests/cxx11_std_reference_wrapper.cpp
@@ -296,9 +368,16 @@ macro(hpx_check_for_cxx11_std_reference_wrapper)
 endmacro()
 
 ###############################################################################
-macro(hpx_check_for_cxx11_std_initializer_list)
-  add_hpx_config_test(HPX_WITH_CXX11_STD_INITIALIZER_LIST
-    SOURCE cmake/tests/cxx11_std_initializer_list.cpp
+macro(hpx_check_for_cxx11_std_shared_ptr)
+  add_hpx_config_test(HPX_WITH_CXX11_SHARED_PTR
+    SOURCE cmake/tests/cxx11_std_shared_ptr.cpp
+    FILE ${ARGN})
+endmacro()
+
+###############################################################################
+macro(hpx_check_for_cxx11_std_to_string)
+  add_hpx_config_test(HPX_WITH_CXX11_TO_STRING
+    SOURCE cmake/tests/cxx11_std_to_string.cpp
     FILE ${ARGN})
 endmacro()
 
@@ -310,6 +389,13 @@ macro(hpx_check_for_cxx11_std_type_traits)
 endmacro()
 
 ###############################################################################
+macro(hpx_check_for_cxx11_std_unique_lock)
+  add_hpx_config_test(HPX_WITH_CXX11_UNIQUE_LOCK
+    SOURCE cmake/tests/cxx11_std_unique_lock.cpp
+    FILE ${ARGN})
+endmacro()
+
+###############################################################################
 macro(hpx_check_for_cxx11_std_unique_ptr)
   add_hpx_config_test(HPX_WITH_CXX11_UNIQUE_PTR
     SOURCE cmake/tests/cxx11_std_unique_ptr.cpp
@@ -317,9 +403,16 @@ macro(hpx_check_for_cxx11_std_unique_ptr)
 endmacro()
 
 ###############################################################################
-macro(hpx_check_for_cxx11_extended_friend_declarations)
-  add_hpx_config_test(HPX_WITH_CXX11_EXTENDED_FRIEND_DECLARATIONS
-    SOURCE cmake/tests/cxx11_extended_friend_declarations.cpp
+macro(hpx_check_for_cxx11_std_unordered_map)
+  add_hpx_config_test(HPX_WITH_CXX11_UNORDERED_MAP
+    SOURCE cmake/tests/cxx11_std_unordered_map.cpp
+    FILE ${ARGN})
+endmacro()
+
+###############################################################################
+macro(hpx_check_for_cxx11_std_unordered_set)
+  add_hpx_config_test(HPX_WITH_CXX11_UNORDERED_SET
+    SOURCE cmake/tests/cxx11_std_unordered_set.cpp
     FILE ${ARGN})
 endmacro()
 
@@ -348,5 +441,12 @@ endmacro()
 macro(hpx_check_for_cxx14_std_result_of_sfinae)
   add_hpx_config_test(HPX_WITH_CXX14_RESULT_OF_SFINAE
     SOURCE cmake/tests/cxx14_std_result_of_sfinae.cpp
+    FILE ${ARGN})
+endmacro()
+
+###############################################################################
+macro(hpx_check_for_cxx_experimental_std_optional)
+  add_hpx_config_test(HPX_WITH_CXX1Y_EXPERIMENTAL_OPTIONAL
+    SOURCE cmake/tests/cxx1y_experimental_std_optional.cpp
     FILE ${ARGN})
 endmacro()

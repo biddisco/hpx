@@ -8,14 +8,13 @@
 #if !defined(HPX_PARALLEL_TASK_BLOCK_JUL_09_2014_1250PM)
 #define HPX_PARALLEL_TASK_BLOCK_JUL_09_2014_1250PM
 
-#include <hpx/hpx_fwd.hpp>
+#include <hpx/config.hpp>
 #include <hpx/exception.hpp>
-#include <hpx/config/emulate_deleted.hpp>
-#include <hpx/lcos/local/dataflow.hpp>
+#include <hpx/dataflow.hpp>
 #include <hpx/lcos/local/spinlock.hpp>
 #include <hpx/lcos/future.hpp>
 #include <hpx/lcos/when_all.hpp>
-#include <hpx/util/unlock_guard.hpp>
+#include <hpx/traits/is_future.hpp>
 #include <hpx/util/decay.hpp>
 #include <hpx/async.hpp>
 
@@ -24,10 +23,13 @@
 #include <hpx/parallel/execution_policy.hpp>
 #include <hpx/parallel/util/detail/algorithm_result.hpp>
 
+#include <boost/exception_ptr.hpp>
+
 #include <memory>                           // std::addressof
 #include <boost/utility/addressof.hpp>      // boost::addressof
 
-#include <boost/thread/locks.hpp>
+#include <mutex>
+#include <vector>
 
 namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v2)
 {
@@ -57,7 +59,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v2)
     class task_canceled_exception : public hpx::exception
     {
     public:
-        task_canceled_exception() BOOST_NOEXCEPT
+        task_canceled_exception() HPX_NOEXCEPT
           : hpx::exception(hpx::task_canceled_exception)
         {}
     };
@@ -139,7 +141,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v2)
             typedef typename util::detail::algorithm_result<ExPolicy>::type
                 result_type;
             typedef std::integral_constant<
-                    bool, traits::is_future<result_type>::value
+                    bool, hpx::traits::is_future<result_type>::value
                 > is_fut;
             wait_for_completion(is_fut());
         }
@@ -175,7 +177,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v2)
             parallel::exception_list errors;
 
             {
-                boost::lock_guard<mutex_type> l(mtx_);
+                std::lock_guard<mutex_type> l(mtx_);
                 std::swap(tasks_, tasks);
                 std::swap(errors_, errors);
             }
@@ -190,7 +192,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v2)
 
             return
                 result::get(
-                    hpx::lcos::local::dataflow(
+                    hpx::dataflow(
                         hpx::util::bind(hpx::
                             util::one_shot(&task_block::on_ready),
                             hpx::util::placeholders::_1, std::move(errors)),
@@ -238,8 +240,8 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v2)
         /// \throw This function may throw \a task_canceled_exception, as
         ///        described in Exception Handling.
         ///
-        template <typename F>
-        void run(F && f)
+        template <typename F, typename ... Ts>
+        void run(F && f, Ts &&... ts)
         {
             // The proposal requires that the task_block should be
             // 'active' to be usable.
@@ -254,9 +256,65 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v2)
 
             hpx::future<void> result =
                 executor_traits<executor_type>::async_execute(
-                    policy_.executor(), std::move(f));
+                    policy_.executor(), std::forward<F>(f),
+                    std::forward<Ts>(ts)...);
 
-            boost::lock_guard<mutex_type> l(mtx_);
+            std::lock_guard<mutex_type> l(mtx_);
+            tasks_.push_back(std::move(result));
+        }
+
+        /// Causes the expression f() to be invoked asynchronously using the
+        /// given executor.
+        /// The invocation of f is permitted to run on an unspecified thread
+        /// associated with the given executor and in an unordered fashion
+        /// relative to the sequence of operations following the call to
+        /// run(exec, f) (the continuation), or indeterminately sequenced
+        /// within the same thread as the continuation.
+        ///
+        /// The call to \a run synchronizes with the invocation of f. The
+        /// completion of f() synchronizes with the next invocation of wait on
+        /// the same task_block or completion of the nearest enclosing
+        /// task block (i.e., the \a define_task_block or
+        /// \a define_task_block_restore_thread that created this task block).
+        ///
+        /// Requires: Executor shall be a type modeling the Executor concept.
+        ///           F shall be MoveConstructible. The expression, (void)f(),
+        ///           shall be well-formed.
+        ///
+        /// Precondition: this shall be the active task_block.
+        ///
+        /// Postconditions: A call to run may return on a different thread than
+        ///                 that on which it was called.
+        ///
+        /// \note The call to \a run is sequenced before the continuation as if
+        ///       \a run returns on the same thread.
+        ///       The invocation of the user-supplied callable object f may be
+        ///       immediate or may be delayed until compute resources are
+        ///       available. \a run might or might not return before invocation
+        ///       of f completes.
+        ///
+        /// \throw This function may throw \a task_canceled_exception, as
+        ///        described in Exception Handling.
+        ///
+        template <typename Executor, typename F, typename ... Ts>
+        void run(Executor& exec, F && f, Ts &&... ts)
+        {
+            // The proposal requires that the task_block should be
+            // 'active' to be usable.
+            if (id_ != threads::get_self_id())
+            {
+                HPX_THROW_EXCEPTION(task_block_not_active,
+                    "task_block::run",
+                    "the task_block is not active");
+            }
+
+            typedef typename ExPolicy::executor_type executor_type;
+
+            hpx::future<void> result =
+                executor_traits<Executor>::async_execute(
+                    exec, std::forward<F>(f), std::forward<Ts>(ts)...);
+
+            std::lock_guard<mutex_type> l(mtx_);
             tasks_.push_back(std::move(result));
         }
 
@@ -396,6 +454,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v2)
     }
 
     /// \cond NOINTERNAL
+#if defined(HPX_HAVE_GENERIC_EXECUTION_POLICY)
 #if defined(HPX_HAVE_CXX14_LAMBDAS)
     template <typename F>
     inline void define_task_block(parallel::execution_policy && policy, F && f)
@@ -443,6 +502,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v2)
             "define_task_block",
             "The given execution policy is not supported");
     }
+#endif
 #endif
     /// \endcond
 
@@ -511,7 +571,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v2)
     {
         // By design we always return on the same (HPX-) thread as we started
         // executing define_task_block_restore_thread.
-        define_task_block(parallel::par, std::forward<F>(f));
+        define_task_block_restore_thread(parallel::par, std::forward<F>(f));
     }
 }}}
 

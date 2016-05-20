@@ -8,7 +8,7 @@
 #ifndef HPX_UTIL_DETAIL_VTABLE_COPYABLE_VTABLE_HPP
 #define HPX_UTIL_DETAIL_VTABLE_COPYABLE_VTABLE_HPP
 
-#include <hpx/config/forceinline.hpp>
+#include <hpx/config.hpp>
 #include <hpx/util/detail/vtable/vtable.hpp>
 
 namespace hpx { namespace util { namespace detail
@@ -16,9 +16,9 @@ namespace hpx { namespace util { namespace detail
     struct copyable_vtable : vtable
     {
         template <typename T>
-        BOOST_FORCEINLINE static void copy(void** v, void* const* src)
+        HPX_FORCEINLINE static void copy(void** v, void* const* src)
         {
-            if (sizeof(T) <= sizeof(void*))
+            if (sizeof(T) <= vtable::function_storage_size)
             {
                 new (v) T(get<T>(src));
             } else {

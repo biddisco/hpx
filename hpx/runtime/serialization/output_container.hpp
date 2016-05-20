@@ -11,6 +11,7 @@
 #include <hpx/config.hpp>
 #include <hpx/util/assert.hpp>
 #include <hpx/lcos_fwd.hpp>
+#include <hpx/runtime/naming/name.hpp>
 #include <hpx/runtime/serialization/container.hpp>
 #include <hpx/runtime/serialization/serialization_chunk.hpp>
 #include <hpx/runtime/serialization/binary_filter.hpp>
@@ -34,6 +35,11 @@ namespace hpx { namespace serialization
               , hpx::lcos::detail::future_data_refcnt_base & future_data)
             {}
 
+            static void add_gid(Container& cont,
+                    naming::gid_type const & gid,
+                    naming::gid_type const & splitted_gid)
+            {}
+
             static void write(Container& cont, std::size_t count,
                 std::size_t current, void const* address)
             {
@@ -44,7 +50,7 @@ namespace hpx { namespace serialization
             }
 
             static bool flush(binary_filter* filter, Container& cont,
-                std::size_t current, std::size_t size, std::size_t written)
+                std::size_t current, std::size_t size, std::size_t& written)
             {
                 return filter->flush(&cont[current], size, written);
             }
@@ -152,7 +158,14 @@ namespace hpx { namespace serialization
         void await_future(
             hpx::lcos::detail::future_data_refcnt_base & future_data)
         {
-            return detail::access_data<Container>::await_future(cont_, future_data);
+            detail::access_data<Container>::await_future(cont_, future_data);
+        }
+
+        void add_gid(
+            naming::gid_type const & gid,
+            naming::gid_type const & splitted_gid)
+        {
+            detail::access_data<Container>::add_gid(cont_, gid, splitted_gid);
         }
 
         void set_filter(binary_filter* filter) // override

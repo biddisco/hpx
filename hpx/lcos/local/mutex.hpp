@@ -4,19 +4,15 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef HPX_LCOS_MUTEX_HPP
-#define HPX_LCOS_MUTEX_HPP
+#ifndef HPX_LCOS_LOCAL_MUTEX_HPP
+#define HPX_LCOS_LOCAL_MUTEX_HPP
 
 #include <hpx/config.hpp>
-#include <hpx/config/emulate_deleted.hpp>
-#include <hpx/config/export_definitions.hpp>
-#include <hpx/exception_fwd.hpp>
-#include <hpx/lcos/local/spinlock.hpp>
+#include <hpx/error_code.hpp>
 #include <hpx/lcos/local/detail/condition_variable.hpp>
+#include <hpx/lcos/local/spinlock.hpp>
 #include <hpx/runtime/threads/thread_data_fwd.hpp>
 #include <hpx/util/date_time_chrono.hpp>
-
-#include <boost/thread/locks.hpp>
 
 namespace hpx { namespace lcos { namespace local
 {
@@ -27,10 +23,6 @@ namespace hpx { namespace lcos { namespace local
 
     protected:
         typedef lcos::local::spinlock mutex_type;
-
-    public:
-        typedef boost::unique_lock<mutex> scoped_lock;
-        typedef boost::detail::try_lock_wrapper<mutex> scoped_try_lock;
 
     public:
         HPX_EXPORT mutex(char const* const description = "");
@@ -65,10 +57,6 @@ namespace hpx { namespace lcos { namespace local
         HPX_NON_COPYABLE(timed_mutex);
 
     public:
-        typedef boost::unique_lock<timed_mutex> scoped_lock;
-        typedef boost::detail::try_lock_wrapper<timed_mutex> scoped_try_lock;
-
-    public:
         HPX_EXPORT timed_mutex(char const* const description = "");
 
         HPX_EXPORT ~timed_mutex();
@@ -100,4 +88,4 @@ namespace hpx { namespace lcos { namespace local
     };
 }}}
 
-#endif
+#endif /*HPX_LCOS_LOCAL_MUTEX_HPP*/

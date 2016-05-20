@@ -118,9 +118,7 @@ __exception_list__ object.
 
 __hpx__ provides implementations of the following parallel algorithms:
 
-[template algoref[name] [funcref hpx::parallel::v1::[name] hpx::parallel::[name]]]
-
-[table Non-modifying Parallel Algorithms (In Header: <hpx/include/parallel_algortithm.hpp>)
+[table Non-modifying Parallel Algorithms (In Header: <hpx/include/parallel_algorithm.hpp>)
     [[Name]     [Description]   [In Header]]
     [[ [algoref all_of] ]
      [Checks if a predicate is `true` for all  of the elements in a range.]
@@ -298,20 +296,28 @@ __hpx__ provides implementations of the following parallel algorithms:
      [Returns `true` if each true element for a predicate precedes the false elements in a range]
      [`<hpx/include/parallel_is_partitioned.hpp>`]]
     [[ [algoref sort] ]
-     [Sorts the elements in a range in ascending order]
+     [Sorts the elements in a range]
+     [`<hpx/include/parallel_sort.hpp>`]]
+    [[ [algoref sort_by_key] ]
+     [Sorts one range of data using keys supplied in another range]
      [`<hpx/include/parallel_sort.hpp>`]]
 ]
 
 [table Numeric Parallel Algorithms (In Header: <hpx/include/parallel_numeric.hpp>)
     [[Name]     [Description]   [In Header]]
     [[ [algoref adjacent_difference] ]
-     [Calculates the difference between each element in an input range and the preceeding elemnt.]
+     [Calculates the difference between each element in an input range and the preceding element.]
      [`<hpx/include/parallel_adjacent_difference.hpp>`]]
     [[ [algoref inner_product] ]
      [Accumulates the inner products of two input ranges.]
      [`<hpx/include/parallel_inner_product.hpp>`]]
     [[ [algoref reduce] ]
      [Sums up a range of elements.]
+     [`<hpx/include/parallel_reduce.hpp>`]]
+    [[ [algoref reduce_by_key] ]
+     [Performs an inclusive scan on consecutive elements with matching keys, with a reduction
+      to output only the final sum for each key. The key sequence {1,1,1,2,3,3,3,3,1} and value
+      sequence {2,3,4,5,6,7,8,9,10} would be reduced to keys={1,2,3,1}, values={9,5,30,10}]
      [`<hpx/include/parallel_reduce.hpp>`]]
     [[ [algoref transform_reduce] ]
      [Sums up a range of elements after applying a function.]
@@ -340,6 +346,22 @@ __hpx__ provides implementations of the following parallel algorithms:
     [[ [algoref uninitialized_fill_n] ]
      [Copies an object to an uninitialized area of memory.]
      [`<hpx/include/parallel_uninitialized_fill.hpp>`]]
+]
+
+[table Index-based for-loops (In Header: <hpx/include/parallel_algorithm.hpp>)
+    [[Name]     [Description]   [In Header]]
+    [[ [algorefv2 for_loop] ]
+     [Implements loop functionality over a range specified by integral or iterator bounds.]
+     [`<hpx/include/parallel_for_loop.hpp>`]]
+    [[ [algorefv2 for_loop_strided] ]
+     [Implements loop functionality over a range specified by integral or iterator bounds.]
+     [`<hpx/include/parallel_for_loop.hpp>`]]
+    [[ [algorefv2 for_loop_n] ]
+     [Implements loop functionality over a range specified by integral or iterator bounds.]
+     [`<hpx/include/parallel_for_loop.hpp>`]]
+    [[ [algorefv2 for_loop_n_strided] ]
+     [Implements loop functionality over a range specified by integral or iterator bounds.]
+     [`<hpx/include/parallel_for_loop.hpp>`]]
 ]
 
 [endsect]
@@ -453,11 +475,11 @@ __hpx__-thread (such as the number of loop iterations combined to run as a
 single task).
 
 An executor parameter object is responsible for exposing the calculation of the
-size of the chunks scheduled. It abstracts the (potentiall platform-specific)
+size of the chunks scheduled. It abstracts the (potential platform-specific)
 algorithms of determining those chunks sizes.
 
 The way executor parameters are implemented is aligned with the way executors
-are implemented. All functionalities of concrete executior parameter types are
+are implemented. All functionalities of concrete executor parameter types are
 exposed and accessible through a corresponding
 [classref hpx::parallel::v3::executor_parameter_traits `hpx::parallel::executor_parameter_traits`]
 type.
@@ -473,7 +495,7 @@ This call synchronously retrieves the size of a single chunk of loop iterations
 (or similar) to combine for execution on a single __hpx__-thread if the overall
 number of tasks to schedule is given by `num_tasks`. The lambda
 function exposes a means of test-probing the execution of a single iteration
-for performance measurment purposes (the execution parameter type might
+for performance measurement purposes (the execution parameter type might
 dynamically determine the execution time of one or more tasks in order to
 calculate the chunk size, see
 [classref hpx::parallel::v3::auto_chunk_size `hpx::parallel::auto_chunk_size`]
@@ -597,12 +619,21 @@ function passed to `define_task_block`:
 
     int main()
     {
-        task_block<> tr;      // Error: no public constructor
+        task_block<> tr;    // Error: no public constructor
         tr.run(g);          // No way to call run outside of a define_task_block
         return 0;
     }
 
+[endsect]
+
+[section:task_block Extensions for Task Blocks]
+
 [heading Using Execution Policies with Task Blocks]
+
+In __hpx__ we implemented some extensions for `task_block` beyond the actual
+standards proposal __cpp11_n4088__. The main addition is that a `task_block`
+can be invoked with a execution policy as its first argument, very similar to
+the parallel algorithms.
 
 An execution policy is an object that expresses the requirements on the
 ordering of functions invoked as a consequence of the invocation of a
@@ -628,36 +659,10 @@ created `task_block`. In the following example the use of an explicit
         return compute(n) + left + right;
     }
 
-
-[endsect]
-
-[section:task_block Extensions for Task Blocks]
-
-In __hpx__ we implemented some extensions for `task_block` beyond the actual
-standards porposal __cpp11_n4088__. The main addition is that a `task_block`
-can be invoked with a execution policy as its first argument, very similar to
-the parallel algorithms.
-
-    template <typename Func>
-    int traverse(node& n, Func && compute)
-    {
-        int left = 0, right = 0;
-        define_task_block(
-            par,                        // specify an execution policy
-            [&](task_block<>& tr) {
-                if (n.left)
-                    tr.run([&] { left = traverse(*n.left, compute); });
-                if (n.right)
-                    tr.run([&] { right = traverse(*n.right, compute); });
-            });
-
-        return compute(n) + left + right;
-    }
-
 This also causes the [classref hpx::parallel::v2::task_block `hpx::parallel::task_block`]
 object to be a template in our implementation.
-The template argment is the type of the execution policy used to create the
-task block. The template argment defaults to
+The template argument is the type of the execution policy used to create the
+task block. The template argument defaults to
 [classref hpx::parallel::v1::parallel_execution_policy `hpx::parallel::parallel_execution_policy`].
 
 __hpx__ still supports calling
@@ -667,6 +672,43 @@ the [classref hpx::parallel::v1::parallel_execution_policy `hpx::parallel::paral
 
 __hpx__ also adds the ability to access the execution policy which was used to
 create a given `task_block`.
+
+[heading Using Executors to run Tasks]
+
+Often, we want to be able to not only define an execution policy to use by
+default for all spawned tasks inside the task block, but in addition to
+customize the execution context for one of the tasks executed by
+`task_block::run`. Adding an optionally passed executor instance to that
+function enables this use case:
+
+    template <typename Func>
+    int traverse(node *n, Func&& compute)
+    {
+        int left = 0, right = 0;
+
+        define_task_block(
+            par,                // parallel_execution_policy
+            [&](auto& tb) {
+                if (n->left)
+                {
+                    // use explicitly specified executor to run this task
+                    tb.run(my_executor(), [&] { left = traverse(n->left, compute); });
+                }
+                if (n->right)
+                {
+                    // use the executor associated with the par execution policy
+                    tb.run([&] { right = traverse(n->right, compute); });
+                }
+            });
+
+        return compute(n) + left + right;
+    }
+
+__hpx__ still supports calling
+[funcref hpx::parallel::v2::task_block::run `hpx::parallel::task_block::run`]
+without an explicit executor object. In this case the task will be run using
+the executor associated with the execution policy which was used to call
+[funcref hpx::parallel::v2::define_task_block `hpx::parallel::define_task_block`].
 
 [endsect]
 

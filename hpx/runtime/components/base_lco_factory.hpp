@@ -7,8 +7,7 @@
 #define HPX_BASE_LCO_FACTORY_OCT_10_2013_1118AM
 
 #include <hpx/config.hpp>
-#include <hpx/hpx_fwd.hpp>
-
+#include <hpx/throw_exception.hpp>
 #include <hpx/runtime/components/unique_component_name.hpp>
 #include <hpx/runtime/components/component_factory_base.hpp>
 #include <hpx/runtime/components/server/create_component.hpp>
@@ -21,7 +20,9 @@
 
 #include <boost/preprocessor/cat.hpp>
 #include <boost/preprocessor/stringize.hpp>
-#include <boost/detail/atomic_count.hpp>
+
+#include <memory>
+#include <string>
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx { namespace components
@@ -170,14 +171,14 @@ namespace hpx { namespace components
         }
 #endif
 
-        boost::shared_ptr<util::one_size_heap_list_base> get_heap() const
+        std::shared_ptr<util::one_size_heap_list_base> get_heap() const
         {
             return heap_;
         }
 
     protected:
         component_type type_;
-        boost::shared_ptr<util::one_size_heap_list_base> heap_;
+        std::shared_ptr<util::one_size_heap_list_base> heap_;
     };
 }}
 

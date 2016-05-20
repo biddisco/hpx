@@ -77,7 +77,8 @@ namespace hpx { namespace lcos
 #if !defined(HPX_LCOS_REDUCE_SEP_28_2013_1105AM)
 #define HPX_LCOS_REDUCE_SEP_28_2013_1105AM
 
-#include <hpx/hpx_fwd.hpp>
+#include <hpx/config.hpp>
+#include <hpx/traits/extract_action.hpp>
 #include <hpx/lcos/future.hpp>
 #include <hpx/lcos/when_all.hpp>
 #include <hpx/lcos/detail/async_colocated.hpp>
@@ -114,7 +115,7 @@ namespace hpx { namespace lcos
         template <typename Action>
         struct reduce_result
           : traits::promise_local_result<
-                typename hpx::actions::extract_action<
+                typename hpx::traits::extract_action<
                     Action
                 >::remote_result_type>
         {};

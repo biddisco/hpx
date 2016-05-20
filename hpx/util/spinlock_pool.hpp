@@ -14,15 +14,14 @@
 
 // MS compatible compilers support #pragma once
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(HPX_MSVC) && (HPX_MSVC >= 1020)
 # pragma once
 #endif
 
-#include <hpx/config/emulate_deleted.hpp>
+#include <hpx/config.hpp>
 #include <hpx/util/itt_notify.hpp>
 #include <hpx/util/register_locks.hpp>
 
-#include <boost/config.hpp>
 #include <boost/version.hpp>
 #include <boost/smart_ptr/detail/spinlock.hpp>
 #include <cstddef>

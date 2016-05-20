@@ -9,12 +9,16 @@
 #include <hpx/include/parallel_algorithm.hpp>
 #include <hpx/include/parallel_numeric.hpp>
 #include <hpx/include/serialization.hpp>
+#include <hpx/util/safe_lexical_cast.hpp>
 
 #include <hpx/parallel/util/numa_allocator.hpp>
 
 #include <boost/range/irange.hpp>
 
 #include <algorithm>
+#include <memory>
+#include <numeric>
+#include <string>
 #include <vector>
 
 #define COL_SHIFT 1000.00           // Constant to shift column index
@@ -118,7 +122,7 @@ struct sub_block
     double * data_;
     mode mode_;
 
-    HPX_MOVABLE_BUT_NOT_COPYABLE(sub_block);
+    HPX_MOVABLE_ONLY(sub_block);
 };
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -352,9 +356,9 @@ int hpx_main(boost::program_options::variables_map& vm)
         for_each(par, boost::begin(range), boost::end(range),
             [&](boost::uint64_t b)
             {
-                boost::shared_ptr<block_component> A_ptr =
+                std::shared_ptr<block_component> A_ptr =
                     hpx::get_ptr<block_component>(A[b].get_id()).get();
-                boost::shared_ptr<block_component> B_ptr =
+                std::shared_ptr<block_component> B_ptr =
                     hpx::get_ptr<block_component>(B[b].get_id()).get();
 
                 for(boost::uint64_t i = 0; i != order; ++i)
@@ -443,7 +447,7 @@ int hpx_main(boost::program_options::variables_map& vm)
                                             phase * block_size;
 
                                         phase_futures.push_back(
-                                            hpx::lcos::local::dataflow(
+                                            hpx::dataflow(
                                                 execs[domain]
                                               , &transpose
                                               , A[from_block].get_sub_block(
@@ -489,7 +493,6 @@ int hpx_main(boost::program_options::variables_map& vm)
 
         ///////////////////////////////////////////////////////////////////////
         // Analyze and output results
-        double epsilon = 1.e-8;
         if(root)
         {
             double errsq = std::accumulate(errsqs.begin(), errsqs.end(), 0.0);

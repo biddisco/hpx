@@ -11,7 +11,6 @@
 #define HPX_PARCELSET_PARCEL_MAR_26_2008_1051AM
 
 #include <hpx/config.hpp>
-#include <hpx/exception.hpp>
 #include <hpx/runtime/actions/transfer_action.hpp>
 #if defined(HPX_DEBUG)
 #include <hpx/runtime/components/component_type.hpp>
@@ -24,12 +23,14 @@
 #include <hpx/traits/is_action.hpp>
 #include <hpx/traits/is_continuation.hpp>
 #include <hpx/util/assert.hpp>
+#include <hpx/util/atomic_count.hpp>
 #include <hpx/util/high_resolution_timer.hpp>
 
 #include <boost/intrusive_ptr.hpp>
-#include <boost/detail/atomic_count.hpp>
 
 #include <memory>
+#include <string>
+#include <vector>
 
 #include <hpx/config/warnings_prefix.hpp>
 
@@ -47,7 +48,7 @@ namespace hpx { namespace parcelset
     class HPX_EXPORT parcel
     {
     private:
-        HPX_MOVABLE_BUT_NOT_COPYABLE(parcel);
+        HPX_MOVABLE_ONLY(parcel);
 
     private:
 #if defined(HPX_DEBUG)
@@ -55,7 +56,7 @@ namespace hpx { namespace parcelset
         bool is_valid() const
         {
             // empty parcels are always valid
-            if (0 == data_.creation_time_)
+            if (0 == data_.creation_time_) //-V550
                 return true;
 
             if (data_.has_source_id_ && !source_id_)
@@ -99,7 +100,7 @@ namespace hpx { namespace parcelset
         bool is_valid() const
         {
             // empty parcels are always valid
-            if (0 == data_.creation_time_)
+            if (0 == data_.creation_time_) //-V550
                 return true;
 
             if (data_.has_source_id_ && !source_id_)
@@ -138,7 +139,7 @@ namespace hpx { namespace parcelset
         struct data
         {
         private:
-            HPX_MOVABLE_BUT_NOT_COPYABLE(data);
+            HPX_MOVABLE_ONLY(data);
 
         public:
             data()
@@ -352,6 +353,10 @@ namespace hpx { namespace parcelset
         {
             return std::move(cont_);
         }
+        void set_continuation(std::unique_ptr<actions::continuation> cont)
+        {
+            cont_ = std::move(cont);
+        }
 
         naming::id_type const& source_id() const
         {
@@ -414,7 +419,7 @@ namespace hpx { namespace parcelset
             return addrs()[0].locality_;
         }
 
-        double const start_time() const
+        double start_time() const
         {
             return data_.start_time_;
         }
@@ -424,7 +429,7 @@ namespace hpx { namespace parcelset
             data_.start_time_ = time;
         }
 
-        double const creation_time() const
+        double creation_time() const
         {
             return data_.creation_time_;
         }

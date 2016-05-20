@@ -9,9 +9,7 @@
 #define HPX_PARALLEL_EXECUTION_POLICY_MAY_27_2014_0908PM
 
 #include <hpx/config.hpp>
-#include <hpx/exception.hpp>
 #include <hpx/util/decay.hpp>
-#include <hpx/util/move.hpp>
 #include <hpx/traits/is_executor.hpp>
 #include <hpx/traits/is_executor_parameters.hpp>
 #include <hpx/traits/is_launch_policy.hpp>
@@ -20,15 +18,12 @@
 #include <hpx/parallel/executors.hpp>
 #include <hpx/parallel/execution_policy_fwd.hpp>
 
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
-#include <boost/mpl/bool.hpp>
-#include <boost/utility/enable_if.hpp>
-#include <boost/type_traits/is_same.hpp>
-#include <boost/type_traits/is_base_of.hpp>
-
 #include <memory>
 #include <type_traits>
+#if defined(HPX_HAVE_GENERIC_EXECUTION_POLICY)
+#include <typeinfo>
+#endif
+#include <utility>
 
 namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
 {
@@ -1263,6 +1258,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
       : detail::is_rebound_execution_policy<typename hpx::util::decay<T>::type>
     {};
 
+#if defined(HPX_HAVE_GENERIC_EXECUTION_POLICY)
     ///////////////////////////////////////////////////////////////////////////
     class execution_policy;
 
@@ -1273,14 +1269,14 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
         {
             virtual ~execution_policy_base() {}
 
-            virtual std::type_info const& type() const BOOST_NOEXCEPT  = 0;
+            virtual std::type_info const& type() const HPX_NOEXCEPT  = 0;
 
             virtual execution_policy make_async(
                 task_execution_policy_tag tag) const = 0;
-            virtual BOOST_SCOPED_ENUM(launch) launch_policy() const = 0;
+            virtual launch launch_policy() const = 0;
 
-            virtual void* get() BOOST_NOEXCEPT = 0;
-            virtual void const* get() const BOOST_NOEXCEPT = 0;
+            virtual void* get() HPX_NOEXCEPT = 0;
+            virtual void const* get() const HPX_NOEXCEPT = 0;
         };
 
         template <typename ExPolicy>
@@ -1293,21 +1289,21 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
               : policy_(std::move(policy))
             {}
 
-            std::type_info const& type() const BOOST_NOEXCEPT
+            std::type_info const& type() const HPX_NOEXCEPT
             {
                 return typeid(ExPolicy);
             }
 
             // defined below
             execution_policy make_async(task_execution_policy_tag tag) const;
-            BOOST_SCOPED_ENUM(launch) launch_policy() const;
+            launch launch_policy() const;
 
-            void* get() BOOST_NOEXCEPT
+            void* get() HPX_NOEXCEPT
             {
                 return &policy_;
             }
 
-            void const* get() const BOOST_NOEXCEPT
+            void const* get() const HPX_NOEXCEPT
             {
                 return &policy_;
             }
@@ -1317,6 +1313,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
         };
         /// \endcond
     }
+#endif
 
     ///////////////////////////////////////////////////////////////////////////
     namespace detail
@@ -1324,63 +1321,65 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
         /// \cond NOINTERNAL
         template <typename T>
         struct is_execution_policy
-          : boost::mpl::false_
+          : std::false_type
         {};
 
         template <>
         struct is_execution_policy<parallel_execution_policy>
-          : boost::mpl::true_
+          : std::true_type
         {};
 
         template <typename Executor, typename Parameters>
         struct is_execution_policy<
                 parallel_execution_policy_shim<Executor, Parameters> >
-          : boost::mpl::true_
+          : std::true_type
         {};
 
         template <>
         struct is_execution_policy<parallel_vector_execution_policy>
-          : boost::mpl::true_
+          : std::true_type
         {};
 
         template <>
         struct is_execution_policy<sequential_execution_policy>
-          : boost::mpl::true_
+          : std::true_type
         {};
 
         template <typename Executor, typename Parameters>
         struct is_execution_policy<
                 sequential_execution_policy_shim<Executor, Parameters> >
-          : boost::mpl::true_
+          : std::true_type
         {};
 
         // extension
         template <>
         struct is_execution_policy<sequential_task_execution_policy>
-          : boost::mpl::true_
+          : std::true_type
         {};
 
         template <typename Executor, typename Parameters>
         struct is_execution_policy<
                 sequential_task_execution_policy_shim<Executor, Parameters> >
-          : boost::mpl::true_
+          : std::true_type
         {};
 
         template <>
         struct is_execution_policy<parallel_task_execution_policy>
-          : boost::mpl::true_
+          : std::true_type
         {};
 
         template <typename Executor, typename Parameters>
         struct is_execution_policy<
                 parallel_task_execution_policy_shim<Executor, Parameters> >
-          : boost::mpl::true_
+          : std::true_type
         {};
 
+#if defined(HPX_HAVE_GENERIC_EXECUTION_POLICY)
         template <>
         struct is_execution_policy<execution_policy>
-          : boost::mpl::true_
+          : std::true_type
         {};
+#endif
         /// \endcond
     }
 
@@ -1406,22 +1405,34 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
         /// \cond NOINTERNAL
         template <typename T>
         struct is_parallel_execution_policy
-          : boost::mpl::false_
+          : std::false_type
         {};
 
         template <>
         struct is_parallel_execution_policy<parallel_execution_policy>
-          : boost::mpl::true_
+          : std::true_type
+        {};
+
+        template <typename Executor, typename Parameters>
+        struct is_parallel_execution_policy<
+                parallel_execution_policy_shim<Executor, Parameters> >
+          : std::true_type
         {};
 
         template <>
         struct is_parallel_execution_policy<parallel_vector_execution_policy>
-          : boost::mpl::true_
+          : std::true_type
         {};
 
         template <>
         struct is_parallel_execution_policy<parallel_task_execution_policy>
-          : boost::mpl::true_
+          : std::true_type
+        {};
+
+        template <typename Executor, typename Parameters>
+        struct is_parallel_execution_policy<
+                parallel_task_execution_policy_shim<Executor, Parameters> >
+          : std::true_type
         {};
         /// \endcond
     }
@@ -1450,29 +1461,29 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
         /// \cond NOINTERNAL
         template <typename T>
         struct is_sequential_execution_policy
-          : boost::mpl::false_
+          : std::false_type
         {};
 
         template <>
         struct is_sequential_execution_policy<sequential_task_execution_policy>
-          : boost::mpl::true_
+          : std::true_type
         {};
 
         template <typename Executor, typename Parameters>
         struct is_sequential_execution_policy<
                 sequential_task_execution_policy_shim<Executor, Parameters> >
-          : boost::mpl::true_
+          : std::true_type
         {};
 
         template <>
         struct is_sequential_execution_policy<sequential_execution_policy>
-          : boost::mpl::true_
+          : std::true_type
         {};
 
         template <typename Executor, typename Parameters>
         struct is_sequential_execution_policy<
                 sequential_execution_policy_shim<Executor, Parameters> >
-          : boost::mpl::true_
+          : std::true_type
         {};
         /// \endcond
     }
@@ -1504,17 +1515,29 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
         /// \cond NOINTERNAL
         template <typename T>
         struct is_async_execution_policy
-          : boost::mpl::false_
+          : std::false_type
         {};
 
         template <>
         struct is_async_execution_policy<sequential_task_execution_policy>
-          : boost::mpl::true_
+          : std::true_type
+        {};
+
+        template <typename Executor, typename Parameters>
+        struct is_async_execution_policy<
+                sequential_task_execution_policy_shim<Executor, Parameters> >
+          : std::true_type
         {};
 
         template <>
         struct is_async_execution_policy<parallel_task_execution_policy>
-          : boost::mpl::true_
+          : std::true_type
+        {};
+
+        template <typename Executor, typename Parameters>
+        struct is_async_execution_policy<
+                parallel_task_execution_policy_shim<Executor, Parameters> >
+          : std::true_type
         {};
         /// \endcond
     }
@@ -1540,6 +1563,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
       : detail::is_async_execution_policy<typename hpx::util::decay<T>::type>
     {};
 
+#if defined(HPX_HAVE_GENERIC_EXECUTION_POLICY)
     ///////////////////////////////////////////////////////////////////////////
     ///
     /// An execution policy is an object that expresses the requirements on the
@@ -1557,7 +1581,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
     class execution_policy
     {
     private:
-        boost::shared_ptr<detail::execution_policy_base> inner_;
+        std::shared_ptr<detail::execution_policy_base> inner_;
 
     public:
         /// Effects: Constructs an execution_policy object with a copy of
@@ -1572,7 +1596,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
                         !is_rebound_execution_policy<ExPolicy>::value,
                     ExPolicy
                 >::type* = 0)
-          : inner_(boost::make_shared<
+          : inner_(std::make_shared<
                     detail::execution_policy_shim<ExPolicy>
                 >(policy))
         {}
@@ -1608,7 +1632,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
         ///
         /// \returns The associated default launch policy
         ///
-        BOOST_SCOPED_ENUM(launch) launch_policy() const
+        launch launch_policy() const
         {
             return inner_->launch_policy();
         }
@@ -1628,7 +1652,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
         {
             if (this != &policy)
             {
-                inner_ = boost::make_shared<
+                inner_ = std::make_shared<
                         detail::execution_policy_shim<ExPolicy>
                     >(policy);
             }
@@ -1647,7 +1671,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
 
         /// Returns: typeid(T), such that T is the type of the execution policy
         ///          object contained by *this
-        std::type_info const& type() const BOOST_NOEXCEPT
+        std::type_info const& type() const HPX_NOEXCEPT
         {
             return inner_->type();
         }
@@ -1656,10 +1680,10 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
         ///          execution policy object; otherwise a null pointer
         /// Requires: is_execution_policy<T>::value is true
         template <typename ExPolicy>
-        ExPolicy* get() BOOST_NOEXCEPT
+        ExPolicy* get() HPX_NOEXCEPT
         {
             static_assert(
-                !(boost::is_same<ExPolicy, execution_policy>::value),
+                !(std::is_same<ExPolicy, execution_policy>::value),
                 "Incorrect execution policy parameter.");
             static_assert(
                 is_execution_policy<ExPolicy>::value,
@@ -1675,10 +1699,10 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
         ///          execution policy object; otherwise a null pointer
         /// Requires: is_execution_policy<T>::value is true
         template <typename ExPolicy>
-        ExPolicy const* get() const BOOST_NOEXCEPT
+        ExPolicy const* get() const HPX_NOEXCEPT
         {
             static_assert(
-                !(boost::is_same<ExPolicy, execution_policy>::value),
+                !(std::is_same<ExPolicy, execution_policy>::value),
                 "Incorrect execution policy parameter.");
             static_assert(
                 is_execution_policy<ExPolicy>::value,
@@ -1704,7 +1728,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
         template <typename ExPolicy, typename Enable = void>
         struct extract_launch_policy
         {
-            static BOOST_SCOPED_ENUM(launch) call() { return launch::async; }
+            static launch call() { return launch::async; }
         };
 
         template <typename ExPolicy>
@@ -1713,17 +1737,18 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
                 is_sequential_execution_policy<ExPolicy>::value
             >::type>
         {
-            static BOOST_SCOPED_ENUM(launch) call() { return launch::deferred; }
+            static launch call() { return launch::deferred; }
         };
 
         template <typename ExPolicy>
-        BOOST_SCOPED_ENUM(launch)
+        launch
         execution_policy_shim<ExPolicy>::launch_policy() const
         {
             return extract_launch_policy<ExPolicy>::call();
         }
         /// \endcond
     }
+#endif
 }}}
 
 #endif

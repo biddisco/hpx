@@ -12,13 +12,11 @@
 #include <hpx/traits/is_executor.hpp>
 #include <hpx/runtime/launch_policy.hpp>
 #include <hpx/runtime/serialization/serialize.hpp>
+#include <hpx/util/deferred_call.hpp>
 #include <hpx/parallel/config/inline_namespace.hpp>
 #include <hpx/parallel/executors/executor_traits.hpp>
 #include <hpx/parallel/executors/auto_chunk_size.hpp>
 #include <hpx/runtime/threads/thread_executor.hpp>
-#include <hpx/util/decay.hpp>
-
-#include <boost/detail/scoped_enum_emulation.hpp>
 
 #include <type_traits>
 #include <utility>
@@ -37,24 +35,23 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v3)
         typedef auto_chunk_size executor_parameters_type;
 
         /// Create a new parallel executor
-        explicit parallel_executor(BOOST_SCOPED_ENUM(launch) l = launch::async)
+        explicit parallel_executor(launch l = launch::async)
           : l_(l)
         {}
 
         /// \cond NOINTERNAL
-        template <typename F>
-        static void apply_execute(F && f)
+        template <typename F, typename ... Ts>
+        static void apply_execute(F && f, Ts &&... ts)
         {
-            hpx::apply(std::forward<F>(f));
+            hpx::apply(std::forward<F>(f), std::forward<Ts>(ts)...);
         }
 
-        template <typename F>
-        hpx::future<typename hpx::util::result_of<
-            typename hpx::util::decay<F>::type()
-        >::type>
-        async_execute(F && f)
+        template <typename F, typename ... Ts>
+        hpx::future<
+            typename hpx::util::detail::deferred_result_of<F(Ts&&...)>::type>
+        async_execute(F && f, Ts &&... ts)
         {
-            return hpx::async(l_, std::forward<F>(f));
+            return hpx::async(l_, std::forward<F>(f), std::forward<Ts>(ts)...);
         }
         /// \endcond
 
@@ -71,7 +68,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v3)
 
     private:
         /// \cond NOINTERNAL
-        BOOST_SCOPED_ENUM(launch) l_;
+        launch l_;
         /// \endcond
     };
 }}}

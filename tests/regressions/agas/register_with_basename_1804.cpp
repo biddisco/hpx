@@ -11,9 +11,9 @@
 #include <hpx/util/lightweight_test.hpp>
 
 #include <iostream>
+#include <memory>
+#include <string>
 #include <vector>
-
-#include <boost/shared_ptr.hpp>
 
 static std::string itoa(int i)
 {
@@ -76,7 +76,7 @@ void test()
         std::cout << "lookup: " << name << "\n";
         std::vector<hpx::future<hpx::id_type> > ids =
             hpx::find_all_from_basename(name, 1);
-        boundingBoxAccepters.push_back(std::move(ids[0].get()));
+        boundingBoxAccepters.push_back(ids[0].get());
     }
 
     std::cout << "all done " << rank << "\n";

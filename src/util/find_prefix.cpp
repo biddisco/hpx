@@ -10,12 +10,13 @@
 #include <hpx/exception.hpp>
 #include <hpx/util/find_prefix.hpp>
 
-#if defined(BOOST_WINDOWS)
+#if defined(HPX_WINDOWS)
 #  include <windows.h>
 #elif defined(__linux) || defined(linux) || defined(__linux__)
 #  include <unistd.h>
 #  include <sys/stat.h>
 #  include <linux/limits.h>
+#  include <vector>
 #elif __APPLE__
 #  include <mach-o/dyld.h>
 #elif defined(__FreeBSD__)
@@ -32,6 +33,8 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/tokenizer.hpp>
+
+#include <string>
 
 namespace hpx { namespace util
 {
@@ -85,9 +88,15 @@ namespace hpx { namespace util
         std::string result;
         for(tokenizer::iterator it = tokens.begin(); it != tokens.end(); ++it)
         {
+            if (it != tokens.begin())
+                result += HPX_INI_PATH_DELIMITER;
             result += *it;
             result += suffix;
+
             result += HPX_INI_PATH_DELIMITER;
+            result += *it;
+            result += "/lib";
+            result += suffix;
         }
         return result;
     }
@@ -105,7 +114,7 @@ namespace hpx { namespace util
     {
         std::string r;
 
-#if defined(BOOST_WINDOWS)
+#if defined(HPX_WINDOWS)
         HPX_UNUSED(argv0);
 
         char exe_path[MAX_PATH + 1] = { '\0' };
@@ -202,8 +211,7 @@ namespace hpx { namespace util
                 "get_executable_filename",
                 "unable to find executable filename");
         }
-
-        exe_path[len] = '\0';
+        exe_path[len-1] = '\0';
         r = exe_path;
 
 #elif defined(__FreeBSD__)

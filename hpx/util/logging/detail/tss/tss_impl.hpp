@@ -30,8 +30,10 @@ namespace hpx { namespace util { namespace logging {
 
 namespace detail {
 
-class tss : private boost::noncopyable
+class tss
 {
+    HPX_NON_COPYABLE(tss);
+
 public:
     tss() ;
 
@@ -46,7 +48,7 @@ private:
 }}}}
 
 #include <hpx/util/logging/detail/tss/tss_ensure_proper_delete.hpp>
-#if defined(BOOST_WINDOWS)
+#if defined(HPX_WINDOWS)
 #include <hpx/util/logging/detail/tss/tss_impl_win32.hpp>
 #else
 #include <hpx/util/logging/detail/tss/tss_impl_pthread.hpp>
@@ -56,8 +58,10 @@ private:
 namespace hpx { namespace util { namespace logging {
 
 template <typename T>
-class thread_specific_ptr : private boost::noncopyable
+class thread_specific_ptr
 {
+    HPX_NON_COPYABLE(thread_specific_ptr);
+
     detail::tss m_tss;
 public:
     thread_specific_ptr() {}

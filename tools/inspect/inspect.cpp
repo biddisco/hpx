@@ -3,6 +3,7 @@
 //  Copyright Beman Dawes 2002.
 //  Copyright Rene Rivera 2004-2006.
 //  Copyright Gennaro Prota 2006.
+//  Copyright Hartmut Kaiser 2014-2016.
 
 //  Distributed under the Boost Software License, Version 1.0.
 //  (See accompanying file LICENSE_1_0.txt or copy at
@@ -21,17 +22,16 @@ const char* hpx_no_inspect = "hpx-" "no-inspect";
 //  Files that contain the hpx_no_inspect value are not inspected.
 
 
-#include <vector>
-#include <list>
 #include <algorithm>
 #include <cstring>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <limits>
+#include <list>
+#include <memory>
 #include <string>
+#include <vector>
 
-#include "boost/shared_ptr.hpp"
-#include "boost/lexical_cast.hpp"
 #include "boost/filesystem/operations.hpp"
 #include "boost/filesystem/fstream.hpp"
 #include "boost/program_options.hpp"
@@ -66,6 +66,9 @@ const char* hpx_no_inspect = "hpx-" "no-inspect";
 #include "unnamed_namespace_check.hpp"
 #include "endline_whitespace_check.hpp"
 #include "length_check.hpp"
+#include "include_check.hpp"
+#include "deprecated_include_check.hpp"
+#include "deprecated_name_check.hpp"
 
 //#include "cvs_iterator.hpp"
 
@@ -87,7 +90,7 @@ namespace
 
   class inspector_element
   {
-    typedef boost::shared_ptr< boost::inspect::inspector > inspector_ptr;
+    typedef std::shared_ptr< boost::inspect::inspector > inspector_ptr;
 
   public:
     inspector_ptr  inspector;
@@ -569,85 +572,85 @@ namespace
   }
 
 //  worst_offenders_count_helper  --------------------------------------------------//
-
-  void worst_offenders_count_helper( const string & current_library, int err_count )
-  {
-        lib_error_count lec;
-        lec.library = current_library;
-        lec.error_count = err_count;
-        libs.push_back( lec );
-  }
-//  worst_offenders_count  -----------------------------------------------------//
-
-  void worst_offenders_count()
-  {
-    if ( msgs.empty() )
-    {
-      return;
-    }
-    string current_library( msgs.begin()->library );
-    int err_count = 0;
-    for ( error_msg_vector::iterator itr ( msgs.begin() );
-      itr != msgs.end(); ++itr )
-    {
-      if ( current_library != itr->library )
-      {
-        worst_offenders_count_helper( current_library, err_count );
-        current_library = itr->library;
-        err_count = 0;
-      }
-      ++err_count;
-    }
-    worst_offenders_count_helper( current_library, err_count );
-  }
-
-//  display_worst_offenders  -------------------------------------------------//
-
-  void display_worst_offenders(std::ostream& out)
-  {
-    if (display_mode == display_brief)
-      return;
-    if (display_format == display_text)
-    {
-      out << "Worst Offenders:\n";
-    }
-    else
-    {
-      out <<
-        "<h2>Worst Offenders</h2>\n"
-        "<blockquote>\n"
-        ;
-    }
-
-    int display_count = 0;
-    int last_error_count = 0;
-    for ( lib_error_count_vector::iterator itr ( libs.begin() );
-          itr != libs.end()
-            && (display_count < max_offenders
-                || itr->error_count == last_error_count);
-          ++itr, ++display_count )
-    {
-      if (display_format == display_text)
-      {
-        out << itr->library << " " << itr->error_count << "\n";
-      }
-      else
-      {
-        out
-          << "  <a href=\"#"
-          << itr->library
-          << "\">" << itr->library
-          << "</a> ("
-          << itr->error_count << ")<br>\n";
-      }
-      last_error_count = itr->error_count;
-    }
-
-    if (display_format == display_text)
-      out << "\n";
-    else
-      out << "</blockquote>\n";
-  }
+//
+//   void worst_offenders_count_helper( const string & current_library, int err_count )
+//   {
+//         lib_error_count lec;
+//         lec.library = current_library;
+//         lec.error_count = err_count;
+//         libs.push_back( lec );
+//   }
+// //  worst_offenders_count  -----------------------------------------------------//
+//
+//   void worst_offenders_count()
+//   {
+//     if ( msgs.empty() )
+//     {
+//       return;
+//     }
+//     string current_library( msgs.begin()->library );
+//     int err_count = 0;
+//     for ( error_msg_vector::iterator itr ( msgs.begin() );
+//       itr != msgs.end(); ++itr )
+//     {
+//       if ( current_library != itr->library )
+//       {
+//         worst_offenders_count_helper( current_library, err_count );
+//         current_library = itr->library;
+//         err_count = 0;
+//       }
+//       ++err_count;
+//     }
+//     worst_offenders_count_helper( current_library, err_count );
+//   }
+//
+// //  display_worst_offenders  -------------------------------------------------//
+//
+//   void display_worst_offenders(std::ostream& out)
+//   {
+//     if (display_mode == display_brief)
+//       return;
+//     if (display_format == display_text)
+//     {
+//       out << "Worst Offenders:\n";
+//     }
+//     else
+//     {
+//       out <<
+//         "<h2>Worst Offenders</h2>\n"
+//         "<blockquote>\n"
+//         ;
+//     }
+//
+//     int display_count = 0;
+//     int last_error_count = 0;
+//     for ( lib_error_count_vector::iterator itr ( libs.begin() );
+//           itr != libs.end()
+//             && (display_count < max_offenders
+//                 || itr->error_count == last_error_count);
+//           ++itr, ++display_count )
+//     {
+//       if (display_format == display_text)
+//       {
+//         out << itr->library << " " << itr->error_count << "\n";
+//       }
+//       else
+//       {
+//         out
+//           << "  <a href=\"#"
+//           << itr->library
+//           << "\">" << itr->library
+//           << "</a> ("
+//           << itr->error_count << ")<br>\n";
+//       }
+//       last_error_count = itr->error_count;
+//     }
+//
+//     if (display_format == display_text)
+//       out << "\n";
+//     else
+//       out << "</blockquote>\n";
+//   }
 
   const char * doctype_declaration()
   {
@@ -830,6 +833,9 @@ int cpp_main( int argc_param, char * argv_param[] )
     bool unnamed_ck = false;
     bool whitespace_ck = false;
     bool length_ck = false;
+    bool include_ck = false;
+    bool deprecated_include_ck = false;
+    bool deprecated_names_ck = false;
 
     desc_commandline.add_options()
         ("help,h", "print some command line help")
@@ -871,6 +877,14 @@ int cpp_main( int argc_param, char * argv_param[] )
             "check for endline whitespace violations (default: off)")
         ("length", value<bool>(&length_ck)->implicit_value(false),
             "check for exceeding character limit (default: off)")
+        ("include", value<bool>(&include_ck)->implicit_value(false),
+            "check for certain #include's (default: off)")
+        ("deprecated_include",
+            value<bool>(&deprecated_include_ck)->implicit_value(false),
+            "check for deprecated #include's (default: off)")
+        ("deprecated_name",
+            value<bool>(&deprecated_names_ck)->implicit_value(false),
+            "check for deprecated names usage violations (default: off)")
 
         ("all,a", "check for all violations (default: no checks are performed)")
         ;
@@ -948,6 +962,9 @@ int cpp_main( int argc_param, char * argv_param[] )
         unnamed_ck = true;
         whitespace_ck = true;
         length_ck = true;
+        include_ck = true;
+        deprecated_include_ck = true;
+        deprecated_names_ck = true;
     }
 
     std::string output_path("-");
@@ -1004,10 +1021,20 @@ int cpp_main( int argc_param, char * argv_param[] )
   if ( length_ck)
       inspectors.push_back(inspector_element (
           new boost::inspect::length_check(limit)) );
+  if ( include_ck)
+      inspectors.push_back(inspector_element (
+          new boost::inspect::include_check()) );
+  if ( deprecated_include_ck)
+      inspectors.push_back(inspector_element (
+          new boost::inspect::deprecated_include_check()) );
+  if ( deprecated_names_ck)
+      inspectors.push_back(inspector_element (
+          new boost::inspect::deprecated_name_check()) );
 
   //// perform the actual inspection, using the requested type of iteration
     for(auto const& search_root: search_roots)
     {
+        ::search_root = search_root;
         visit_all<fs::directory_iterator>( search_root.leaf().string(),
             search_root, inspectors );
     }
@@ -1048,6 +1075,11 @@ void print_output(std::ostream& out, inspector_list const& inspectors)
       <<
         "HPX Inspection Report\n"
         "Run Date: " << run_date  << "\n"
+        "Commit: " << "<a href = \"https://github.com/STEllAR-GROUP/hpx/commit/"
+                   << HPX_HAVE_GIT_COMMIT
+                   << "\">"
+                   << std::string(HPX_HAVE_GIT_COMMIT, 10)
+                   << "</a>\n"
         "\n"
       ;
 
@@ -1083,8 +1115,14 @@ void print_output(std::ostream& out, inspector_list const& inspectors)
       "</td>\n"
       "<td>\n"
       "<h1>HPX Inspection Report</h1>\n"
-      "<b>Run Date:</b> " << run_date  << "\n"
+      "<b>Run Date:</b> " << run_date  << "<br>\n"
       //"&nbsp;&nbsp;/ " << validator_link( "validate me" ) << " /\n"
+      "<b>Commit:</b> "
+            << "<a href = \"https://github.com/STEllAR-GROUP/hpx/commit/"
+            << HPX_HAVE_GIT_COMMIT
+            << "\">"
+            << std::string(HPX_HAVE_GIT_COMMIT, 10)
+            << "</a>\n"
       "</td>\n"
       "</tr>\n"
       "</table>\n"
@@ -1092,7 +1130,7 @@ void print_output(std::ostream& out, inspector_list const& inspectors)
       "<p>This report is generated by an inspection "
       "program that checks files for the problems noted below. The HPX inspect "
       "tool is based on the <a href=\"http://www.boost.org/tools/inspect/\">"
-      "Boost.Inspect</a> tool</p>.\n"
+      "Boost.Inspect</a> tool.</p>\n"
       ;
 
 // FIXME: Extract latest GIT commit hash here
@@ -1137,11 +1175,11 @@ void print_output(std::ostream& out, inspector_list const& inspectors)
 
   std::sort( msgs.begin(), msgs.end() );
 
-  worst_offenders_count();
-  std::stable_sort( libs.begin(), libs.end() );
-
-  if ( !libs.empty() && display_mode != display_brief)
-    display_worst_offenders(out);
+//   worst_offenders_count();
+//   std::stable_sort( libs.begin(), libs.end() );
+//
+//   if ( !libs.empty() && display_mode != display_brief)
+//     display_worst_offenders(out);
 
   if ( !msgs.empty() )
   {

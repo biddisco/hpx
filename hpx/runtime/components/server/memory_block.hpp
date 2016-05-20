@@ -1,4 +1,4 @@
-//  Copyright (c) 2007-2015 Hartmut Kaiser
+//  Copyright (c) 2007-2016 Hartmut Kaiser
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -7,8 +7,8 @@
 #define HPX_COMPONENTS_MEMORY_BLOCK_OCT_21_2008_0159PM
 
 #include <hpx/config.hpp>
+#include <hpx/throw_exception.hpp>
 #include <hpx/traits/is_component.hpp>
-#include <hpx/exception.hpp>
 #include <hpx/runtime/components/component_type.hpp>
 #include <hpx/runtime/components/server/managed_component_base.hpp>
 #include <hpx/runtime/components/server/wrapper_heap.hpp>
@@ -17,11 +17,10 @@
 #include <hpx/runtime/actions/manage_object_action.hpp>
 #include <hpx/runtime/serialization/detail/raw_ptr.hpp>
 #include <hpx/lcos/base_lco_with_value.hpp>
+#include <hpx/util/atomic_count.hpp>
 #include <hpx/util/reinitializable_static.hpp>
 
-#include <boost/noncopyable.hpp>
 #include <boost/intrusive_ptr.hpp>
-#include <boost/detail/atomic_count.hpp>
 
 #include <sstream>
 
@@ -40,8 +39,10 @@ namespace hpx { namespace components { namespace server { namespace detail
     ///////////////////////////////////////////////////////////////////////////
     /// \brief The memory_block_header holds all information needed to describe
     ///        a block of memory managed by a server#memory_block component.
-    class memory_block_header : boost::noncopyable //-V690
+    class memory_block_header //-V690
     {
+        HPX_DELETE_COPY_CTOR(memory_block_header);
+
     public:
         /// This constructor is called on the locality where there memory_block
         /// is hosted
@@ -129,7 +130,7 @@ namespace hpx { namespace components { namespace server { namespace detail
         naming::id_type get_unmanaged_id() const;
 
 #if defined(HPX_HAVE_COMPONENT_GET_GID_COMPATIBILITY)
-        naming::id_type get_gid() const
+        naming::id_type get_gid() const //-V659
         {
             return get_unmanaged_id();
         }
@@ -142,7 +143,7 @@ namespace hpx { namespace components { namespace server { namespace detail
         friend void intrusive_ptr_add_ref(memory_block_header* p);
         friend void intrusive_ptr_release(memory_block_header* p);
 
-        boost::detail::atomic_count count_;
+        util::atomic_count count_;
         std::size_t size_;
         server::memory_block* wrapper_;
         actions::manage_object_action_base const& managing_object_;
@@ -300,13 +301,13 @@ namespace hpx { namespace components
             ar << size; //-V128
             ar << hpx::serialization::detail::raw_ptr(act);
 
-            HPX_ASSERT(act->save());
+            HPX_ASSERT(act->save_function());
             if (config) {
-                act->save()(data->get_ptr(), data->get_size(), ar, version,
+                act->save_function()(data->get_ptr(), data->get_size(), ar, version,
                     config->get_ptr());
             }
             else {
-                act->save()(data->get_ptr(), data->get_size(), ar, version, 0);
+                act->save_function()(data->get_ptr(), data->get_size(), ar, version, 0);
             }
         }
 
@@ -337,13 +338,13 @@ namespace hpx { namespace components
                 new (server::detail::allocate_block<alloc_type>(size))
                     alloc_type(size, act->get_instance()); //-V522
 
-            HPX_ASSERT(act->load()); //-V522
+            HPX_ASSERT(act->load_function()); //-V522
             if (config) {
-                act->load()(p->get_ptr(), size, ar, version, //-V522
+                act->load_function()(p->get_ptr(), size, ar, version, //-V522
                     config->get_ptr());
             }
             else {
-                act->load()(p->get_ptr(), size, ar, version, 0); //-V522
+                act->load_function()(p->get_ptr(), size, ar, version, 0); //-V522
             }
 
             delete act;
@@ -431,24 +432,6 @@ namespace hpx { namespace components { namespace server { namespace detail
 
         // This component type requires valid id for its actions to be invoked
         static bool is_target_valid(naming::id_type const& id) { return true; }
-
-        /// This is the default hook implementation for decorate_action which
-        /// does no hooking at all.
-        template <typename F>
-        static threads::thread_function_type
-        decorate_action(naming::address::address_type, F && f)
-        {
-            return std::forward<F>(f);
-        }
-
-        /// This is the default hook implementation for schedule_thread which
-        /// forwards to the default scheduler.
-        static void schedule_thread(naming::address::address_type,
-            threads::thread_init_data& data,
-            threads::thread_state_enum initial_state)
-        {
-            hpx::threads::register_work_plain(data, initial_state); //-V106
-        }
     };
 }}}}
 
@@ -457,8 +440,10 @@ namespace hpx { namespace components { namespace server
 {
     ///////////////////////////////////////////////////////////////////////////
     ///
-    class memory_block : boost::noncopyable
+    class memory_block
     {
+        HPX_NON_COPYABLE(memory_block);
+
     public:
         typedef detail::memory_block_header wrapped_type;
         typedef memory_block type_holder;

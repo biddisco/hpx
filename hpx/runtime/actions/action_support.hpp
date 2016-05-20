@@ -12,20 +12,23 @@
 
 #include <hpx/config.hpp>
 #include <hpx/lcos/future.hpp>
+#include <hpx/runtime/parcelset_fwd.hpp>
 #include <hpx/runtime/actions/continuation.hpp>
+#include <hpx/runtime/actions/detail/remote_action_result.hpp>
 #include <hpx/runtime/serialization/output_archive.hpp>
 #include <hpx/runtime/serialization/input_archive.hpp>
 #include <hpx/runtime/serialization/base_object.hpp>
 #include <hpx/runtime/threads/thread_helpers.hpp>
 #include <hpx/runtime/threads/thread_init_data.hpp>
-#include <hpx/util/move.hpp>
+#include <hpx/runtime/components/pinned_ptr.hpp>
+#include <hpx/traits/is_bitwise_serializable.hpp>
 #include <hpx/util/tuple.hpp>
 #include <hpx/util/detail/count_num_args.hpp>
 
-#include <boost/cstdint.hpp>
 #include <boost/mpl/bool.hpp>
 #include <boost/preprocessor/cat.hpp>
 
+#include <cstdint>
 #include <memory>
 
 #include <hpx/config/warnings_prefix.hpp>
@@ -37,15 +40,15 @@ namespace hpx { namespace actions { namespace detail
     {
         action_serialization_data()
           : parent_locality_(naming::invalid_locality_id)
-          , parent_id_(static_cast<boost::uint64_t>(-1))
+          , parent_id_(static_cast<std::uint64_t>(-1))
           , parent_phase_(0)
           , priority_(static_cast<threads::thread_priority>(0))
           , stacksize_(static_cast<threads::thread_stacksize>(0))
         {}
 
-        action_serialization_data(boost::uint32_t parent_locality,
-                boost::uint64_t parent_id,
-                boost::uint64_t parent_phase,
+        action_serialization_data(std::uint32_t parent_locality,
+                std::uint64_t parent_id,
+                std::uint64_t parent_phase,
                 threads::thread_priority priority,
                 threads::thread_stacksize stacksize)
           : parent_locality_(parent_locality)
@@ -55,9 +58,9 @@ namespace hpx { namespace actions { namespace detail
           , stacksize_(stacksize)
         {}
 
-        boost::uint32_t parent_locality_;
-        boost::uint64_t parent_id_;
-        boost::uint64_t parent_phase_;
+        std::uint32_t parent_locality_;
+        std::uint64_t parent_id_;
+        std::uint64_t parent_phase_;
         threads::thread_priority priority_;
         threads::thread_stacksize stacksize_;
 
@@ -111,12 +114,6 @@ namespace hpx { namespace actions
 
         ///////////////////////////////////////////////////////////////////////
         // If an action returns a future, we need to do special things
-        template <typename Result>
-        struct remote_action_result
-        {
-            typedef Result type;
-        };
-
         template <>
         struct remote_action_result<void>
         {
@@ -213,13 +210,13 @@ namespace hpx { namespace actions
                 naming::address::address_type lva) = 0;
 
         /// return the id of the locality of the parent thread
-        virtual boost::uint32_t get_parent_locality_id() const = 0;
+        virtual std::uint32_t get_parent_locality_id() const = 0;
 
         /// Return the thread id of the parent thread
         virtual threads::thread_id_repr_type get_parent_thread_id() const = 0;
 
         /// Return the thread phase of the parent thread
-        virtual boost::uint64_t get_parent_thread_phase() const = 0;
+        virtual std::uint64_t get_parent_thread_phase() const = 0;
 
         /// Return the thread priority this action has to be executed with
         virtual threads::thread_priority get_thread_priority() const = 0;
@@ -230,14 +227,19 @@ namespace hpx { namespace actions
         /// Return whether the embedded action is part of termination detection
         virtual bool does_termination_detection() const = 0;
 
-        /// Return all data needed for thread initialization
+        /// Perform thread initialization
         virtual void schedule_thread(naming::id_type const& target,
             naming::address::address_type lva,
-            threads::thread_state_enum initial_state, std::size_t num_thred) = 0;
+            threads::thread_state_enum initial_state, std::size_t num_thread) = 0;
 
         virtual void schedule_thread(std::unique_ptr<continuation> cont,
             naming::id_type const& target, naming::address::address_type lva,
-            threads::thread_state_enum initial_state, std::size_t num_thred) = 0;
+            threads::thread_state_enum initial_state, std::size_t num_thread) = 0;
+
+        /// Return whether the given object was migrated
+        virtual std::pair<bool, components::pinned_ptr>
+            was_object_migrated(hpx::id_type const&,
+                naming::address::address_type) = 0;
 
         /// Return a pointer to the filter to be used while serializing an
         /// instance of this action type.
@@ -329,5 +331,7 @@ namespace hpx { namespace actions
 }}
 
 HPX_TRAITS_SERIALIZED_WITH_ID(hpx::actions::base_action)
+
+#include <hpx/config/warnings_suffix.hpp>
 
 #endif

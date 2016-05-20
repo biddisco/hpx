@@ -8,15 +8,12 @@
 
 #include <hpx/config.hpp>
 
+#include <hpx/util_fwd.hpp>
 #include <hpx/util/plugin.hpp>
 #include <hpx/util/plugin/export_plugin.hpp>
-#include <boost/mpl/list.hpp>
 
-///////////////////////////////////////////////////////////////////////////////
-namespace hpx { namespace util
-{
-    struct command_line_handling;
-}}
+#include <string>
+#include <vector>
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx { namespace plugins
@@ -59,6 +56,10 @@ namespace hpx { namespace plugins
 /// macro has to be used in exactly one compilation unit of a component module.
 #define HPX_REGISTER_PLUGIN_REGISTRY_MODULE()                                 \
     HPX_PLUGIN_EXPORT_LIST(HPX_PLUGIN_PLUGIN_PREFIX, plugin)                  \
+/**/
+
+#define HPX_REGISTER_PLUGIN_REGISTRY_MODULE_DYNAMIC()                         \
+    HPX_PLUGIN_EXPORT_LIST_DYNAMIC(HPX_PLUGIN_PLUGIN_PREFIX, plugin)          \
 /**/
 
 #endif

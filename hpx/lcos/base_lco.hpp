@@ -1,21 +1,22 @@
-//  Copyright (c) 2007-2012 Hartmut Kaiser
+//  Copyright (c) 2007-2016 Hartmut Kaiser
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#if !defined(HPX_LCOS_BASE_LCO_JUN_12_2008_0852PM)
-#define HPX_LCOS_BASE_LCO_JUN_12_2008_0852PM
+#ifndef HPX_LCOS_BASE_LCO_HPP
+#define HPX_LCOS_BASE_LCO_HPP
 
 #include <hpx/config.hpp>
-#include <hpx/exception.hpp>
+#include <hpx/runtime/actions/basic_action.hpp>
+#include <hpx/runtime/actions/component_action.hpp>
+#include <hpx/runtime/components_fwd.hpp>
 #include <hpx/runtime/components/component_type.hpp>
 #include <hpx/runtime/components/server/managed_component_base.hpp>
-#include <hpx/runtime/actions/component_action.hpp>
-#include <hpx/util/ini.hpp>
+#include <hpx/runtime/naming/id_type.hpp>
 
-#include <hpx/plugins/parcel/coalescing_message_handler.hpp>
+#include <hpx/plugins/parcel/coalescing_message_handler_registration.hpp>
 
-#include <boost/mpl/bool.hpp>
+#include <boost/exception_ptr.hpp>
 
 namespace hpx { namespace lcos
 {
@@ -23,10 +24,10 @@ namespace hpx { namespace lcos
     /// implementing a simple set_event action
     class HPX_API_EXPORT base_lco
     {
-    protected:
-        virtual void set_event () = 0;
+    public:
+        virtual void set_event() = 0;
 
-        virtual void set_exception (boost::exception_ptr const& e);
+        virtual void set_exception(boost::exception_ptr const& e);
 
         // noop by default
         virtual void connect(naming::id_type const &);
@@ -34,7 +35,6 @@ namespace hpx { namespace lcos
         // noop by default
         virtual void disconnect(naming::id_type const &);
 
-    public:
         // components must contain a typedef for wrapping_type defining the
         // managed_component type used to encapsulate instances of this
         // component
@@ -43,12 +43,6 @@ namespace hpx { namespace lcos
 
         static components::component_type get_component_type();
         static void set_component_type(components::component_type type);
-
-        // This component type requires valid id for its actions to be invoked
-        static bool is_target_valid(naming::id_type const& id)
-        {
-            return !naming::is_locality(id);
-        }
 
         /// Destructor, needs to be virtual to allow for clean destruction of
         /// derived objects
@@ -71,7 +65,7 @@ namespace hpx { namespace lcos
         ///
         /// \param e      [in] The exception encapsulating the error to report
         ///               to this LCO instance.
-        void set_exception_nonvirt (boost::exception_ptr const& e);
+        void set_exception_nonvirt(boost::exception_ptr const& e);
 
         /// The \a function connect_nonvirt is called whenever a
         /// \a connect_action is applied on a instance of a LCO. This function
@@ -117,22 +111,19 @@ namespace hpx { namespace lcos
         HPX_DEFINE_COMPONENT_DIRECT_ACTION(base_lco, disconnect_nonvirt,
             disconnect_action);
 
-        /// This is the default hook implementation for decorate_action which
-        /// does no hooking at all.
-        template <typename F>
-        static threads::thread_function_type
-        decorate_action(naming::address::address_type, F && f)
+        // Internal: The following functions are used for promise
+        // AGAS memory management
+        virtual void add_ref()
         {
-            return std::forward<F>(f);
+            HPX_ASSERT(false);
         }
-
-        /// This is the default hook implementation for schedule_thread which
-        /// forwards to the default scheduler.
-        static void schedule_thread(naming::address::address_type,
-            threads::thread_init_data& data,
-            threads::thread_state_enum initial_state)
+        virtual void release()
         {
-            threads::register_work_plain(data, initial_state); //-V106
+            HPX_ASSERT(false);
+        }
+        virtual long count() const {
+            HPX_ASSERT(false);
+            return 0;
         }
     };
 }}
@@ -149,10 +140,10 @@ HPX_REGISTER_ACTION_DECLARATION(
     hpx::lcos::base_lco::disconnect_action, base_disconnect_action)
 
 ///////////////////////////////////////////////////////////////////////////////
-HPX_ACTION_USES_MESSAGE_COALESCING_NOTHROW(
+HPX_ACTION_USES_MESSAGE_COALESCING_NOTHROW_DECLARATION(
     hpx::lcos::base_lco::set_event_action, "lco_set_value_action",
     std::size_t(-1), std::size_t(-1))
-HPX_ACTION_USES_MESSAGE_COALESCING_NOTHROW(
+HPX_ACTION_USES_MESSAGE_COALESCING_NOTHROW_DECLARATION(
     hpx::lcos::base_lco::set_exception_action, "lco_set_value_action",
     std::size_t(-1), std::size_t(-1))
 

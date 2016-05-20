@@ -3,12 +3,17 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <hpx/hpx_fwd.hpp>
+#include <hpx/config.hpp>
+#include <hpx/exception.hpp>
 #include <hpx/exception_list.hpp>
+#include <hpx/util/unlock_guard.hpp>
 
-#include <boost/thread/locks.hpp>
+#include <boost/system/system_error.hpp>
+#include <boost/exception_ptr.hpp>
 
+#include <mutex>
 #include <set>
+#include <string>
 
 namespace hpx
 {
@@ -50,7 +55,7 @@ namespace hpx
     {}
 
     exception_list::exception_list(boost::exception_ptr const& e)
-      : hpx::exception(hpx::get_error(e))
+      : hpx::exception(hpx::get_error(e), hpx::get_error_what(e))
     {
         add(e);
     }
@@ -95,7 +100,7 @@ namespace hpx
     ///////////////////////////////////////////////////////////////////////////
     boost::system::error_code exception_list::get_error() const
     {
-        boost::lock_guard<mutex_type> l(mtx_);
+        std::lock_guard<mutex_type> l(mtx_);
         if (exceptions_.empty())
             return hpx::no_success;
         return hpx::get_error(exceptions_.front());
@@ -103,7 +108,7 @@ namespace hpx
 
     std::string exception_list::get_message() const
     {
-        boost::lock_guard<mutex_type> l(mtx_);
+        std::lock_guard<mutex_type> l(mtx_);
         if (exceptions_.empty())
             return "";
 
@@ -125,12 +130,12 @@ namespace hpx
 
     void exception_list::add(boost::exception_ptr const& e)
     {
-        boost::unique_lock<mutex_type> l(mtx_);
+        std::unique_lock<mutex_type> l(mtx_);
         if (exceptions_.empty())
         {
             hpx::exception ex;
             {
-                util::unlock_guard<boost::unique_lock<mutex_type> > ul(l);
+                util::unlock_guard<std::unique_lock<mutex_type> > ul(l);
                 ex = hpx::exception(hpx::get_error(e));
             }
 

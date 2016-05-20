@@ -16,14 +16,14 @@
 #ifndef JT28092007_optimize_HPP_DEFINED
 #define JT28092007_optimize_HPP_DEFINED
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(HPX_MSVC) && (HPX_MSVC >= 1020)
 # pragma once
 #endif
 
 #include <hpx/util/assert.hpp>
 #include <hpx/util/logging/detail/fwd.hpp>
-#include <boost/shared_ptr.hpp>
 #include <map>
+#include <memory>
 #include <vector>
 
 #include <string.h>
@@ -287,7 +287,7 @@ namespace optimize {
     class ptr_type = void* > struct cache_string_several_str {
     private:
         typedef string_type_ string_type;
-        typedef boost::shared_ptr<string_type> string_ptr;
+        typedef std::shared_ptr<string_type> string_ptr;
 
         struct cached_msg {
             cached_msg() : prepended(true), id( ptr_type() ), is_new(true) {}

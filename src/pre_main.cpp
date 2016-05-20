@@ -6,20 +6,34 @@
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <hpx/config.hpp>
-#include <hpx/version.hpp>
-#include <hpx/hpx.hpp>
-#include <hpx/runtime/applier/applier.hpp>
-#include <hpx/runtime/threads/thread_data.hpp>
-#include <hpx/util/logging.hpp>
+#include <hpx/runtime.hpp>
+
+#include <hpx/error_code.hpp>
+#include <hpx/throw_exception.hpp>
 #include <hpx/lcos/barrier.hpp>
 #include <hpx/runtime/agas/interface.hpp>
+#include <hpx/runtime/applier/applier.hpp>
+#include <hpx/runtime/components/runtime_support.hpp>
+#include <hpx/runtime/find_localities.hpp>
+#include <hpx/runtime/naming/id_type.hpp>
+#include <hpx/runtime/naming/name.hpp>
+#include <hpx/runtime/naming/resolver_client.hpp>
+#include <hpx/runtime/shutdown_function.hpp>
+#include <hpx/runtime/startup_function.hpp>
+#include <hpx/runtime/threads/threadmanager.hpp>
+#include <hpx/util/logging.hpp>
+#include <hpx/util/runtime_configuration.hpp>
+#include <hpx/util/tuple.hpp>
 
 #define HPX_USE_FAST_BOOTSTRAP_SYNCHRONIZATION
 
 #if defined(HPX_USE_FAST_BOOTSTRAP_SYNCHRONIZATION)
-#include <hpx/lcos/broadcast.hpp>
+#  include <hpx/lcos/broadcast.hpp>
 #endif
+
+#include <cstddef>
+#include <string>
+#include <vector>
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -38,16 +52,13 @@ HPX_REGISTER_BROADCAST_ACTION_ID(call_startup_functions_action,
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
-namespace
+static void garbage_collect_non_blocking()
 {
-    void garbage_collect_non_blocking()
-    {
-        hpx::agas::garbage_collect_non_blocking();
-    }
-    void garbage_collect()
-    {
-        hpx::agas::garbage_collect();
-    }
+    hpx::agas::garbage_collect_non_blocking();
+}
+static void garbage_collect()
+{
+    hpx::agas::garbage_collect();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -56,7 +67,7 @@ namespace hpx
 
 ///////////////////////////////////////////////////////////////////////////////
 // Create a new barrier and register its id with the given symbolic name.
-inline lcos::barrier
+static lcos::barrier
 create_barrier(std::size_t num_localities, char const* symname)
 {
     lcos::barrier b = lcos::barrier::create(find_here(), num_localities);
@@ -66,7 +77,7 @@ create_barrier(std::size_t num_localities, char const* symname)
     return b;
 }
 
-inline void delete_barrier(lcos::barrier& b, char const* symname)
+static void delete_barrier(lcos::barrier& b, char const* symname)
 {
     agas::unregister_name_sync(symname);
     b.free();
@@ -74,7 +85,7 @@ inline void delete_barrier(lcos::barrier& b, char const* symname)
 
 ///////////////////////////////////////////////////////////////////////////////
 // Find a registered barrier object from its symbolic name.
-inline lcos::barrier
+static lcos::barrier
 find_barrier(char const* symname)
 {
     naming::id_type barrier_id;
@@ -100,7 +111,7 @@ static const char* const startup_barrier_name = "/0/agas/startup_barrier";
 
 ///////////////////////////////////////////////////////////////////////////////
 // Install performance counter startup functions for core subsystems.
-inline void register_counter_types()
+static void register_counter_types()
 {
      naming::get_agas_client().register_counter_types();
      LBT_(info) << "(2nd stage) pre_main: registered AGAS client-side "
@@ -117,6 +128,20 @@ inline void register_counter_types()
      applier::get_applier().get_parcel_handler().register_counter_types();
      LBT_(info) << "(2nd stage) pre_main: registered parcelset performance "
                    "counter types";
+}
+
+///////////////////////////////////////////////////////////////////////////////
+extern std::vector<util::tuple<char const*, char const*> >
+    message_handler_registrations;
+
+static void register_message_handlers()
+{
+    runtime& rt = get_runtime();
+    for (auto const& t : message_handler_registrations)
+    {
+        error_code ec(lightweight);
+        rt.register_message_handler(util::get<0>(t), util::get<1>(t), ec);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -147,6 +172,11 @@ int pre_main(runtime_mode mode)
         LBT_(info) << "(2nd stage) pre_main: loaded components"
             << (exit_code ? ", application exit has been requested" : "");
 
+        // Work on registration requests for message handler plugins
+        register_message_handlers();
+
+        // Register all counter types before the startup functions are being
+        // executed.
         register_counter_types();
 
         rt.set_state(state_pre_startup);
@@ -198,6 +228,9 @@ int pre_main(runtime_mode mode)
             LBT_(info) << "(2nd stage) pre_main: found 2nd and 3rd stage boot barriers";
         }
         // }}}
+
+        // Work on registration requests for message handler plugins
+        register_message_handlers();
 
         // Register all counter types before the startup functions are being
         // executed.
@@ -270,12 +303,7 @@ int pre_main(runtime_mode mode)
         return exit_code;
     }
 
-    // now adjust the number of local AGAS cache entries for the number of
-    // connected localities
-    agas_client.adjust_local_cache_size();
-
     return 0;
 }
 
 }
-

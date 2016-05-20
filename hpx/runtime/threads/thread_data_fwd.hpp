@@ -9,32 +9,14 @@
 #define HPX_THREADS_THREAD_DATA_FWD_AUG_11_2015_0228PM
 
 #include <hpx/config.hpp>
+#include <hpx/exception_fwd.hpp>
 #include <hpx/runtime/threads/thread_enums.hpp>
-#include <hpx/util/unique_function.hpp>
-#include <hpx/util/coroutine/detail/default_context_impl.hpp>
-#include <hpx/util/coroutine/detail/coroutine_impl.hpp>
+#include <hpx/runtime/threads/coroutines/coroutine_fwd.hpp>
+#include <hpx/util_fwd.hpp>
 
-namespace hpx { namespace util { namespace coroutines
-{
-    /// \cond NOINTERNAL
-    namespace detail
-    {
-        template <typename Coroutine>
-        class coroutine_self;
+#include <boost/intrusive_ptr.hpp>
 
-        template <typename CoroutineImpl>
-        struct coroutine_allocator;
-        template<typename CoroutineType, typename ContextImpl,
-            template <typename> class Heap>
-        class coroutine_impl;
-    }
-
-    template<typename Signature,
-        template <typename> class Heap,
-        typename ContextImpl = detail::default_context_impl>
-    class coroutine;
-    /// \endcond
-}}}
+#include <cstdint>
 
 namespace hpx { namespace threads
 {
@@ -51,24 +33,11 @@ namespace hpx { namespace threads
 
     class HPX_EXPORT executor;
 
-    ///////////////////////////////////////////////////////////////////////
-    namespace detail
-    {
-        template <typename CoroutineImpl> struct coroutine_allocator;
-    }
+    typedef coroutines::coroutine coroutine_type;
 
-    typedef util::coroutines::coroutine<
-        thread_function_sig, detail::coroutine_allocator> coroutine_type;
+    typedef coroutines::detail::coroutine_self thread_self;
+    typedef coroutines::detail::coroutine_impl thread_self_impl_type;
 
-    typedef util::coroutines::detail::coroutine_self<coroutine_type>
-        thread_self;
-    typedef
-        util::coroutines::detail::coroutine_impl<
-            coroutine_type
-            , util::coroutines::detail::default_context_impl
-            , detail::coroutine_allocator
-        >
-        thread_self_impl_type;
     typedef void * thread_id_repr_type;
 
     typedef boost::intrusive_ptr<thread_data> thread_id_type;
@@ -76,7 +45,7 @@ namespace hpx { namespace threads
     HPX_API_EXPORT void intrusive_ptr_add_ref(thread_data* p);
     HPX_API_EXPORT void intrusive_ptr_release(thread_data* p);
 
-    BOOST_CONSTEXPR_OR_CONST thread_id_repr_type invalid_thread_id_repr = 0;
+    HPX_CONSTEXPR_OR_CONST thread_id_repr_type invalid_thread_id_repr = 0;
     thread_id_type const invalid_thread_id = thread_id_type();
     /// \endcond
 
@@ -126,7 +95,7 @@ namespace hpx { namespace threads
     /// \note This function will return a meaningful value only if the
     ///       code was compiled with HPX_HAVE_THREAD_PARENT_REFERENCE
     ///       being defined.
-    HPX_API_EXPORT boost::uint32_t get_parent_locality_id();
+    HPX_API_EXPORT std::uint32_t get_parent_locality_id();
 
     /// The function \a get_self_component_id returns the lva of the
     /// component the current thread is acting on
@@ -134,7 +103,7 @@ namespace hpx { namespace threads
     /// \note This function will return a meaningful value only if the
     ///       code was compiled with HPX_HAVE_THREAD_TARGET_ADDRESS
     ///       being defined.
-    HPX_API_EXPORT boost::uint64_t get_self_component_id();
+    HPX_API_EXPORT std::uint64_t get_self_component_id();
 
     /// The function \a get_thread_manager returns a reference to the
     /// current thread manager.
@@ -147,11 +116,11 @@ namespace hpx { namespace threads
     ///       number of currently existing threads, but will add the number
     ///       of registered task descriptions (which have not been
     ///       converted into threads yet).
-    HPX_API_EXPORT boost::int64_t get_thread_count(
+    HPX_API_EXPORT std::int64_t get_thread_count(
         thread_state_enum state = unknown);
 
     /// \copydoc get_thread_count(thread_state_enum state)
-    HPX_API_EXPORT boost::int64_t get_thread_count(
+    HPX_API_EXPORT std::int64_t get_thread_count(
         thread_priority priority, thread_state_enum state = unknown);
 }}
 

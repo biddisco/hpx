@@ -6,7 +6,10 @@
 #if !defined(HPX_PARCELSET_POLICIES_IBVERBS_CONTEXT_HPP)
 #define HPX_PARCELSET_POLICIES_IBVERBS_CONTEXT_HPP
 
-#include <hpx/hpx_fwd.hpp>
+#include <hpx/config.hpp>
+
+#if defined(HPX_HAVE_PARCELPORT_IBVERBS)
+
 #include <hpx/plugins/parcelport/ibverbs/ibverbs_errors.hpp>
 #include <hpx/plugins/parcelport/ibverbs/helper.hpp>
 #include <hpx/plugins/parcelport/ibverbs/client.hpp>
@@ -18,14 +21,13 @@
 #include <boost/asio/basic_io_object.hpp>
 #include <boost/asio/buffer.hpp>
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/bind.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/make_shared.hpp>
 #include <boost/system/system_error.hpp>
 #include <boost/thread/thread_time.hpp>
 #include <boost/scope_exit.hpp>
 #include <boost/atomic.hpp>
-#include <boost/lexical_cast.hpp>
+
+#include <cstring>
+#include <string>
 
 #include <netdb.h>
 #include <rdma/rdma_cma.h>
@@ -355,7 +357,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ibverbs
                 addrinfo *addr;
                 ret = getaddrinfo(
                     there.address().to_string().c_str()
-                  , boost::lexical_cast<std::string>(there.port()).c_str()
+                  , std::to_string(there.port()).c_str()
                   , NULL
                   , &addr
                 );
@@ -619,5 +621,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ibverbs
 
     typedef context_impl<detail::server> server_context;
 }}}}
+
+#endif
 
 #endif

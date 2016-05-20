@@ -1,5 +1,5 @@
 [/==============================================================================
-    Copyright (C) 2007-2015 Hartmut Kaiser
+    Copyright (C) 2007-2016 Hartmut Kaiser
     Copyright (C) 2012 Bryce Adelstein-Lelbach and Adrian Serio
 
     Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -11,7 +11,7 @@
     [id hpx]
     [authors [STE||AR Group, The]]
     [version 0.9.12]
-    [copyright 2011 2012 2013 2014 2015 The STE||AR Group (http://stellar-group.org)]
+    [copyright 2011 2012 2013 2014 2015 2016 The STE||AR Group (http://stellar-group.org)]
     [license
         Distributed under the Boost Software License, Version 1.0. (See
         accompanying file [@http://www.boost.org/LICENSE_1_0.txt LICENSE_1_0.txt]
@@ -127,6 +127,7 @@
 [def __sbatch__                 [@http://slurm.schedmd.com/sbatch.html sbatch]]
 [def __linda__                  [@http://en.wikipedia.org/wiki/Linda_(coordination_language) The Linda Coordination Language]]
 [def __opencl__                 [@https://www.khronos.org/opencl/ OpenCL]]
+[def __openmpi__                [@https://www.open-mpi.org Open MPI]]
 [def __pocl__                   [@http://portablecl.org/ POCL]]
 [def __cuda__                   [@http://www.nvidia.com/object/cuda_home_new.html CUDA]]
 [def __nt2__                    [@http://www.numscale.com/nt2/ NT2]]
@@ -140,6 +141,8 @@
 [def __cpp11_n4107__            [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2014/n4313.html N4313]]
 [def __cpp11_n4406__            [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4406.pdf N4406]]
 [def __cpp17_n4399__            [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4399.html N4399]]
+[def __cpp17_n4560__            [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2015/n4560.pdf N4560]]
+[def __cpp20_p0075r1__          [@http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2016/p0075r1.pdf P0075R1]]
 
 
 [def __ini_file_format__        [@http://en.wikipedia.org/wiki/INI_file Windows INI file format]]
@@ -275,6 +278,9 @@
 [template copymark[]'''&copy;''']
 [template regmark[]'''&reg;''']
 [template trademark[]'''&#8482;''']
+
+[template algoref[name] [funcref hpx::parallel::v1::[name] hpx::parallel::[name]]]
+[template algorefv2[name] [funcref hpx::parallel::v2::[name] hpx::parallel::[name]]]
 
 [/ CONTENT]
 

@@ -6,7 +6,44 @@
 #include <hpx/hpx_init.hpp>
 #include <hpx/hpx.hpp>
 
+#include <string>
+#include <vector>
+
+// use smaller array sizes for debug tests
+#if defined(HPX_DEBUG)
+#define HPX_SORT_TEST_SIZE          50000L
+#define HPX_SORT_TEST_SIZE_STRINGS  10000L
+#endif
+
 #include "sort_tests.hpp"
+
+////////////////////////////////////////////////////////////////////////////////
+// this function times a sort and outputs the time for cDash to plot it
+void sort_benchmark()
+{
+    try {
+        using namespace hpx::parallel;
+        // Fill vector with random values
+        std::vector<double> c(HPX_SORT_TEST_SIZE << 4);
+        rnd_fill<double>(c, (std::numeric_limits<double>::min)(),
+            (std::numeric_limits<double>::max)(), double(std::rand()));
+
+        hpx::util::high_resolution_timer t;
+        // sort, blocking when seq, par, par_vec
+        hpx::parallel::sort(par, c.begin(), c.end());
+        double elapsed = t.elapsed();
+
+        bool is_sorted = (verify(c, std::less<double>(), elapsed, true)!=0);
+        HPX_TEST(is_sorted);
+        if (is_sorted) {
+            std::cout << "<DartMeasurement name=\"SortDoublesTime\" \n"
+                << "type=\"numeric/double\">" << elapsed << "</DartMeasurement> \n";
+        }
+    }
+    catch (...) {
+        HPX_TEST(false);
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 void test_sort1()
@@ -48,8 +85,8 @@ void test_sort1()
     test_sort1_async(par(task), char());
     test_sort1_async(seq(task), double());
     test_sort1_async(par(task), float());
-    test_sort1_async(seq(task), std::string());
-    test_sort1_async(par(task), std::string());
+    test_sort1_async_str(seq(task));
+    test_sort1_async_str(par(task));
 
     // Async execution, user comparison operator
     test_sort1_async(seq(task), int(),    std::less<unsigned int>());
@@ -58,9 +95,10 @@ void test_sort1()
     test_sort1_async(seq(task), double(), std::greater<double>());
     test_sort1_async(par(task), float(),  std::greater<float>());
     //
-    test_sort1_async(seq(task), std::string(), std::greater<std::string>());
-    test_sort1_async(par(task), std::string(), std::greater<std::string>());
+    test_sort1_async_str(seq(task), std::greater<std::string>());
+    test_sort1_async_str(par(task), std::greater<std::string>());
 
+#if defined(HPX_HAVE_GENERIC_EXECUTION_POLICY)
     test_sort1(execution_policy(seq),       int());
     test_sort1(execution_policy(par),       int());
     test_sort1(execution_policy(par_vec),   int());
@@ -68,6 +106,7 @@ void test_sort1()
     test_sort1(execution_policy(par(task)), int());
     test_sort1(execution_policy(seq(task)), std::string());
     test_sort1(execution_policy(par(task)), std::string());
+#endif
 }
 
 void test_sort2()
@@ -106,11 +145,13 @@ void test_sort2()
     test_sort2_async(seq(task), double(), std::greater<double>());
     test_sort2_async(par(task), float(),  std::greater<float>());
 
+#if defined(HPX_HAVE_GENERIC_EXECUTION_POLICY)
     test_sort2(execution_policy(seq),       int());
     test_sort2(execution_policy(par),       int());
     test_sort2(execution_policy(par_vec),   int());
     test_sort2(execution_policy(seq(task)), int());
     test_sort2(execution_policy(par(task)), int());
+#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -123,8 +164,17 @@ int hpx_main(boost::program_options::variables_map& vm)
     std::cout << "using seed: " << seed << std::endl;
     std::srand(seed);
 
-    test_sort1();
-    test_sort2();
+    // if benchmark is requested we run it even in debug mode
+    if (vm.count("benchmark")) {
+        sort_benchmark();
+    }
+    else {
+        test_sort1();
+        test_sort2();
+#ifndef HPX_DEBUG
+        sort_benchmark();
+#endif
+    }
     return hpx::finalize();
 }
 
@@ -138,12 +188,12 @@ int main(int argc, char* argv[])
     desc_commandline.add_options()
         ("seed,s", value<unsigned int>(),
         "the random number generator seed to use for this run")
-        ;
+        ("benchmark", "run a timing benchmark only");
 
     // By default this test should run on all available cores
     std::vector<std::string> cfg;
     cfg.push_back("hpx.os_threads=" +
-        boost::lexical_cast<std::string>(hpx::threads::hardware_concurrency()));
+        std::to_string(hpx::threads::hardware_concurrency()));
 
     HPX_TEST_EQ_MSG(hpx::init(desc_commandline, argc, argv, cfg), 0,
         "HPX main exited with non-zero status");

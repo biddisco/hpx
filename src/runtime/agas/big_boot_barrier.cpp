@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //  Copyright (c) 2011 Bryce Lelbach & Katelyn Kufahl
-//  Copyright (c) 2007-2014 Hartmut Kaiser
+//  Copyright (c) 2007-2015 Hartmut Kaiser
 //  Copyright (c) 2015 Anton Bikineev
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -8,7 +8,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <hpx/config.hpp>
-#include <hpx/hpx_fwd.hpp>
 #include <hpx/runtime.hpp>
 #include <hpx/runtime/actions/plain_action.hpp>
 #include <hpx/runtime/components/server/managed_component_base.hpp>
@@ -17,6 +16,7 @@
 #include <hpx/util/reinitializable_static.hpp>
 #include <hpx/util/safe_lexical_cast.hpp>
 #include <hpx/util/high_resolution_clock.hpp>
+#include <hpx/util/runtime_configuration.hpp>
 #include <hpx/runtime/actions/action_support.hpp>
 #include <hpx/runtime/parcelset/parcel.hpp>
 #include <hpx/runtime/parcelset/parcelport.hpp>
@@ -39,14 +39,18 @@
 #endif
 
 #include <boost/format.hpp>
-#include <boost/thread.hpp>
-#include <boost/make_shared.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/thread/locks.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
+#include <boost/ref.hpp>
 
-#include <sstream>
+#include <cstdint>
 #include <cstdlib>
+#include <memory>
+#include <mutex>
+#include <sstream>
+#include <string>
+#include <vector>
 
 namespace hpx { namespace detail
 {
@@ -182,7 +186,12 @@ namespace hpx { namespace agas
 // (first round trip)
 struct registration_header
 {
-    registration_header() {}
+    registration_header()
+      : primary_ns_ptr(0)
+      , symbol_ns_ptr(0)
+      , cores_needed(0)
+      , num_threads(0)
+    {}
 
     // TODO: pass head address as a GVA
     registration_header(
@@ -232,7 +241,10 @@ struct registration_header
 // is trying to register (first roundtrip).
 struct notification_header
 {
-    notification_header() {}
+    notification_header()
+      : num_localities(0)
+      , used_cores(0)
+    {}
 
     notification_header(
         naming::gid_type const& prefix_
@@ -633,7 +645,7 @@ void notify_worker(notification_header const& header)
       , rt.get_runtime_support_lva());
     agas_client.bind_local(runtime_support_gid, runtime_support_address);
 
-    runtime_support_gid.set_lsb(boost::uint64_t(0));
+    runtime_support_gid.set_lsb(std::uint64_t(0));
     agas_client.bind_local(runtime_support_gid, runtime_support_address);
 
     naming::gid_type const memory_gid(header.prefix.get_msb()
@@ -873,7 +885,8 @@ namespace detail
 
 void big_boot_barrier::wait_hosted(
     std::string const& locality_name,
-    void* primary_ns_server, void* symbol_ns_server)
+    naming::address::address_type primary_ns_server,
+    naming::address::address_type symbol_ns_server)
 { // {{{
     HPX_ASSERT(service_mode_bootstrap != service_type);
 
@@ -904,8 +917,8 @@ void big_boot_barrier::wait_hosted(
     // contact the bootstrap AGAS node
     registration_header hdr(
           rt.endpoints()
-        , reinterpret_cast<boost::uint64_t>(primary_ns_server)
-        , reinterpret_cast<boost::uint64_t>(symbol_ns_server)
+        , primary_ns_server
+        , symbol_ns_server
         , cores_needed
         , num_threads
         , locality_name
@@ -926,8 +939,14 @@ void big_boot_barrier::wait_hosted(
 
 void big_boot_barrier::notify()
 {
-    boost::lock_guard<boost::mutex> lk(mtx, boost::adopt_lock);
-    --connected;
+    runtime& rt = get_runtime();
+    naming::resolver_client& agas_client = rt.get_agas_client();
+
+    {
+        std::lock_guard<boost::mutex> lk(mtx, std::adopt_lock);
+        if (agas_client.get_status() == state_starting)
+            --connected;
+    }
     cond.notify_all();
 }
 
@@ -941,7 +960,18 @@ void big_boot_barrier::trigger()
         util::unique_function_nonser<void()>* p;
 
         while (thunks.pop(p))
-            (*p)();
+        {
+            try
+            {
+                (*p)();
+            }
+            catch(...)
+            {
+                delete p;
+                throw;
+            }
+            delete p;
+        }
     }
 }
 
@@ -953,7 +983,7 @@ void create_big_boot_barrier(
   , parcelset::endpoints_type const& endpoints_
   , util::runtime_configuration const& ini_
 ) {
-    util::reinitializable_static<boost::shared_ptr<big_boot_barrier>, bbb_tag> bbb;
+    util::reinitializable_static<std::shared_ptr<big_boot_barrier>, bbb_tag> bbb;
     if (bbb.get())
     {
         HPX_THROW_EXCEPTION(internal_server_error,
@@ -965,7 +995,7 @@ void create_big_boot_barrier(
 
 void destroy_big_boot_barrier()
 {
-    util::reinitializable_static<boost::shared_ptr<big_boot_barrier>, bbb_tag> bbb;
+    util::reinitializable_static<std::shared_ptr<big_boot_barrier>, bbb_tag> bbb;
     if (!bbb.get())
     {
         HPX_THROW_EXCEPTION(internal_server_error,
@@ -977,7 +1007,7 @@ void destroy_big_boot_barrier()
 
 big_boot_barrier& get_big_boot_barrier()
 {
-    util::reinitializable_static<boost::shared_ptr<big_boot_barrier>, bbb_tag> bbb;
+    util::reinitializable_static<std::shared_ptr<big_boot_barrier>, bbb_tag> bbb;
     if (!bbb.get())
     {
         HPX_THROW_EXCEPTION(internal_server_error,

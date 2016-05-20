@@ -9,8 +9,11 @@
 #ifndef HPX_RUNTIME_PARCELSET_FWD_HPP
 #define HPX_RUNTIME_PARCELSET_FWD_HPP
 
-#include <hpx/config/export_definitions.hpp>
+#include <hpx/config.hpp>
 #include <hpx/exception_fwd.hpp>
+#include <hpx/util/function.hpp>
+
+#include <boost/system/error_code.hpp>
 
 namespace hpx {
     ///////////////////////////////////////////////////////////////////////////
@@ -34,7 +37,11 @@ namespace hpx {
             error_code& ec = throws);
 
         HPX_API_EXPORT bool do_background_work(std::size_t num_thread = 0);
+
+        typedef util::function_nonser<
+            void(boost::system::error_code const&, parcel const&)
+        > write_handler_type;
     }
 }
 
-#endif
+#endif /*HPX_RUNTIME_PARCELSET_FWD_HPP*/

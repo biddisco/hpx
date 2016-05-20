@@ -1,6 +1,6 @@
 #include <hpx/hpx_init.hpp>
 
-#if defined(BOOST_MSVC)
+#if defined(HPX_MSVC)
 #pragma warning(disable: 4786)  // identifier truncated in debug info
 #pragma warning(disable: 4710)  // function not inlined
 #pragma warning(disable: 4711)  // function selected for automatic inline expansion
@@ -24,9 +24,9 @@
 namespace placeholders = hpx::util::placeholders;
 
 #include <iostream>
+#include <memory>
 
 #include <hpx/util/lightweight_test.hpp>
-#include <boost/shared_ptr.hpp>
 
 struct X
 {
@@ -44,9 +44,9 @@ struct X
 
 struct Y
 {
-    boost::shared_ptr<X> f()
+    std::shared_ptr<X> f()
     {
-        return boost::shared_ptr<X>( new X( 42 ) );
+        return std::shared_ptr<X>( new X( 42 ) );
     }
 };
 

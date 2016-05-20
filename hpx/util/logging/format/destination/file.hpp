@@ -17,11 +17,11 @@
 #ifndef JT28092007_destination_file_HPP_DEFINED
 #define JT28092007_destination_file_HPP_DEFINED
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(HPX_MSVC) && (HPX_MSVC >= 1020)
 # pragma once
 #endif
 
-#if defined(_MSC_VER)
+#if defined(HPX_MSVC)
 #pragma warning ( disable : 4355)
 #endif
 
@@ -30,10 +30,11 @@
 #include <hpx/util/logging/detail/manipulator.hpp>
 #include <hpx/util/logging/format/destination/convert_destination.hpp>
 #include <boost/config.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/thread/locks.hpp>
 
 #include <fstream>
+#include <memory>
+#include <mutex>
+#include <string>
 
 namespace hpx { namespace util { namespace logging { namespace destination {
 
@@ -90,7 +91,7 @@ namespace detail {
         }
 
         std::string name;
-        boost::shared_ptr< std::basic_ofstream<char_type> > out;
+        std::shared_ptr< std::basic_ofstream<char_type> > out;
         file_settings settings;
     };
 }
@@ -118,7 +119,7 @@ struct file_t : is_generic, non_const_context<detail::file_info>
     template <class msg_type>
     void operator()(const msg_type & msg) const
     {
-        boost::lock_guard<mutex_type> l(mtx_);
+        std::lock_guard<mutex_type> l(mtx_);
 
         if (!non_const_context_base::context().out)
             non_const_context_base::context().open();   // make sure file is opened

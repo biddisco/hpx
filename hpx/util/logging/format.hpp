@@ -17,7 +17,7 @@
 #ifndef JT28092007_format_HPP_DEFINED
 #define JT28092007_format_HPP_DEFINED
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(HPX_MSVC) && (HPX_MSVC >= 1020)
 # pragma once
 #endif
 
@@ -28,9 +28,10 @@
 #include <hpx/util/logging/format_fwd.hpp>
 #include <hpx/util/logging/format/op_equal.hpp>
 #include <hpx/util/logging/format/array.hpp>
-#include <vector>
+#include <memory>
 #include <set>
-#include <boost/shared_ptr.hpp>
+#include <string>
+#include <vector>
 #include <boost/type_traits/is_base_of.hpp>
 
 namespace hpx { namespace util { namespace logging {
@@ -638,9 +639,7 @@ thread-safe access to an instance of this clas (used internally).
                 switch ( b->m_type) {
                 case route::is_fmt:       append_formatter( b->m_fmt); break;
                 case route::is_dest:      append_destination( b->m_dest); break;
-                    break;
                 case route::is_clear:     append_clear_format(); break;
-                    break;
                 }
             }
         }

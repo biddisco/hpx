@@ -5,46 +5,56 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <hpx/hpx.hpp>
-#include <hpx/config.hpp>
 #include <hpx/hpx_init.hpp>
-#include <hpx/hpx_start.hpp>
-#include <hpx/util/command_line_handling.hpp>
-#include <hpx/util/bind_action.hpp>
 
-#include <hpx/include/async.hpp>
-#include <hpx/runtime/components/runtime_support.hpp>
-#include <hpx/runtime/actions/plain_action.hpp>
-#include <hpx/runtime/threads/thread_helpers.hpp>
-#include <hpx/runtime/threads/policies/schedulers.hpp>
-#include <hpx/runtime/applier/applier.hpp>
-#include <hpx/runtime/get_config_entry.hpp>
+#include <hpx/hpx_user_main_config.hpp>
+#include <hpx/apply.hpp>
+#include <hpx/async.hpp>
 #include <hpx/runtime_impl.hpp>
-#include <hpx/util/find_prefix.hpp>
-#include <hpx/util/query_counters.hpp>
-#include <hpx/util/function.hpp>
+#include <hpx/runtime/agas/addressing_service.hpp>
+#include <hpx/runtime/actions/plain_action.hpp>
+#include <hpx/runtime/components/runtime_support.hpp>
+#include <hpx/runtime/find_localities.hpp>
+#include <hpx/runtime/get_config_entry.hpp>
+#include <hpx/runtime/shutdown_function.hpp>
+#include <hpx/runtime/startup_function.hpp>
+#include <hpx/runtime/threads/policies/schedulers.hpp>
 #include <hpx/util/apex.hpp>
+#include <hpx/util/assert.hpp>
+#include <hpx/util/bind.hpp>
+#include <hpx/util/bind_action.hpp>
+#include <hpx/util/command_line_handling.hpp>
+#include <hpx/util/function.hpp>
+#include <hpx/util/query_counters.hpp>
 
-#if !defined(BOOST_WINDOWS)
-#  include <signal.h>
-#endif
-
-#if defined(HPX_NATIVE_MIC) || defined(__bgq__)
-#   include <cstdlib>
-#endif
-
-#include <iostream>
-#include <sstream>
-#include <vector>
-#include <new>
-#include <memory>
-
-#include <boost/shared_ptr.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/format.hpp>
-#include <boost/assign/std/vector.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
+#include <boost/exception_ptr.hpp>
+#include <boost/format.hpp>
+#include <boost/lexical_cast.hpp>
+
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/parsers.hpp>
+#include <boost/program_options/variables_map.hpp>
+#include <boost/ref.hpp>
+
+#if defined(HPX_NATIVE_MIC) || defined(__bgq__)
+#  include <cstdlib>
+#endif
+
+#include <cmath>
+#include <cstddef>
+#include <iostream>
+#include <memory>
+#include <new>
+#include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
+
+#if !defined(HPX_WINDOWS)
+#  include <signal.h>
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx
@@ -274,7 +284,7 @@ namespace hpx { namespace detail
     }
 
     ///////////////////////////////////////////////////////////////////////////
-    void start_counters(boost::shared_ptr<util::query_counters> const& qc)
+    void start_counters(std::shared_ptr<util::query_counters> const& qc)
     {
         try {
             HPX_ASSERT(qc);
@@ -292,7 +302,7 @@ namespace hpx { namespace detail
 namespace hpx
 {
     // Print stack trace and exit.
-#if defined(BOOST_WINDOWS)
+#if defined(HPX_WINDOWS)
     extern BOOL WINAPI termination_handler(DWORD ctrl_type);
 #else
     extern void termination_handler(int signum);
@@ -399,8 +409,8 @@ namespace hpx
 
                 // schedule the query function at startup, which will schedule
                 // itself to run after the given interval
-                boost::shared_ptr<util::query_counters> qc =
-                    boost::make_shared<util::query_counters>(
+                std::shared_ptr<util::query_counters> qc =
+                    std::make_shared<util::query_counters>(
                         boost::ref(counters), interval, destination, counter_format,
                         counter_shortnames, csv_header);
 
@@ -409,11 +419,11 @@ namespace hpx
                 {
                     // schedule to run at shutdown
                     rt.add_pre_shutdown_function(
-                        boost::bind(&util::query_counters::evaluate, qc));
+                        util::bind(&util::query_counters::evaluate, qc));
                 }
 
                 // schedule to start all counters
-                rt.add_startup_function(boost::bind(&start_counters, qc));
+                rt.add_startup_function(util::bind(&start_counters, qc));
 
                 // register the query_counters object with the runtime system
                 rt.register_query_counters(qc);
@@ -670,7 +680,7 @@ namespace hpx
 
             // Run this runtime instance using the given function f.
             if (!f.empty())
-                return rt.run(boost::bind(f, vm));
+                return rt.run(util::bind(f, vm));
 
             // Run this runtime instance without an hpx_main
             return rt.run();
@@ -687,7 +697,7 @@ namespace hpx
 
             if (!f.empty()) {
                 // Run this runtime instance using the given function f.
-                return rt.start(boost::bind(f, vm));
+                return rt.start(util::bind(f, vm));
             }
 
             // Run this runtime instance without an hpx_main
@@ -1179,7 +1189,7 @@ namespace hpx
 
         if (std::abs(localwait + 1.0) < 1e-16)
             localwait = detail::get_option("hpx.finalize_wait_time", -1.0);
-        else
+
         {
             hpx::util::high_resolution_timer t;
             double start_time = t.elapsed();
@@ -1222,7 +1232,7 @@ namespace hpx
 
         if (std::abs(localwait + 1.0) < 1e-16)
             localwait = detail::get_option("hpx.finalize_wait_time", -1.0);
-        else
+
         {
             hpx::util::high_resolution_timer t;
             double start_time = t.elapsed();
@@ -1280,7 +1290,7 @@ namespace hpx
     int stop(error_code& ec)
     {
         if (threads::get_self_ptr()) {
-            HPX_THROWS_IF(ec, invalid_status, "hpx::disconnect",
+            HPX_THROWS_IF(ec, invalid_status, "hpx::stop",
                 "this function cannot be called from an HPX thread");
             return -1;
         }
@@ -1294,6 +1304,7 @@ namespace hpx
         }
 
         int result = rt->wait();
+
         rt->stop();
         rt->rethrow_exception();
 
@@ -1306,18 +1317,17 @@ namespace hpx
             boost::program_options::variables_map& /*vm*/,
             util::function_nonser<int(int, char**)> const& f)
         {
-            hpx::util::section const& ini = hpx::get_runtime().get_config();
-            std::string cmdline(ini.get_entry("hpx.reconstructed_cmd_line", ""));
+            std::string cmdline(hpx::get_config_entry("hpx.reconstructed_cmd_line", ""));
 
             using namespace boost::program_options;
-#if defined(BOOST_WINDOWS)
+#if defined(HPX_WINDOWS)
             std::vector<std::string> args = split_winmain(cmdline);
 #else
             std::vector<std::string> args = split_unix(cmdline);
 #endif
 
             // Copy all arguments which are not hpx related to a temporary array
-            boost::scoped_array<char*> argv(new char*[args.size()+1]);
+            std::vector<char*> argv(args.size()+1);
             std::size_t argcount = 0;
             for (std::size_t i = 0; i != args.size(); ++i)
             {
@@ -1337,7 +1347,7 @@ namespace hpx
             argv[argcount] = 0;
 
             // Invoke custom startup functions
-            return f(static_cast<int>(argcount), argv.get());
+            return f(static_cast<int>(argcount), argv.data());
         }
     }
 }

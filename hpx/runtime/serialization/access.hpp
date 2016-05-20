@@ -8,8 +8,8 @@
 #define HPX_SERIALIZATION_ACCESS_HPP
 
 #include <hpx/runtime/serialization/serialization_fwd.hpp>
+#include <hpx/traits/has_member_xxx.hpp>
 #include <hpx/traits/polymorphic_traits.hpp>
-#include <hpx/traits/has_serialize.hpp>
 #include <hpx/util/decay.hpp>
 
 #include <boost/type_traits/is_empty.hpp>
@@ -24,8 +24,16 @@ namespace hpx { namespace serialization
 {
     namespace detail
     {
-        template <class Archive, class T> BOOST_FORCEINLINE
-        void serialize_force_adl(Archive& ar, T& t, unsigned)
+        HPX_HAS_MEMBER_XXX_TRAIT_DEF(serialize);
+
+        template <class T> HPX_FORCEINLINE
+        void serialize_force_adl(output_archive& ar, const T& t, unsigned)
+        {
+            serialize(ar, const_cast<T&>(t), 0);
+        }
+
+        template <class T> HPX_FORCEINLINE
+        void serialize_force_adl(input_archive& ar, T& t, unsigned)
         {
             serialize(ar, t, 0);
         }
@@ -92,7 +100,7 @@ namespace hpx { namespace serialization
                 hpx::traits::is_intrusive_polymorphic<T>,
                     boost::mpl::identity<intrusive_polymorphic>,
                         boost::mpl::eval_if<
-                            hpx::traits::has_serialize<T>,
+                            detail::has_serialize<T>,
                                 boost::mpl::identity<intrusive_usual>,
                                 boost::mpl::eval_if<
                                     boost::is_empty<T>,
@@ -110,7 +118,7 @@ namespace hpx { namespace serialization
             serialize_dispatcher<T>::type::call(ar, t, 0);
         }
 
-        template <typename Archive, typename T> BOOST_FORCEINLINE
+        template <typename Archive, typename T> HPX_FORCEINLINE
         static void save_base_object(Archive & ar, const T & t, unsigned)
         {
             // explicitly specify virtual function
@@ -118,7 +126,7 @@ namespace hpx { namespace serialization
             t.T::save(ar, 0);
         }
 
-        template <typename Archive, typename T> BOOST_FORCEINLINE
+        template <typename Archive, typename T> HPX_FORCEINLINE
         static void load_base_object(Archive & ar, T & t, unsigned)
         {
             // explicitly specify virtual function
@@ -126,7 +134,7 @@ namespace hpx { namespace serialization
             t.T::load(ar, 0);
         }
 
-        template <typename T> BOOST_FORCEINLINE
+        template <typename T> HPX_FORCEINLINE
         static std::string get_name(const T* t)
         {
             return t->hpx_serialization_get_name();

@@ -12,6 +12,7 @@
 #include <hpx/include/lcos.hpp>
 
 #include <iostream>
+#include <string>
 
 #include <boost/cstdint.hpp>
 #include <boost/format.hpp>
@@ -20,7 +21,7 @@
 boost::uint64_t threshold = 2;
 
 ///////////////////////////////////////////////////////////////////////////////
-BOOST_NOINLINE boost::uint64_t fibonacci_serial(boost::uint64_t n)
+HPX_NOINLINE boost::uint64_t fibonacci_serial(boost::uint64_t n)
 {
     if (n < 2)
         return n;
@@ -38,7 +39,6 @@ boost::uint64_t add(
 ///////////////////////////////////////////////////////////////////////////////
 struct when_all_wrapper
 {
-    typedef boost::uint64_t result_type;
     typedef hpx::util::tuple<
             hpx::future<boost::uint64_t>
           , hpx::future<boost::uint64_t> > data_type;
@@ -57,13 +57,11 @@ hpx::future<boost::uint64_t> fibonacci_future_one(boost::uint64_t n);
 
 struct fibonacci_future_one_continuation
 {
-    typedef boost::uint64_t result_type;
-
     fibonacci_future_one_continuation(boost::uint64_t n)
       : n_(n)
     {}
 
-    result_type operator()(hpx::future<boost::uint64_t> res) const
+    boost::uint64_t operator()(hpx::future<boost::uint64_t> res) const
     {
         return add(fibonacci_future_one(n_ - 2), std::move(res));
     }

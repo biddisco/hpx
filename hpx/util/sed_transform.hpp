@@ -8,14 +8,12 @@
 #if !defined(HPX_EC1602ED_CCC2_471C_BC28_1DBB98902F40)
 #define HPX_EC1602ED_CCC2_471C_BC28_1DBB98902F40
 
+#include <hpx/config.hpp>
+
+#include <memory>
 #include <string>
 
-#include <hpx/config.hpp>
-#include <hpx/util/safe_bool.hpp>
-
-#include <boost/shared_ptr.hpp>
-
-#if defined(BOOST_MSVC)
+#if defined(HPX_MSVC)
 #pragma warning(push)
 #pragma warning(disable: 4251)
 #endif
@@ -49,7 +47,7 @@ struct HPX_EXPORT sed_transform
   private:
     struct command;
 
-    boost::shared_ptr<command> command_;
+    std::shared_ptr<command> command_;
 
   public:
     sed_transform(
@@ -65,10 +63,10 @@ struct HPX_EXPORT sed_transform
         std::string const& input
         ) const;
 
-    operator safe_bool<sed_transform>::result_type() const
+    explicit operator bool() const HPX_NOEXCEPT
     {
         // avoid compiler warning about conversion to bool
-        return safe_bool<sed_transform>()(command_.get() ? true : false);
+        return command_.get() ? true : false;
     }
 
     bool operator!() const
@@ -79,7 +77,7 @@ struct HPX_EXPORT sed_transform
 
 }}
 
-#if defined(BOOST_MSVC)
+#if defined(HPX_MSVC)
 #pragma warning(pop)
 #endif
 

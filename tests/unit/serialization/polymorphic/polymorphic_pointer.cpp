@@ -13,6 +13,8 @@
 
 #include <hpx/util/lightweight_test.hpp>
 
+#include <vector>
+
 struct A
 {
     A() : a(8) {}
@@ -88,8 +90,11 @@ int main()
     HPX_TEST_EQ(b2->b, b1->b);
 
     delete b2;
+    delete b3;
 
     HPX_TEST_EQ(b1->b, 4711);
+
+    delete b1;
 
     return hpx::util::report_errors();
 }

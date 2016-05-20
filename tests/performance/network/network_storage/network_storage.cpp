@@ -7,18 +7,18 @@
 #include <hpx/hpx.hpp>
 #include <hpx/components/iostreams/standard_streams.hpp>
 
-#include <boost/assert.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/atomic.hpp>
 #include <boost/array.hpp>
+#include <boost/assert.hpp>
+#include <boost/atomic.hpp>
 #include <boost/random.hpp>
-#include <boost/thread/locks.hpp>
 
 #include <algorithm>
-#include <iostream>
-#include <vector>
-#include <memory>
 #include <cstdio>
+#include <iostream>
+#include <memory>
+#include <mutex>
+#include <string>
+#include <vector>
 
 #include <hpx/runtime/serialization/serialize.hpp>
 #include <simple_profiler.hpp>
@@ -202,12 +202,12 @@ public:
   typedef std::size_t size_type;
   typedef std::ptrdiff_t difference_type;
 
-  pointer_allocator() BOOST_NOEXCEPT
+  pointer_allocator() HPX_NOEXCEPT
     : pointer_(0), size_(0)
   {
   }
 
-  pointer_allocator(pointer p, size_type size) BOOST_NOEXCEPT
+  pointer_allocator(pointer p, size_type size) HPX_NOEXCEPT
     : pointer_(p), size_(size)
   {
   }
@@ -397,7 +397,7 @@ int RemoveCompletions()
     while(FuturesActive)
     {
         {
-            boost::lock_guard<hpx::lcos::local::spinlock> lk(FuturesMutex);
+            std::lock_guard<hpx::lcos::local::spinlock> lk(FuturesMutex);
             for(std::vector<hpx::future<int> > &futvec : ActiveFutures) {
                 for(std::vector<hpx::future<int> >::iterator fut = futvec.begin();
                     fut != futvec.end(); )
@@ -541,7 +541,7 @@ void test_write(
                 );
 #ifdef USE_CLEANING_THREAD
                 ++FuturesWaiting[send_rank];
-                boost::lock_guard<hpx::lcos::local::spinlock> lk(FuturesMutex);
+                std::lock_guard<hpx::lcos::local::spinlock> lk(FuturesMutex);
 #endif
 
                 boost::shared_ptr<general_buffer_type> temp_buffer = boost::make_shared<general_buffer_type>(
@@ -737,7 +737,7 @@ void test_read(
             {
 #ifdef USE_CLEANING_THREAD
                 ++FuturesWaiting[send_rank];
-                boost::lock_guard<hpx::lcos::local::spinlock> lk(FuturesMutex);
+                std::lock_guard<hpx::lcos::local::spinlock> lk(FuturesMutex);
 #endif
                 using hpx::util::placeholders::_1;
                 std::size_t buffer_address =

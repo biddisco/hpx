@@ -3,21 +3,21 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#if !defined(HPX_UTIL_COMMAND_LINE_HANDLING_OCT_04_2012_0800AM)
-#define HPX_UTIL_COMMAND_LINE_HANDLING_OCT_04_2012_0800AM
+#ifndef HPX_UTIL_COMMAND_LINE_HANDLING_HPP
+#define HPX_UTIL_COMMAND_LINE_HANDLING_HPP
 
-#include <hpx/config/defines.hpp>
-#include <hpx/hpx_init.hpp>
+#include <hpx/config.hpp>
 #include <hpx/runtime/runtime_mode.hpp>
-#include <hpx/util/move.hpp>
+#include <hpx/util/function.hpp>
 #include <hpx/util/manage_config.hpp>
-#include <hpx/util/unique_function.hpp>
 #include <hpx/util/runtime_configuration.hpp>
 
-#include <boost/cstdint.hpp>
-#include <boost/program_options.hpp>
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/variables_map.hpp>
 
+#include <cstddef>
 #include <string>
+#include <utility>
 #include <vector>
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -43,12 +43,9 @@ namespace hpx { namespace util
             pu_step_(1),
             pu_offset_(0),
             numa_sensitive_(0)
-        {
-            for (std::string const& e : ini_config_)
-                rtcfg_.parse("<user supplied config>", e, true, false);
-        }
+        {}
 
-        int call(boost::program_options::options_description  const& desc_cmdline,
+        int call(boost::program_options::options_description const& desc_cmdline,
             int argc, char** argv);
 
         boost::program_options::variables_map vm_;
@@ -95,5 +92,4 @@ namespace hpx { namespace util
     void attach_debugger();
 }}
 
-#endif
-
+#endif /*HPX_UTIL_COMMAND_LINE_HANDLING_HPP*/

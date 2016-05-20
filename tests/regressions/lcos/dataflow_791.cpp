@@ -10,9 +10,8 @@
 #include <hpx/include/lcos.hpp>
 #include <hpx/include/actions.hpp>
 
-#include <hpx/lcos/local/dataflow.hpp>
+#include <hpx/dataflow.hpp>
 #include <hpx/util/unwrapped.hpp>
-#include <vector>
 
 #include <hpx/util/lightweight_test.hpp>
 
@@ -20,12 +19,14 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <string>
+#include <vector>
 
 using std::vector;
 using hpx::lcos::shared_future;
 using hpx::wait_all;
 using hpx::async;
-using hpx::lcos::local::dataflow;
+using hpx::dataflow;
 using hpx::util::unwrapped;
 
 struct block {
@@ -73,13 +74,13 @@ int hpx_main (int argc, char *argv[])
         numBlocks = atoi(argv[2]);
     printf("size = %d, numBlocks = %d\n", size, numBlocks);
 
-    A.resize(size*size, 0);
-    L.resize(size*size, 0);
-    U.resize(size*size, 0);
+    A.resize(size*size, 0); //-V106
+    L.resize(size*size, 0); //-V106
+    U.resize(size*size, 0); //-V106
     t1 = get_tick_count();
     InitMatrix3();
     t2 = get_tick_count();
-    originalA.resize(size*size);
+    originalA.resize(size*size); //-V106
     for(int i = 0; i < size * size; i++)
         originalA[i] = A[i];
     printf("init done, time = %f\n", (t2-t1)/1000000.0);
@@ -106,7 +107,7 @@ int main(int argc, char *argv[])
     using namespace boost::assign;
     std::vector<std::string> cfg;
     cfg += "hpx.os_threads=" +
-        boost::lexical_cast<std::string>(hpx::threads::hardware_concurrency());
+        std::to_string(hpx::threads::hardware_concurrency());
 
     // Initialize and run HPX
     return hpx::init(argc, argv, cfg);

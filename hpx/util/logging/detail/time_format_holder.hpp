@@ -17,15 +17,15 @@
 #ifndef JT28092007_time_format_holder_HPP_DEFINED
 #define JT28092007_time_format_holder_HPP_DEFINED
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(HPX_MSVC) && (HPX_MSVC >= 1020)
 # pragma once
 #endif
 
 #include <hpx/util/logging/detail/fwd.hpp>
 #include <algorithm>
 #include <cstdio>
-#include <vector>
 #include <sstream>
+#include <vector>
 
 namespace hpx { namespace util { namespace logging { namespace detail {
 

@@ -12,9 +12,10 @@
 #include <hpx/util/spinlock.hpp>
 
 #include <boost/cstdint.hpp>
-#include <boost/thread/locks.hpp>
 
-#if defined(BOOST_MSVC)
+#include <mutex>
+
+#if defined(HPX_MSVC)
 #pragma warning(push)
 #pragma warning(disable: 4251)
 #endif
@@ -35,7 +36,7 @@ namespace hpx { namespace util
 
     public:
         unique_id_ranges()
-          : lower_(0), upper_(0)
+          : mtx_(), lower_(0), upper_(0)
         {}
 
         /// Generate next unique component id
@@ -45,7 +46,7 @@ namespace hpx { namespace util
             naming::gid_type const& lower
           , naming::gid_type const& upper)
         {
-            boost::lock_guard<mutex_type> l(mtx_);
+            std::lock_guard<mutex_type> l(mtx_);
             lower_ = lower;
             upper_ = upper;
         }
@@ -57,7 +58,7 @@ namespace hpx { namespace util
     };
 }}
 
-#if defined(BOOST_MSVC)
+#if defined(HPX_MSVC)
 #pragma warning(pop)
 #endif
 

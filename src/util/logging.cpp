@@ -4,12 +4,12 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <hpx/config/defines.hpp>
+#include <hpx/config.hpp>
 
 #if defined(HPX_HAVE_LOGGING)
 
 #include <hpx/exception.hpp>
-#include <hpx/runtime/naming/name.hpp>
+#include <hpx/runtime/naming_fwd.hpp>
 #include <hpx/runtime/naming/resolver_client.hpp>
 #include <hpx/runtime/components/console_logging.hpp>
 #include <hpx/runtime/threads/threadmanager.hpp>
@@ -23,12 +23,15 @@
 
 #include <boost/version.hpp>
 #include <boost/config.hpp>
+#include <boost/lexical_cast.hpp>
 #include <boost/filesystem/operations.hpp>
 
 #include <boost/assign/std/vector.hpp>
 
 #include <cstddef>
 #include <cstdlib>
+#include <string>
+#include <vector>
 
 #if defined(ANDROID) || defined(__ANDROID__)
 #include <android/log.h>
@@ -125,7 +128,7 @@ namespace hpx { namespace util
             return "  <always>";
         }
 
-        std::string unknown = boost::lexical_cast<std::string>(level);
+        std::string unknown = std::to_string(level);
         return std::string((std::max)(7-unknown.size(), std::size_t(0)), ' ') +
             "<" + unknown + ">";
     }
@@ -609,8 +612,8 @@ namespace hpx { namespace util
             hpx_level()->set_enabled(lvl);
 
             // errors are logged to the given destination and to cerr
-            error_writer.add_destination("console", console(lvl, destination_hpx));
-            //-V106
+            error_writer.add_destination("console",
+                console(lvl, destination_hpx)); //-V106
 #if !defined(ANDROID) && !defined(__ANDROID__)
             if (logdest != "cerr")
                 error_writer.write(logformat, logdest + " cerr");
@@ -623,8 +626,8 @@ namespace hpx { namespace util
         else {
             // errors are always logged to cerr
             if (!isconsole) {
-                error_writer.add_destination("console", console(lvl,
-                    destination_hpx)); //-V106
+                error_writer.add_destination("console",
+                    console(lvl, destination_hpx)); //-V106
                 error_writer.write(logformat, "console");
             }
             else {
@@ -739,8 +742,8 @@ namespace hpx { namespace util
             if (logformat.empty())
                 logformat = "|\\n";
 
-            writer.add_destination("console", console(lvl, destination_debuglog));
-            //-V106
+            writer.add_destination("console",
+                console(lvl, destination_debuglog)); //-V106
             writer.write(logformat, logdest);
             detail::define_formatters(writer);
 

@@ -1,4 +1,4 @@
-//  Copyright (c) 2007-2013 Hartmut Kaiser
+//  Copyright (c) 2007-2016 Hartmut Kaiser
 //  Copyright (c) 2011      Bryce Lelbach
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -9,9 +9,7 @@
 #if !defined(HPX_RUNTIME_ACTIONS_PLAIN_ACTION_NOV_14_2008_0706PM)
 #define HPX_RUNTIME_ACTIONS_PLAIN_ACTION_NOV_14_2008_0706PM
 
-#include <hpx/hpx_fwd.hpp>
 #include <hpx/config.hpp>
-#include <hpx/exception.hpp>
 #include <hpx/runtime/naming/address.hpp>
 #include <hpx/runtime/actions/continuation.hpp>
 #include <hpx/runtime/actions/basic_action.hpp>
@@ -25,6 +23,7 @@
 
 #include <cstdlib>
 #include <stdexcept>
+#include <string>
 
 #include <hpx/config/warnings_prefix.hpp>
 
@@ -37,18 +36,10 @@ namespace hpx { namespace actions
     {
         struct plain_function
         {
-            template <typename F>
-            static threads::thread_function_type
-            decorate_action(naming::address_type, F && f)
+            // Only localities are valid targets for a plain action
+            static bool is_target_valid(naming::id_type const& id)
             {
-                return std::forward<F>(f);
-            }
-
-            static void schedule_thread(naming::address_type,
-                threads::thread_init_data& data,
-                threads::thread_state_enum initial_state)
-            {
-                hpx::threads::register_work_plain(data, initial_state); //-V106
+                return naming::is_locality(id);
             }
         };
     }
@@ -74,12 +65,6 @@ namespace hpx { namespace actions
             return name.str();
         }
 
-        // Only localities are valid targets for a plain action
-        static bool is_target_valid(naming::id_type const& id)
-        {
-            return naming::is_locality(id);
-        }
-
         template <typename ...Ts>
         static R invoke(naming::address::address_type /*lva*/, Ts&&... vs)
         {
@@ -101,6 +86,7 @@ namespace hpx { namespace traits
         return hpx::components::component_plain_function;
     }
 
+    /// \cond NOINTERNAL
     template <> HPX_ALWAYS_EXPORT
     inline void
     component_type_database<hpx::actions::detail::plain_function>::set(
@@ -108,6 +94,7 @@ namespace hpx { namespace traits
     {
         HPX_ASSERT(false);      // shouldn't be ever called
     }
+    /// \endcond
 }}
 
 /// \def HPX_DEFINE_PLAIN_ACTION(func, name)
@@ -178,6 +165,35 @@ namespace hpx { namespace traits
 #define HPX_DEFINE_PLAIN_DIRECT_ACTION_2(func, name)                          \
     struct name : hpx::actions::make_direct_action<                           \
         decltype(&func), &func, name>::type {}                                \
+    /**/
+
+/// \endcond
+
+///////////////////////////////////////////////////////////////////////////////
+/// \def HPX_DECLARE_PLAIN_ACTION(func, name)
+/// \brief Declares a plain action type
+///
+#define HPX_DECLARE_PLAIN_ACTION(...)                                         \
+    HPX_DECLARE_PLAIN_ACTION_(__VA_ARGS__)                                    \
+    /**/
+
+/// \cond NOINTERNAL
+
+#define HPX_DECLARE_PLAIN_DIRECT_ACTION(...)                                  \
+    HPX_DECLARE_PLAIN_ACTION(__VA_ARGS__)                                     \
+    /**/
+
+#define HPX_DECLARE_PLAIN_ACTION_(...)                                        \
+    HPX_UTIL_EXPAND_(BOOST_PP_CAT(                                            \
+        HPX_DECLARE_PLAIN_ACTION_, HPX_UTIL_PP_NARG(__VA_ARGS__)              \
+    )(__VA_ARGS__))                                                           \
+    /**/
+
+#define HPX_DECLARE_PLAIN_ACTION_1(func)                                      \
+    HPX_DECLARE_PLAIN_ACTION_2(func, BOOST_PP_CAT(func, _action))             \
+    /**/
+
+#define HPX_DECLARE_PLAIN_ACTION_2(func, name) struct name;                   \
     /**/
 
 /// \endcond

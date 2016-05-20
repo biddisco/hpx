@@ -7,9 +7,7 @@
 #if !defined(HPX_COMPONENTS_CONSOLE_LOGGING_DEC_16_2008_0435PM)
 #define HPX_COMPONENTS_CONSOLE_LOGGING_DEC_16_2008_0435PM
 
-#include <boost/atomic.hpp>
-
-#include <hpx/hpx_fwd.hpp>
+#include <hpx/config.hpp>
 #include <hpx/state.hpp>
 #include <hpx/lcos/local/mutex.hpp>
 #include <hpx/util/spinlock.hpp>
@@ -17,6 +15,8 @@
 #include <hpx/runtime/threads/threadmanager.hpp>
 #include <hpx/runtime/components/server/console_logging.hpp>
 #include <hpx/util/static.hpp>
+
+#include <boost/atomic.hpp>
 
 #include <hpx/config/warnings_prefix.hpp>
 
@@ -31,7 +31,7 @@ namespace hpx { namespace components
         enum { max_pending = 128 };
 
         pending_logs()
-          : prefix_(naming::invalid_id), activated_(false)
+          : prefix_(naming::invalid_id), queue_mtx_(), activated_(false)
         {}
 
         void add(message_type const& msg);

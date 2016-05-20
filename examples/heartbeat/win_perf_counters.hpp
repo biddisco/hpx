@@ -6,11 +6,11 @@
 #if !defined(HPX_HEARTBEAT_WIN_PERF_COUNTERS_2011_JUL_24_0259PM)
 #define HPX_HEARTBEAT_WIN_PERF_COUNTERS_2011_JUL_24_0259PM
 
-#include <hpx/hpx_fwd.hpp>
+#include <hpx/hpx.hpp>
 
 ///////////////////////////////////////////////////////////////////////////////
 // This is code specific to Windows
-#if defined(BOOST_WINDOWS)
+#if defined(HPX_WINDOWS)
 
 ///////////////////////////////////////////////////////////////////////////////
 // Install the windows performance counters exposing  the HPX counters.

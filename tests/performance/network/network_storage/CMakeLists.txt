@@ -17,14 +17,14 @@ target_link_libraries(network_storage_exe iostreams_component)
 
 # add pseudo-target dependencies
 add_hpx_pseudo_target(
-  tests.performance.network.network_storage.network_storage_dir)
+  tests.performance.network.network_storage_perf.network_storage_dir)
 
 add_hpx_pseudo_dependencies(
-  tests.performance.network.network_storage
-  tests.performance.network.network_storage.network_storage_dir)
+  tests.performance.network.network_storage_perf
+  tests.performance.network.network_storage_perf.network_storage_dir)
 
 add_hpx_pseudo_dependencies(
-  tests.performance.network.network_storage.network_storage_dir
+  tests.performance.network.network_storage_perf.network_storage_dir
   network_storage_exe)
 
 hpx_option(HPX_WITH_BENCHMARK_SCRIPTS_PATH PATH

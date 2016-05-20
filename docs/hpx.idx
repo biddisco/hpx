@@ -1,4 +1,4 @@
-#   Copyright (c) 2001-2015 Hartmut Kaiser
+#   Copyright (c) 2001-2016 Hartmut Kaiser
 #
 #   Distributed under the Boost Software License, Version 1.0. (See accompanying
 #   file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -137,6 +137,9 @@ parallel::guided_chunk_size                 "guided_chunk_size"             "hpx
 # hpx/parallel/executors/auto_chunk_size.hpp
 parallel::auto_chunk_size                   "auto_chunk_size"               "hpx\.parallel\.v3\.auto_chunk_size.*"
 
+# hpx/parallel/executors/persistent_auto_chunk_size.hpp
+parallel::persistent_auto_chunk_size        "persistent_auto_chunk_size"    "hpx\.parallel\.v3\.persistent_auto_chunk_size.*"
+
 
 # hpx/parallel/algorithms/adjacent_difference.hpp
 parallel::adjacent_difference         "adjacent_difference" "hpx\.parallel\.v1\.adjacent_difference.*"
@@ -176,11 +179,20 @@ parallel::find_end                    "find_end" "hpx\.parallel\.v1\.find_end.*"
 parallel::find_first_of               "find_first_of" "hpx\.parallel\.v1\.find_first_of.*"
 
 # hpx/parallel/algorithms/for_each.hpp
-parallel::for_each                    "for_each" "hpx\.parallel\.v1\.for_each$"
+parallel::for_each                    "for_each" "hpx\.parallel\.v1\.for_each_id.*"
 parallel::for_each_n                  "for_each_n" "hpx\.parallel\.v1\.for_each_n.*"
 
+# hpx/parallel/algorithms/for_loop.hpp
+parallel::for_loop                    "for_loop" "hpx\.parallel\.v2\.for_loop_id.*"
+parallel::for_loop_strided            "for_loop_strided" "hpx\.parallel\.v2\.for_loop_strided_id.*"
+parallel::for_loop_n                  "for_loop_n" "hpx\.parallel\.v2\.for_loop_n_id.*"
+parallel::for_loop_n_strided          "for_loop_n_strided" "hpx\.parallel\.v2\.for_loop_n_stride_id.*"
+
+# hpx/parallel/algorithms/for_loop_induction.hpp
+parallel::induction                   "induction" "hpx\.parallel\.v2\.induction"
+
 # hpx/parallel/algorithms/generate.hpp
-parallel::generate                    "generate" "hpx\.parallel\.v1\.generate$"
+parallel::generate                    "generate" "hpx\.parallel\.v1\.generate_id.*"
 parallel::generate_n                  "generate_n" "hpx\.parallel\.v1\.generate_n.*"
 
 # hpx/parallel/algorithms/includes.hpp
@@ -216,6 +228,19 @@ parallel::move                        "move" "hpx\.parallel\.v1\.move$"
 # hpx/parallel/algorithms/reduce.hpp
 parallel::reduce                      "reduce" "hpx\.parallel\.v1\.reduce.*"
 
+# hpx/parallel/algorithms/reduce_by_key.hpp
+parallel::reduce_by_key               "reduce_by_key" "hpx\.parallel\.v1\.reduce_by_key.*"
+
+# hpx/parallel/algorithms/for_loop_reduction.hpp
+parallel::reduction                   "reduction" "hpx\.parallel\.v2\.reduction"
+parallel::reduction_plus              "reduction_plus" "hpx\.parallel\.v2\.reduction_plus"
+parallel::reduction_multiplies        "reduction_multiplies" "hpx\.parallel\.v2\.reduction_multiplies"
+parallel::reduction_bit_and           "reduction_bit_and" "hpx\.parallel\.v2\.reduction_bit_and"
+parallel::reduction_bit_or            "reduction_bit_or" "hpx\.parallel\.v2\.reduction_bit_or"
+parallel::reduction_bit_xor           "reduction_bit_xor" "hpx\.parallel\.v2\.reduction_bit_xor"
+parallel::reduction_min               "reduction_min" "hpx\.parallel\.v2\.reduction_min"
+parallel::reduction_max               "reduction_max" "hpx\.parallel\.v2\.reduction_max"
+
 # hpx/parallel/algorithms/remove_copy.hpp
 parallel::remove_copy                  "remove_copy" "hpx\.parallel\.v1\.remove_copy$"
 parallel::remove_copy_if               "remove_copy_if" "hpx\.parallel\.v1\.remove_copy_if.*"
@@ -249,6 +274,10 @@ parallel::set_symmetric_difference    "set_symmetric_difference" "hpx\.parallel\
 
 # hpx/parallel/algorithms/set_union.hpp
 parallel::set_union                   "set_union" "hpx\.parallel\.v1\.set_union.*"
+
+# hpx/parallel/algorithms/sort(_by_key].hpp
+parallel::sort                        "sort" "hpx\.parallel\.v1\.sort.*"
+parallel::sort_by_key                 "sort_by_key" "hpx\.parallel\.v1\.sort_by_key.*"
 
 # hpx/parallel/algorithms/swap_ranges.hpp
 parallel::swap_ranges                 "swap_ranges" "hpx\.parallel\.v1\.swap_ranges.*"
@@ -391,6 +420,8 @@ filesystem_error                      "" "hpx\.error"
 bad_function_call                     "" "hpx\.error"
 task_canceled_exception               "" "hpx\.error"
 task_region_not_active                "" "hpx\.error"
+out_of_range                          "" "hpx\.error"
+length_error                          "" "hpx\.error"
 
 # hpx/runtime/naming/unmanaged.hpp
 unmanaged                             "" "header\.hpx\.runtime\.naming\.unmanaged.*"
@@ -403,6 +434,10 @@ broadcast                             "" "header\.hpx\.lcos\.broadcast.*"
 broadcast_with_index                  "" "header\.hpx\.lcos\.broadcast.*"
 broadcast_apply                       "" "header\.hpx\.lcos\.broadcast.*"
 broadcast_apply_with_index            "" "header\.hpx\.lcos\.broadcast.*"
+
+# hpx/lcos/gather.hpp
+gather_here                           "" "header\.hpx\.lcos\.gather.*"
+gather_there                          "" "header\.hpx\.lcos\.gather.*"
 
 # hpx/lcos/reduce.hpp
 reduce                                "" "header\.hpx\.lcos\.reduce.*"
@@ -429,7 +464,6 @@ wait_any_n                            "" "header\.hpx\.lcos\.wait_any.*"
 # hpx/lcos/when_any.hpp
 when_any                              "" "header\.hpx\.lcos\.when_any.*"
 when_any_n                            "" "header\.hpx\.lcos\.when_any.*"
-when_any_result                       "" "header\.hpx\.lcos\.when_any_result.*"
 
 # hpx/lcos/wait_some.hpp
 wait_some                             "" "header\.hpx\.lcos\.wait_some.*"

@@ -12,16 +12,19 @@
 #include <hpx/runtime/serialization/input_container.hpp>
 #include <hpx/runtime/serialization/detail/raw_ptr.hpp>
 #include <hpx/runtime/serialization/detail/polymorphic_nonintrusive_factory.hpp>
+#include <hpx/traits/is_bitwise_serializable.hpp>
 
 #include <boost/config.hpp>
-#include <boost/shared_ptr.hpp>
+#include <boost/mpl/or.hpp>
 #include <boost/type_traits/is_integral.hpp>
 #include <boost/type_traits/is_unsigned.hpp>
 #include <boost/type_traits/is_enum.hpp>
 #include <boost/utility/enable_if.hpp>
-#include <boost/mpl/or.hpp>
 
+#include <map>
 #include <memory>
+#include <type_traits>
+#include <vector>
 
 #include <hpx/config/warnings_prefix.hpp>
 
@@ -84,8 +87,10 @@ namespace hpx { namespace serialization
         >::type
         load(T & t)
         {
-            load_bitwise(t,
-                typename hpx::traits::is_bitwise_serializable<T>::type());
+            typedef std::integral_constant<bool,
+                hpx::traits::is_bitwise_serializable<T>::value> use_optimized;
+
+            load_bitwise(t, use_optimized());
         }
 
         template <typename T>
@@ -139,20 +144,20 @@ namespace hpx { namespace serialization
         friend class array;
 
         template <typename T>
-        void load_bitwise(T & t, boost::mpl::false_)
+        void load_bitwise(T & t, std::false_type)
         {
             load_nonintrusively_polymorphic(t,
                 hpx::traits::is_nonintrusive_polymorphic<T>());
         }
 
         template <typename T>
-        void load_bitwise(T & t, boost::mpl::true_)
+        void load_bitwise(T & t, std::true_type)
         {
             static_assert(!boost::is_abstract<T>::value,
                 "Can not bitwise serialize a class that is abstract");
             if(disable_array_optimization())
             {
-                serialize(*this, t, 0);
+                access::serialize(*this, t, 0);
             }
             else
             {
@@ -163,7 +168,7 @@ namespace hpx { namespace serialization
         template <class T>
         void load_nonintrusively_polymorphic(T& t, boost::mpl::false_)
         {
-            serialize(*this, t, 0);
+            access::serialize(*this, t, 0);
         }
 
         template <class T>

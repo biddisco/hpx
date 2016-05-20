@@ -17,21 +17,23 @@
 #ifndef JT28092007_destination_rolling_file_HPP_DEFINED
 #define JT28092007_destination_rolling_file_HPP_DEFINED
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(HPX_MSVC) && (HPX_MSVC >= 1020)
 # pragma once
 #endif
 
-#if defined(_MSC_VER)
+#if defined(HPX_MSVC)
 #pragma warning ( disable : 4355)
 #endif
 
+#include <hpx/config.hpp>
 #include <boost/version.hpp>
 #include <hpx/util/logging/detail/fwd.hpp>
 #include <hpx/util/logging/detail/manipulator.hpp>
 #include <hpx/util/logging/format/destination/convert_destination.hpp>
 #include <fstream>
-#include <string>
+#include <memory>
 #include <sstream>
+#include <string>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 
@@ -135,12 +137,12 @@ namespace detail {
         void recreate_file() {
             // many thanks to Benjamin de Dardel!
             namespace fs = boost::filesystem;
-            m_out = boost::shared_ptr< std::basic_ofstream<char_type> >
+            m_out = std::shared_ptr< std::basic_ofstream<char_type> >
                 (new std::basic_ofstream<char_type>( file_name(m_cur_idx).c_str(),
                 m_flags.extra_flags() | std::ios_base::out | std::ios_base::app));
             if ( fs::file_size( file_name(m_cur_idx)) > m_flags.max_size_bytes()) {
                 // this file is already full - clear it first
-                m_out = boost::shared_ptr< std::basic_ofstream<char_type>
+                m_out = std::shared_ptr< std::basic_ofstream<char_type>
                 >(new std::basic_ofstream<char_type>( file_name(m_cur_idx).c_str(),
                     m_flags.extra_flags() | std::ios_base::out | std::ios_base::trunc));
             }
@@ -161,7 +163,7 @@ namespace detail {
             m_out->flush();
         }
 
-        boost::shared_ptr< std::basic_ofstream<char_type> > m_out;
+        std::shared_ptr< std::basic_ofstream<char_type> > m_out;
         std::string m_name_prefix;
         rolling_file_settings m_flags;
         // the index of the current file

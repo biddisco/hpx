@@ -1,4 +1,4 @@
-//  Copyright (c) 2014-2015 Hartmut Kaiser
+//  Copyright (c) 2014-2016 Hartmut Kaiser
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -8,20 +8,31 @@
 #if !defined(HPX_UNORDERED_MAP_NOV_11_2014_0852PM)
 #define HPX_UNORDERED_MAP_NOV_11_2014_0852PM
 
-#include <hpx/include/lcos.hpp>
-#include <hpx/include/util.hpp>
-#include <hpx/include/components.hpp>
+#include <hpx/config.hpp>
+#include <hpx/lcos/wait_all.hpp>
+#include <hpx/runtime/components/client_base.hpp>
+#include <hpx/runtime/components/component_type.hpp>
+#include <hpx/runtime/components/copy_component.hpp>
+#include <hpx/runtime/components/new.hpp>
+#include <hpx/runtime/components/server/distributed_metadata_base.hpp>
+#include <hpx/runtime/get_ptr.hpp>
 #include <hpx/runtime/serialization/serialize.hpp>
+#include <hpx/runtime/serialization/unordered_map.hpp>
 #include <hpx/runtime/serialization/vector.hpp>
+#include <hpx/util/assert.hpp>
+#include <hpx/util/bind.hpp>
 
 #include <hpx/components/containers/container_distribution_policy.hpp>
 #include <hpx/components/containers/unordered/partition_unordered_map_component.hpp>
+#include <hpx/components/containers/unordered/unordered_map_segmented_iterator.hpp>
+
+#include <boost/cstdint.hpp>
 
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <type_traits>
-
-#include <boost/cstdint.hpp>
+#include <vector>
 
 /// The hpx::unordered_map and its API's are defined here.
 ///
@@ -92,10 +103,6 @@ HPX_DISTRIBUTED_METADATA_DECLARATION(hpx::server::unordered_map_config_data,
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx
 {
-    template <typename Key, typename T, typename Hash = std::hash<Key>,
-        typename KeyEqual = std::equal_to<Key> >
-    class unordered_map;
-
     namespace detail
     {
         ///////////////////////////////////////////////////////////////////////
@@ -264,7 +271,25 @@ namespace hpx
               : base_type(std::move(base))
             {}
 
-            boost::shared_ptr<partition_unordered_map_server> local_data_;
+            hpx::future<typename partition_unordered_map_server::data_type>
+                get_data() const
+            {
+                typedef
+                    typename partition_unordered_map_server::get_copied_data_action
+                    action_type;
+                return hpx::async<action_type>(this->partition_.get());
+            }
+
+            hpx::future<void>
+            set_data(typename partition_unordered_map_server::data_type && d)
+            {
+                typedef
+                    typename partition_unordered_map_server::set_copied_data_action
+                    action_type;
+                return hpx::async<action_type>(this->partition_.get(), std::move(d));
+            }
+
+            std::shared_ptr<partition_unordered_map_server> local_data_;
         };
 
         // The list of partitions belonging to this unordered_map.
@@ -274,7 +299,7 @@ namespace hpx
         typedef std::vector<partition_data> partitions_vector_type;
 
         // This is the vector representing the base_index and corresponding
-        // global ID's of the underlying partition_vectors.
+        // global ID's of the underlying partitioned_vector_partitions.
         partitions_vector_type partitions_;
 
         ///////////////////////////////////////////////////////////////////////
@@ -321,7 +346,7 @@ namespace hpx
         ///////////////////////////////////////////////////////////////////////
         static void get_ptr_helper(std::size_t loc,
             partitions_vector_type& partitions,
-            future<boost::shared_ptr<partition_unordered_map_server> > && f)
+            future<std::shared_ptr<partition_unordered_map_server> > && f)
         {
             partitions[loc].local_data_ = f.get();
         }
@@ -548,6 +573,16 @@ namespace hpx
                 partitions_ = std::move(rhs.partitions_);
             }
             return *this;
+        }
+
+        // the type every partition stores its data in
+        typedef
+            typename partition_unordered_map_server::data_type
+            partition_data_type;
+
+        std::size_t get_num_partitions() const
+        {
+            return partitions_.size();
         }
 
         /// \brief Array subscript operator. This does not throw any exception.
@@ -789,6 +824,47 @@ namespace hpx
 
             return partition_unordered_map_client(
                 part_data.partition_).erase(key);
+        }
+
+        ///////////////////////////////////////////////////////////////////////
+        typedef segment_unordered_map_iterator<
+                Key, T, Hash, KeyEqual,
+                typename partitions_vector_type::iterator
+            > segment_iterator;
+        typedef const_segment_unordered_map_iterator<
+                Key, T, Hash, KeyEqual,
+                typename partitions_vector_type::const_iterator
+            > const_segment_iterator;
+
+        // Return global segment iterator
+        segment_iterator segment_begin()
+        {
+            return segment_iterator(partitions_.begin(), this);
+        }
+
+        const_segment_iterator segment_begin() const
+        {
+            return const_segment_iterator(partitions_.cbegin(), this);
+        }
+
+        const_segment_iterator segment_cbegin() const //-V524
+        {
+            return const_segment_iterator(partitions_.cbegin(), this);
+        }
+
+        segment_iterator segment_end()
+        {
+            return segment_iterator(partitions_.end(), this);
+        }
+
+        const_segment_iterator segment_end() const
+        {
+            return const_segment_iterator(partitions_.cend(), this);
+        }
+
+        const_segment_iterator segment_cend() const //-V524
+        {
+            return const_segment_iterator(partitions_.cend(), this);
         }
     };
 }

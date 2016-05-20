@@ -1,4 +1,4 @@
-//  Copyright (c) 2014 Agustin Berge
+//  Copyright (c) 2014-2016 Agustin Berge
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -76,7 +76,7 @@ namespace hpx { namespace util { namespace detail
 
     template <typename ...Ts>
     struct all_of
-      : all_of<pack_c<bool, (Ts::value)...> >
+      : all_of<pack_c<bool, ((bool)Ts::value)...> >
     {};
 
     template <>
@@ -96,12 +96,30 @@ namespace hpx { namespace util { namespace detail
 
     template <typename ...Ts>
     struct any_of
-      : any_of<pack_c<bool, (Ts::value)...> >
+      : any_of<pack_c<bool, ((bool)Ts::value)...> >
     {};
 
     template <>
     struct any_of<> // <fake-type>
       : boost::mpl::false_
+    {};
+
+    template <typename ...Ts>
+    struct none_of;
+
+    template <bool ...Vs>
+    struct none_of<pack_c<bool, Vs...> >
+      : all_of<pack_c<bool, !Vs...> >
+    {};
+
+    template <typename ...Ts>
+    struct none_of
+      : none_of<pack_c<bool, ((bool)Ts::value)...> >
+    {};
+
+    template <>
+    struct none_of<> // <fake-type>
+      : boost::mpl::true_
     {};
 
     template <typename T, typename ...Ts>
@@ -110,19 +128,37 @@ namespace hpx { namespace util { namespace detail
     {};
 
     ///////////////////////////////////////////////////////////////////////////
-    template <std::size_t I, typename ...Ts>
-    struct at_index;
-
-    template <std::size_t I, typename T, typename ...Ts>
-    struct at_index<I, T, Ts...>
-      : at_index<I - 1, Ts...>
-    {};
-
-    template <typename T, typename ...Ts>
-    struct at_index<0, T, Ts...>
+    template <std::size_t I, typename T>
+    struct indexed
     {
         typedef T type;
     };
+
+    template <typename Ts, typename Is>
+    struct indexer;
+
+    template <typename ...Ts, std::size_t ...Is>
+    struct indexer<pack<Ts...>, pack_c<std::size_t, Is...>>
+      : indexed<Is, Ts>...
+    {};
+
+    template <std::size_t I, typename Ts>
+    struct at_index_impl
+    {
+        static empty check_(...);
+
+        template <std::size_t J, typename T>
+        static indexed<J, T> check_(indexed<J, T> const&);
+
+        typedef decltype(check_<I>(indexer<
+            Ts, typename make_index_pack<Ts::size>::type
+        >())) type;
+    };
+
+    template <std::size_t I, typename ...Ts>
+    struct at_index
+      : at_index_impl<I, pack<Ts...> >::type
+    {};
 }}}
 
 #endif

@@ -10,6 +10,10 @@
 
 #include <boost/range/functions.hpp>
 
+#include <numeric>
+#include <string>
+#include <vector>
+
 #include "test_utils.hpp"
 
 ////////////////////////////////////////////////////////////////////////////
@@ -21,7 +25,8 @@ void test_copy_if(ExPolicy policy)
         "hpx::parallel::is_execution_policy<ExPolicy>::value");
 
     typedef std::vector<int>::iterator base_iterator;
-    typedef test::test_iterator<base_iterator, std::random_access_iterator_tag> iterator;
+    typedef test::test_iterator<base_iterator, std::random_access_iterator_tag>
+        iterator;
 
     std::vector<int> c(10007);
     std::vector<int> d(c.size());
@@ -56,7 +61,8 @@ template <typename ExPolicy>
 void test_copy_if_async(ExPolicy p)
 {
     typedef std::vector<int>::iterator base_iterator;
-    typedef test::test_iterator<base_iterator, std::random_access_iterator_tag> iterator;
+    typedef test::test_iterator<base_iterator, std::random_access_iterator_tag>
+        iterator;
 
     std::vector<int> c(10007);
     std::vector<int> d(c.size());
@@ -64,7 +70,7 @@ void test_copy_if_async(ExPolicy p)
     std::iota(boost::begin(c), middle, std::rand());
     std::fill(middle, boost::end(c), -1);
 
-    hpx::future<base_iterator> f =
+    auto f =
         hpx::parallel::copy_if(p,
             iterator(boost::begin(c)), iterator(boost::end(c)),
             boost::begin(d), [](int i){ return !(i < 0); });
@@ -97,7 +103,8 @@ void test_copy_if_outiter(ExPolicy policy)
         "hpx::parallel::is_execution_policy<ExPolicy>::value");
 
     typedef std::vector<int>::iterator base_iterator;
-    typedef test::test_iterator<base_iterator, std::random_access_iterator_tag> iterator;
+    typedef test::test_iterator<base_iterator, std::random_access_iterator_tag>
+        iterator;
 
     std::vector<int> c(10007);
     std::vector<int> d(0);
@@ -123,7 +130,8 @@ template <typename ExPolicy>
 void test_copy_if_outiter_async(ExPolicy p)
 {
     typedef std::vector<int>::iterator base_iterator;
-    typedef test::test_iterator<base_iterator, std::random_access_iterator_tag> iterator;
+    typedef test::test_iterator<base_iterator, std::random_access_iterator_tag>
+        iterator;
 
     std::vector<int> c(10007);
     std::vector<int> d(0);
@@ -157,12 +165,14 @@ void test_copy_if()
     test_copy_if_async(seq(task));
     test_copy_if_async(par(task));
 
+#if defined(HPX_HAVE_GENERIC_EXECUTION_POLICY)
     test_copy_if(execution_policy(seq));
     test_copy_if(execution_policy(par));
     test_copy_if(execution_policy(par_vec));
 
     test_copy_if(execution_policy(seq(task)));
     test_copy_if(execution_policy(par(task)));
+#endif
 
     test_copy_if_outiter(seq);
     test_copy_if_outiter(par);
@@ -171,12 +181,14 @@ void test_copy_if()
     test_copy_if_outiter_async(seq(task));
     test_copy_if_outiter_async(par(task));
 
+#if defined(HPX_HAVE_GENERIC_EXECUTION_POLICY)
     test_copy_if_outiter(execution_policy(seq));
     test_copy_if_outiter(execution_policy(par));
     test_copy_if_outiter(execution_policy(par_vec));
 
     test_copy_if_outiter(execution_policy(seq(task)));
     test_copy_if_outiter(execution_policy(par(task)));
+#endif
 }
 
 int hpx_main(boost::program_options::variables_map& vm)
@@ -207,7 +219,7 @@ int main(int argc, char* argv[])
     // By default this test should run on all available cores
     std::vector<std::string> cfg;
     cfg.push_back("hpx.os_threads=" +
-        boost::lexical_cast<std::string>(hpx::threads::hardware_concurrency()));
+        std::to_string(hpx::threads::hardware_concurrency()));
 
     // Initialize and run HPX
     HPX_TEST_EQ_MSG(hpx::init(desc_commandline, argc, argv, cfg), 0,

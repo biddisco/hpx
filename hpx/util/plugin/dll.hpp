@@ -3,18 +3,18 @@
 // (See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#ifndef HPX_DLL_HPP_HK_2005_11_06
-#define HPX_DLL_HPP_HK_2005_11_06
+#ifndef HPX_UTIL_PLUGIN_DLL_HPP
+#define HPX_UTIL_PLUGIN_DLL_HPP
 
-#include <boost/config.hpp>
+#include <hpx/config.hpp>
 
-#ifndef BOOST_WINDOWS
+#ifndef HPX_MSVC
 # ifndef  HPX_HAS_DLOPEN
 #  define HPX_HAS_DLOPEN 1
 # endif
 #endif
 
-#if defined(BOOST_WINDOWS)
+#if defined(HPX_MSVC)
 #include <hpx/util/plugin/detail/dll_windows.hpp>
 #elif defined(HPX_HAS_DLOPEN)
 #include <hpx/util/plugin/detail/dll_dlopen.hpp>
@@ -22,4 +22,4 @@
 #error "Hpx.Plugin: your platform is not supported by this library."
 #endif
 
-#endif
+#endif /*HPX_UTIL_PLUGIN_DLL_HPP*/

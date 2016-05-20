@@ -22,7 +22,8 @@ namespace hpx
             struct future_data_refcnt_base;
         }
 
-        class base_lco;
+        class HPX_API_EXPORT base_lco;
+
         template <typename Result, typename RemoteResult = Result>
         class base_lco_with_value;
 
@@ -34,7 +35,7 @@ namespace hpx
         template <typename Action,
             typename Result = typename traits::promise_local_result<
                 typename Action::remote_result_type>::type,
-            typename DirectExecute = typename Action::direct_execution>
+            bool DirectExecute = Action::direct_execution::value>
         class packaged_action;
 
         template <typename R>

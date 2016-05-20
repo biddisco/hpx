@@ -1,4 +1,4 @@
-//  Copyright (c) 2007-2015 Hartmut Kaiser
+//  Copyright (c) 2007-2016 Hartmut Kaiser
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -7,17 +7,18 @@
 #define HPX_RUNTIME_ACTIONS_CONTINUATION_JUN_13_2008_1031AM
 
 #include <hpx/config.hpp>
-#include <hpx/util/move.hpp>
-#include <hpx/util/bind.hpp>
-#include <hpx/exception.hpp>
+#include <hpx/throw_exception.hpp>
+#include <hpx/runtime/actions/action_priority.hpp>
 #include <hpx/runtime/actions/basic_action_fwd.hpp>
 #include <hpx/runtime/actions/continuation_fwd.hpp>
+#include <hpx/runtime/actions/detail/remote_action_result.hpp>
+#include <hpx/runtime/agas/interface.hpp>
+#include <hpx/runtime/applier/detail/apply_implementations_fwd.hpp>
 #include <hpx/runtime/find_here.hpp>
 #include <hpx/runtime/trigger_lco.hpp>
 #include <hpx/runtime/naming/id_type.hpp>
 #include <hpx/runtime/naming/name.hpp>
-#include <hpx/runtime/serialization/output_archive.hpp>
-#include <hpx/runtime/serialization/input_archive.hpp>
+#include <hpx/runtime/serialization/serialize.hpp>
 #include <hpx/runtime/serialization/base_object.hpp>
 #include <hpx/util/bind.hpp>
 #include <hpx/util/decay.hpp>
@@ -31,17 +32,24 @@
 #include <hpx/traits/is_continuation.hpp>
 #include <hpx/traits/is_executor.hpp>
 
-#include <boost/mpl/bool.hpp>
+#include <boost/exception_ptr.hpp>
 #include <boost/preprocessor/stringize.hpp>
-#include <boost/utility/enable_if.hpp>
 
 #include <memory>
+#include <type_traits>
+#include <utility>
 
 #include <hpx/config/warnings_prefix.hpp>
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx
 {
+    namespace actions
+    {
+        template <typename Result, typename RemoteResult = Result>
+        struct typed_continuation;
+    }
+
     //////////////////////////////////////////////////////////////////////////
     // forward declare the required overload of apply.
     template <typename Action, typename ...Ts>
@@ -63,49 +71,133 @@ namespace hpx
 
     //////////////////////////////////////////////////////////////////////////
     // handling special case of triggering an LCO
-    template <typename T>
-    void set_lco_value(naming::id_type const& id, T && t, bool move_credits)
+    ///////////////////////////////////////////////////////////////////////////
+    namespace detail
     {
-        typedef typename lcos::base_lco_with_value<
-            typename util::decay<T>::type
-        >::set_value_action set_value_action;
-        if (move_credits)
+        template <typename T>
+        struct make_rvalue_impl
         {
-            naming::id_type target(id.get_gid(), naming::id_type::managed_move_credit);
-            id.make_unmanaged();
+            typedef T && type;
 
-            apply<set_value_action>(target, util::detail::make_temporary<T>(t));
-        }
-        else
+            template <typename U>
+            HPX_FORCEINLINE static T && call(U& u)
+            {
+                return std::move(u);
+            }
+        };
+
+        template <typename T>
+        struct make_rvalue_impl<T const>
         {
-            apply<set_value_action>(id, util::detail::make_temporary<T>(t));
+            typedef T type;
+
+            template <typename U>
+            HPX_FORCEINLINE static T call(U const& u)
+            {
+                return u;
+            }
+        };
+
+        template <typename T>
+        struct make_rvalue_impl<T&>
+        {
+            typedef T type;
+
+            HPX_FORCEINLINE static T call(T& u)
+            {
+                return u;
+            }
+        };
+
+        template <typename T>
+        struct make_rvalue_impl<T const&>
+        {
+            typedef T type;
+
+            HPX_FORCEINLINE static T call(T const& u)
+            {
+                return u;
+            }
+        };
+
+        template <typename T>
+        HPX_FORCEINLINE typename detail::make_rvalue_impl<T>::type
+        make_rvalue(typename std::remove_reference<T>::type& v)
+        {
+            return detail::make_rvalue_impl<T>::call(v);
+        }
+
+        template <typename T>
+        HPX_FORCEINLINE typename detail::make_rvalue_impl<T>::type
+        make_rvalue(typename std::remove_reference<T>::type&& v)
+        {
+            return detail::make_rvalue_impl<T>::call(v);
         }
     }
 
-    template <typename T>
-    void set_lco_value(naming::id_type const& id, T && t,
-        naming::id_type const& cont, bool move_credits)
+    template <typename Result>
+    void set_lco_value(naming::id_type const& id, naming::address && addr,
+        Result && t, bool move_credits)
     {
+        typedef typename util::decay<Result>::type remote_result_type;
+        typedef typename traits::promise_local_result<
+                remote_result_type
+            >::type local_result_type;
         typedef typename lcos::base_lco_with_value<
-            typename util::decay<T>::type
-        >::set_value_action set_value_action;
+                local_result_type, remote_result_type
+            >::set_value_action set_value_action;
+
         if (move_credits)
         {
-            naming::id_type target(id.get_gid(), naming::id_type::managed_move_credit);
+            naming::id_type target(id.get_gid(),
+                naming::id_type::managed_move_credit);
             id.make_unmanaged();
 
-            apply_c<set_value_action>(cont, target,
-                util::detail::make_temporary<T>(t));
+            detail::apply_impl<set_value_action>(target, std::move(addr),
+                actions::action_priority<set_value_action>(),
+                detail::make_rvalue<Result>(t));
         }
         else
         {
-            apply_c<set_value_action>(cont, id,
-                util::detail::make_temporary<T>(t));
+            detail::apply_impl<set_value_action>(id, std::move(addr),
+                actions::action_priority<set_value_action>(),
+                detail::make_rvalue<Result>(t));
         }
     }
 
-    HPX_EXPORT void set_lco_error(naming::id_type const& id,
-        boost::exception_ptr const& e, bool move_credits);
+    template <typename Result>
+    void set_lco_value(naming::id_type const& id, naming::address && addr,
+        Result && t, naming::id_type const& cont, bool move_credits)
+    {
+        typedef typename util::decay<Result>::type remote_result_type;
+        typedef typename traits::promise_local_result<
+                remote_result_type
+            >::type local_result_type;
+        typedef typename lcos::base_lco_with_value<
+                local_result_type, remote_result_type
+            >::set_value_action set_value_action;
+
+        if (move_credits)
+        {
+            naming::id_type target(id.get_gid(),
+                naming::id_type::managed_move_credit);
+            id.make_unmanaged();
+
+            detail::apply_impl<set_value_action>(
+                actions::typed_continuation<
+                    local_result_type, remote_result_type>(cont),
+                target, std::move(addr),
+                detail::make_rvalue<Result>(t));
+        }
+        else
+        {
+            detail::apply_impl<set_value_action>(
+                actions::typed_continuation<
+                    local_result_type, remote_result_type>(cont),
+                id, std::move(addr),
+                detail::make_rvalue<Result>(t));
+        }
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -144,12 +236,32 @@ namespace hpx { namespace actions
         explicit continuation(naming::id_type const& gid)
           : gid_(gid)
         {
+            // Try to resolve the address locally ...
+            if(!agas::is_local_address_cached(gid_, addr_))
+            {
+                addr_ = naming::address();
+            }
         }
 
         explicit continuation(naming::id_type && gid)
           : gid_(std::move(gid))
         {
+            // Try to resolve the address locally ...
+            if(!agas::is_local_address_cached(gid_, addr_))
+            {
+                addr_ = naming::address();
+            }
         }
+
+        continuation(naming::id_type const& gid, naming::address && addr)
+          : gid_(gid)
+          , addr_(std::move(addr))
+        {}
+
+        continuation(naming::id_type && gid, naming::address && addr)
+          : gid_(std::move(gid))
+          , addr_(std::move(addr))
+        {}
 
         virtual ~continuation() {}
 
@@ -169,7 +281,7 @@ namespace hpx { namespace actions
         template <typename Archive>
         void serialize(Archive & ar, unsigned)
         {
-            ar & gid_;
+            ar & gid_ & addr_;
         }
         HPX_SERIALIZATION_POLYMORPHIC_ABSTRACT(continuation);
 
@@ -185,55 +297,146 @@ namespace hpx { namespace actions
             return gid_;
         }
 
+        naming::address get_addr() const
+        {
+            return addr_;
+        }
+
     protected:
         naming::id_type gid_;
+        naming::address addr_;
     };
 
     ///////////////////////////////////////////////////////////////////////////
-    template <typename F, typename ...Ts>
-    typename boost::disable_if_c<
-        boost::is_void<typename util::result_of<F(Ts...)>::type>::value
-    >::type trigger(continuation& cont, F&& f, Ts&&... vs)
+    namespace detail
     {
-        try {
-            cont.trigger(util::invoke(std::forward<F>(f),
-                std::forward<Ts>(vs)...));
+        // Overload when return type is "void" aka util::unused_type
+        template <typename Result, typename RemoteResult, typename F, typename ...Ts>
+        void trigger_impl(std::true_type, std::unique_ptr<continuation> cont,
+            F&& f, Ts&&... vs)
+        {
+            try {
+                util::invoke(std::forward<F>(f), std::forward<Ts>(vs)...);
+                cont->trigger();
+            }
+            catch (...) {
+                // make sure hpx::exceptions are propagated back to the client
+                cont->trigger_error(boost::current_exception());
+            }
         }
-        catch (...) {
-            // make sure hpx::exceptions are propagated back to the client
-            cont.trigger_error(boost::current_exception());
+
+        // special handling of actions returning a future
+        template <typename Result, typename RemoteResult, typename Future>
+        void deferred_trigger(std::false_type, std::unique_ptr<continuation> cont,
+            Future result)
+        {
+            try {
+                HPX_ASSERT(result.is_ready());
+                static_cast<typed_continuation<Result, RemoteResult>*>(cont.get())->
+                    trigger(result.get());
+            }
+            catch (...) {
+                // make sure hpx::exceptions are propagated back to the client
+                cont->trigger_error(boost::current_exception());
+            }
+        }
+
+        template <typename Result, typename RemoteResult, typename Future>
+        void deferred_trigger(std::true_type, std::unique_ptr<continuation> cont,
+            Future result)
+        {
+            try {
+                HPX_ASSERT(result.is_ready());
+                cont->trigger();
+            }
+            catch (...) {
+                // make sure hpx::exceptions are propagated back to the client
+                cont->trigger_error(boost::current_exception());
+            }
+        }
+
+        template <typename Result, typename Future, typename F, typename ...Ts>
+        void trigger_impl_future(boost::mpl::true_,
+            std::unique_ptr<continuation> cont, F&& f, Ts&&... vs)
+        {
+            typedef
+                typename traits::future_traits<
+                    Future
+                >::type type;
+            typedef
+                typename detail::remote_action_result<type>::type
+                remote_result_type;
+            typedef typename std::is_void<type>::type is_void;
+
+            Future result = util::invoke(std::forward<F>(f),
+                    std::forward<Ts>(vs)...);
+
+            if(result.is_ready())
+            {
+                detail::deferred_trigger<Result, remote_result_type>(
+                    is_void(), std::move(cont), std::move(result));
+                return;
+            }
+
+            void (*fun)(is_void, std::unique_ptr<continuation>, Future)
+                = detail::deferred_trigger<Result, remote_result_type, Future>;
+
+            result.then(
+                hpx::util::bind(
+                    hpx::util::one_shot(fun)
+                  , is_void()
+                  , std::move(cont) //-V575
+                  , util::placeholders::_1
+                )
+            );
+        }
+
+        template <typename Result, typename RemoteResult, typename F, typename ...Ts>
+        void trigger_impl_future(boost::mpl::false_,
+            std::unique_ptr<continuation> cont, F&& f, Ts&&... vs)
+        {
+            try {
+                static_cast<typed_continuation<Result, RemoteResult>*>(cont.get())->
+                    trigger(util::invoke(std::forward<F>(f),
+                    std::forward<Ts>(vs)...));
+            }
+            catch (...) {
+                // make sure hpx::exceptions are propagated back to the client
+                cont->trigger_error(boost::current_exception());
+            }
+        }
+
+        template <typename Result, typename RemoteResult, typename F, typename ...Ts>
+        void trigger_impl(std::false_type, std::unique_ptr<continuation> cont,
+            F&& f, Ts&&... vs)
+        {
+            typedef
+                typename traits::is_future<RemoteResult>::type
+                is_future;
+
+            trigger_impl_future<Result, RemoteResult>(is_future(),
+                std::move(cont), std::forward<F>(f), std::forward<Ts>(vs)...);
         }
     }
 
-    template <typename F, typename ...Ts>
-    typename boost::enable_if_c<
-        boost::is_void<typename util::result_of<F(Ts...)>::type>::value
-    >::type trigger(continuation& cont, F&& f, Ts&&... vs)
+    template <typename Result, typename F, typename ...Ts>
+    void trigger(std::unique_ptr<continuation> cont, F&& f, Ts&&... vs)
     {
-        try {
-            util::invoke(std::forward<F>(f), std::forward<Ts>(vs)...);
-            cont.trigger();
-        }
-        catch (...) {
-            // make sure hpx::exceptions are propagated back to the client
-            cont.trigger_error(boost::current_exception());
-        }
+        typedef typename util::result_of<F(Ts...)>::type
+            result_type;
+
+        typedef
+            typename std::is_same<result_type, util::unused_type>::type
+            is_void;
+        detail::trigger_impl<Result, result_type>(is_void(), std::move(cont),
+            std::forward<F>(f), std::forward<Ts>(vs)...);
     }
 
     ///////////////////////////////////////////////////////////////////////////
     struct set_lco_value_continuation
     {
         template <typename T>
-        struct result;
-
-        template <typename F, typename T1, typename T2>
-        struct result<F(T1, T2)>
-        {
-            typedef T2 type;
-        };
-
-        template <typename T>
-        BOOST_FORCEINLINE T operator()(naming::id_type const& lco, T && t) const
+        HPX_FORCEINLINE T operator()(naming::id_type const& lco, T && t) const
         {
             hpx::set_lco_value(lco, std::forward<T>(t));
 
@@ -251,15 +454,6 @@ namespace hpx { namespace actions
         typedef typename util::decay<Cont>::type cont_type;
 
     public:
-        template <typename T>
-        struct result;
-
-        template <typename F, typename T1, typename T2>
-        struct result<F(T1, T2)>
-        {
-            typedef typename util::result_of<cont_type(T1, T2)>::type type;
-        };
-
         continuation_impl() {}
 
         template <typename Cont_>
@@ -270,15 +464,16 @@ namespace hpx { namespace actions
         virtual ~continuation_impl() {}
 
         template <typename T>
-        typename result<continuation_impl(hpx::naming::id_type, T)>::type
+        typename util::result_of<cont_type(hpx::naming::id_type, T)>::type
         operator()(hpx::naming::id_type const& lco, T && t) const
         {
             hpx::apply_c(cont_, lco, target_, std::forward<T>(t));
 
             // Unfortunately we need to default construct the return value,
             // this possibly imposes an additional restriction of return types.
-            typedef typename result<continuation_impl(hpx::naming::id_type, T)>::type
-                result_type;
+            typedef typename util::result_of<
+                cont_type(hpx::naming::id_type, T)
+            >::type result_type;
             return result_type();
         }
 
@@ -287,7 +482,7 @@ namespace hpx { namespace actions
         friend class hpx::serialization::access;
 
         template <typename Archive>
-        BOOST_FORCEINLINE void serialize(Archive& ar, unsigned int const)
+        HPX_FORCEINLINE void serialize(Archive& ar, unsigned int const)
         {
             ar & cont_ & target_;
         }
@@ -305,20 +500,6 @@ namespace hpx { namespace actions
         typedef typename util::decay<F>::type function_type;
 
     public:
-        template <typename T>
-        struct result;
-
-        template <typename This, typename T1, typename T2>
-        struct result<This(T1, T2)>
-        {
-            typedef typename util::result_of<
-                    cont_type(T1, T2)
-                >::type result_type;
-            typedef typename util::result_of<
-                    function_type(hpx::naming::id_type, result_type)
-                >::type type;
-        };
-
         continuation2_impl() {}
 
         template <typename Cont_, typename F_>
@@ -332,8 +513,13 @@ namespace hpx { namespace actions
         virtual ~continuation2_impl() {}
 
         template <typename T>
-        typename result<continuation2_impl(hpx::naming::id_type, T)>::type
-        operator()(hpx::naming::id_type const& lco, T && t) const
+        typename util::result_of<
+            function_type(
+                hpx::naming::id_type,
+                typename util::result_of<
+                    cont_type(hpx::naming::id_type, T)
+                >::type)
+        >::type operator()(hpx::naming::id_type const& lco, T && t) const
         {
             using hpx::util::placeholders::_2;
             hpx::apply_continue(cont_, hpx::util::bind(f_, lco, _2),
@@ -341,8 +527,13 @@ namespace hpx { namespace actions
 
             // Unfortunately we need to default construct the return value,
             // this possibly imposes an additional restriction of return types.
-            typedef typename result<continuation2_impl(hpx::naming::id_type, T)>::type
-                result_type;
+            typedef typename util::result_of<
+                function_type(
+                    hpx::naming::id_type,
+                    typename util::result_of<
+                        cont_type(hpx::naming::id_type, T)
+                    >::type)
+            >::type result_type;
             return result_type();
         }
 
@@ -351,7 +542,7 @@ namespace hpx { namespace actions
         friend class hpx::serialization::access;
 
         template <typename Archive>
-        BOOST_FORCEINLINE void serialize(Archive& ar, unsigned int const)
+        HPX_FORCEINLINE void serialize(Archive& ar, unsigned int const)
         {
             ar & cont_ & target_ & f_;
         }
@@ -364,12 +555,19 @@ namespace hpx { namespace actions
 
     ///////////////////////////////////////////////////////////////////////////
     template <typename Result>
-    struct typed_continuation : continuation
+    struct typed_continuation<Result, Result> : continuation
     {
     private:
-        typedef util::unique_function<void(naming::id_type, Result)> function_type;
+        HPX_MOVABLE_ONLY(typed_continuation);
+
+        typedef util::unique_function<
+                void(naming::id_type, Result)
+            > function_type;
 
     public:
+
+        typedef Result result_type;
+
         typed_continuation()
         {}
 
@@ -382,21 +580,43 @@ namespace hpx { namespace actions
         {}
 
         template <typename F>
-        explicit typed_continuation(naming::id_type const& gid, F && f)
+        typed_continuation(naming::id_type const& gid, F && f)
           : continuation(gid), f_(std::forward<F>(f))
         {}
 
         template <typename F>
-        explicit typed_continuation(naming::id_type && gid, F && f)
+        typed_continuation(naming::id_type && gid, F && f)
           : continuation(std::move(gid)), f_(std::forward<F>(f))
         {}
 
-        template <typename F,
-            typename Enable
-                = typename std::enable_if<
-                    !std::is_same<
-                        typename util::decay<F>::type, typed_continuation>::value
-                    >::type
+        typed_continuation(naming::id_type const& gid, naming::address && addr)
+          : continuation(gid, std::move(addr))
+        {}
+
+        typed_continuation(naming::id_type && gid, naming::address && addr)
+          : continuation(std::move(gid), std::move(addr))
+        {}
+
+        template <typename F>
+        typed_continuation(naming::id_type const& gid, naming::address && addr,
+                F && f)
+          : continuation(gid, std::move(addr)),
+            f_(std::forward<F>(f))
+        {}
+
+        template <typename F>
+        typed_continuation(naming::id_type && gid, naming::address && addr,
+                F && f)
+          : continuation(std::move(gid), std::move(addr)),
+            f_(std::forward<F>(f))
+        {}
+
+        template <typename F, typename Enable =
+            typename std::enable_if<
+               !std::is_same<
+                    typename util::decay<F>::type, typed_continuation
+                >::value
+            >::type
         >
         explicit typed_continuation(F && f)
           : f_(std::forward<F>(f))
@@ -406,7 +626,8 @@ namespace hpx { namespace actions
         // replace by typed_continuation(typed_continuation && o) = default;
         // when all compiler support it
         typed_continuation(typed_continuation && o)
-          : continuation(std::move(o.gid_)), f_(std::move(o.f_))
+          : continuation(std::move(o.gid_), std::move(o.addr_)),
+            f_(std::move(o.f_))
         {}
 
         virtual void trigger_value(Result && result)
@@ -422,7 +643,8 @@ namespace hpx { namespace actions
                         "attempt to trigger invalid LCO (the id is invalid)");
                     return;
                 }
-                hpx::set_lco_value(this->get_id(), std::move(result));
+                hpx::set_lco_value(this->get_id(), this->get_addr(),
+                    std::move(result));
             }
             else {
                 f_(this->get_id(), std::move(result));
@@ -438,37 +660,138 @@ namespace hpx { namespace actions
         /// serialization support
         friend class hpx::serialization::access;
 
-        void serialize(serialization::input_archive & ar)
-        {
-            // serialize function
-            bool have_function = false;
-            ar >> have_function;
-            if (have_function)
-                ar >> f_;
-        }
-
-        void serialize(serialization::output_archive & ar)
-        {
-            // serialize function
-            bool have_function = !f_.empty();
-            ar << have_function;
-            if (have_function)
-                ar << f_;
-        }
         template <typename Archive>
         void serialize(Archive & ar, unsigned)
         {
             // serialize base class
             ar & hpx::serialization::base_object<continuation>(*this);
-
-            serialize(ar);
+            ar & f_;
         }
         HPX_SERIALIZATION_POLYMORPHIC_WITH_NAME(
             typed_continuation
           , detail::get_continuation_name<typed_continuation>()
-        );
+        )
 
+    protected:
         function_type f_;
+    };
+
+    // This specialization is needed to call the right
+    // base_lco_with_value action if the local Result is computed
+    // via get_remote_result and differs from the actions original
+    // local result type
+    template <typename Result, typename RemoteResult>
+    struct typed_continuation : typed_continuation<RemoteResult>
+    {
+    private:
+        HPX_MOVABLE_ONLY(typed_continuation);
+
+        typedef typed_continuation<RemoteResult> base_type;
+        typedef util::unique_function<
+                void(naming::id_type, RemoteResult)
+            > function_type;
+
+    public:
+        typed_continuation()
+        {}
+
+        explicit typed_continuation(naming::id_type const& gid)
+          : base_type(gid)
+        {}
+
+        explicit typed_continuation(naming::id_type && gid)
+          : base_type(std::move(gid))
+        {}
+
+        template <typename F>
+        typed_continuation(naming::id_type const& gid, F && f)
+          : base_type(gid, std::forward<F>(f))
+        {}
+
+        template <typename F>
+        typed_continuation(naming::id_type && gid, F && f)
+          : base_type(std::move(gid), std::forward<F>(f))
+        {}
+
+        typed_continuation(naming::id_type const& gid, naming::address && addr)
+          : base_type(gid, std::move(addr))
+        {}
+
+        typed_continuation(naming::id_type && gid, naming::address && addr)
+          : base_type(std::move(gid), std::move(addr))
+        {}
+
+        template <typename F>
+        typed_continuation(naming::id_type const& gid,
+                naming::address && addr, F && f)
+          : base_type(gid, std::move(addr), std::forward<F>(f))
+        {}
+
+        template <typename F>
+        typed_continuation(naming::id_type && gid,
+                naming::address && addr, F && f)
+          : base_type(std::move(gid), std::move(addr), std::forward<F>(f))
+        {}
+
+        template <typename F, typename Enable =
+            typename std::enable_if<
+               !std::is_same<
+                    typename util::decay<F>::type, typed_continuation
+                >::value
+            >::type
+        >
+        explicit typed_continuation(F && f)
+          : base_type(std::forward<F>(f))
+        {}
+
+        // This is needed for some gcc versions
+        // replace by typed_continuation(typed_continuation && o) = default;
+        // when all compiler support it
+        typed_continuation(typed_continuation && o)
+          : base_type(static_cast<base_type &&>(o))
+        {}
+
+        virtual void trigger_value(RemoteResult && result)
+        {
+            LLCO_(info)
+                << "typed_continuation<RemoteResult>::trigger_value("
+                << this->get_id() << ")";
+
+            if (this->f_.empty()) {
+                if (!this->get_id()) {
+                    HPX_THROW_EXCEPTION(invalid_status,
+                        "typed_continuation<Result>::trigger_value",
+                        "attempt to trigger invalid LCO (the id is invalid)");
+                    return;
+                }
+                hpx::set_lco_value(this->get_id(), this->get_addr(),
+                    std::move(result));
+            }
+            else {
+                this->f_(this->get_id(), std::move(result));
+            }
+        }
+
+    private:
+        char const* get_continuation_name() const
+        {
+            return detail::get_continuation_name<typed_continuation>();
+        }
+
+        /// serialization support
+        friend class hpx::serialization::access;
+
+        template <typename Archive>
+        void serialize(Archive & ar, unsigned)
+        {
+            // serialize base class
+            ar & hpx::serialization::base_object<
+                typed_continuation<RemoteResult> >(*this);
+        }
+        HPX_SERIALIZATION_POLYMORPHIC_WITH_NAME(
+            typed_continuation
+          , detail::get_continuation_name<typed_continuation>()
+        )
     };
 }}
 
@@ -476,12 +799,16 @@ namespace hpx { namespace actions
 {
     ///////////////////////////////////////////////////////////////////////////
     template <>
-    struct typed_continuation<void> : continuation
+    struct typed_continuation<void, util::unused_type> : continuation
     {
     private:
+        HPX_MOVABLE_ONLY(typed_continuation);
+
         typedef util::unique_function<void(naming::id_type)> function_type;
 
     public:
+        typedef void result_type;
+
         typed_continuation()
         {}
 
@@ -494,18 +821,54 @@ namespace hpx { namespace actions
         {}
 
         template <typename F>
-        explicit typed_continuation(naming::id_type const& gid, F && f)
+        typed_continuation(naming::id_type const& gid, F && f)
           : continuation(gid), f_(std::forward<F>(f))
         {}
 
         template <typename F>
-        explicit typed_continuation(naming::id_type && gid, F && f)
+        typed_continuation(naming::id_type && gid, F && f)
           : continuation(std::move(gid)), f_(std::forward<F>(f))
         {}
 
+        typed_continuation(naming::id_type const& gid, naming::address && addr)
+          : continuation(gid, std::move(addr))
+        {}
+
+        typed_continuation(naming::id_type && gid, naming::address && addr)
+          : continuation(std::move(gid), std::move(addr))
+        {}
+
         template <typename F>
+        typed_continuation(naming::id_type const& gid, naming::address && addr,
+                F && f)
+          : continuation(gid, std::move(addr)),
+            f_(std::forward<F>(f))
+        {}
+
+        template <typename F>
+        typed_continuation(naming::id_type && gid, naming::address && addr,
+                F && f)
+          : continuation(std::move(gid), std::move(addr)),
+            f_(std::forward<F>(f))
+        {}
+
+        template <typename F, typename Enable =
+            typename std::enable_if<
+               !std::is_same<
+                    typename util::decay<F>::type, typed_continuation
+                >::value
+            >::type
+        >
         explicit typed_continuation(F && f)
           : f_(std::forward<F>(f))
+        {}
+
+        // This is needed for some gcc versions
+        // replace by typed_continuation(typed_continuation && o) = default;
+        // when all compiler support it
+        typed_continuation(typed_continuation && o)
+          : continuation(std::move(o.gid_), std::move(o.addr_)),
+            f_(std::move(o.f_))
         {}
 
         void trigger()
@@ -521,7 +884,7 @@ namespace hpx { namespace actions
                         "attempt to trigger invalid LCO (the id is invalid)");
                     return;
                 }
-                trigger_lco_event(this->get_id());
+                trigger_lco_event(this->get_id(), this->get_addr());
             }
             else {
                 f_(this->get_id());
@@ -542,35 +905,18 @@ namespace hpx { namespace actions
         /// serialization support
         friend class hpx::serialization::access;
 
-        void serialize(serialization::input_archive & ar)
-        {
-            // serialize function
-            bool have_function = false;
-            ar >> have_function;
-            if (have_function)
-                ar >> f_;
-        }
-
-        void serialize(serialization::output_archive & ar)
-        {
-            // serialize function
-            bool have_function = !f_.empty();
-            ar << have_function;
-            if (have_function)
-                ar << f_;
-        }
         template <typename Archive>
         void serialize(Archive & ar, unsigned)
         {
             // serialize base class
             ar & hpx::serialization::base_object<continuation>(*this);
 
-            serialize(ar);
+            ar & f_;
         }
         HPX_SERIALIZATION_POLYMORPHIC_WITH_NAME(
             typed_continuation
           , "hpx_void_typed_continuation"
-        );
+        )
 
         function_type f_;
     };
@@ -618,11 +964,11 @@ namespace hpx
     }
 
     template <typename Cont, typename F>
-    inline typename boost::disable_if<
-        boost::is_same<
+    inline typename std::enable_if<
+        !std::is_same<
             typename util::decay<F>::type,
             hpx::naming::id_type
-        >,
+        >::value,
         hpx::actions::continuation2_impl<
             typename util::decay<Cont>::type,
             typename util::decay<F>::type
@@ -653,10 +999,11 @@ namespace hpx
     }
 }
 
-namespace hpx { namespace traits {
+namespace hpx { namespace traits
+{
     template <>
     struct is_continuation<std::unique_ptr<actions::continuation> >
-      : boost::mpl::true_
+      : std::true_type
     {};
 }}
 
@@ -676,7 +1023,7 @@ namespace hpx { namespace traits {
         template <>                                                           \
         struct needs_automatic_registration<                                  \
                 hpx::actions::typed_continuation<Result> >                    \
-          : boost::mpl::false_                                                \
+          : std::false_type                                                   \
         {};                                                                   \
     }}                                                                        \
 /**/

@@ -17,7 +17,7 @@
 #ifndef JT28092007_named_spacer_HPP_DEFINED
 #define JT28092007_named_spacer_HPP_DEFINED
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(HPX_MSVC) && (HPX_MSVC >= 1020)
 # pragma once
 #endif
 
@@ -27,6 +27,10 @@
 #include <hpx/util/logging/detail/manipulator.hpp>
 #include <hpx/util/logging/format/formatter/convert_format.hpp> // do_convert_format
 #include <hpx/util/logging/format/array.hpp> // array
+
+#include <map>
+#include <memory>
+#include <vector>
 
 namespace hpx { namespace util { namespace logging { namespace formatter {
 

@@ -3,7 +3,7 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <hpx/hpx_fwd.hpp>
+#include <hpx/config.hpp>
 #include <hpx/exception.hpp>
 #include <hpx/runtime/naming/name.hpp>
 #include <hpx/runtime/agas/stubs/component_namespace.hpp>
@@ -13,6 +13,8 @@
 #include <hpx/performance_counters/counters.hpp>
 #include <hpx/performance_counters/counter_creators.hpp>
 #include <hpx/util/function.hpp>
+
+#include <string>
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx { namespace performance_counters
@@ -182,6 +184,60 @@ namespace hpx { namespace performance_counters
         return true;
     }
 
+    /// Default discoverer function for performance counters; to be registered
+    /// with the counter types. It is suitable to be used for all counters
+    /// following the naming scheme:
+    ///
+    ///   /<objectname>(locality#<locality_id>/numa#<threadnum>)/<instancename>
+    ///
+    bool locality_numa_counter_discoverer(counter_info const& info,
+        discover_counter_func const& f,
+        discover_counters_mode mode, error_code& ec)
+    {
+        performance_counters::counter_info i = info;
+
+        // compose the counter name templates
+        performance_counters::counter_path_elements p;
+        performance_counters::counter_status status =
+            get_counter_path_elements(info.fullname_, p, ec);
+        if (!status_is_valid(status)) return false;
+
+        if (mode == discover_counters_minimal ||
+            p.parentinstancename_.empty() || p.instancename_.empty())
+        {
+            if (p.parentinstancename_.empty())
+            {
+                p.parentinstancename_ = "locality#*";
+                p.parentinstanceindex_ = -1;
+            }
+
+            if (p.instancename_.empty())
+            {
+                p.instancename_ = "total";
+                p.instanceindex_ = -1;
+            }
+
+            status = get_counter_name(p, i.fullname_, ec);
+            if (!status_is_valid(status) || !f(i, ec) || ec)
+                return false;
+
+            p.instancename_ = "numa-node#*";
+            p.instanceindex_ = -1;
+
+            status = get_counter_name(p, i.fullname_, ec);
+            if (!status_is_valid(status) || !f(i, ec) || ec)
+                return false;
+        }
+        else if (!f(i, ec) || ec) {
+            return false;
+        }
+
+        if (&ec != &throws)
+            ec = make_success_code();
+
+        return true;
+    }
+
     ///////////////////////////////////////////////////////////////////////////
     /// Creation function for raw counters. The passed function is encapsulating
     /// the actual value to monitor. This function checks the validity of the
@@ -296,7 +352,7 @@ namespace hpx { namespace performance_counters
                 return naming::invalid_gid;
             }
             service += "#";
-            service += boost::lexical_cast<std::string>(paths.parentinstanceindex_);
+            service += std::to_string(paths.parentinstanceindex_);
 
             service += "/";
             service += service_name;

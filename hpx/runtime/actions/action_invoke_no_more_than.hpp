@@ -1,4 +1,4 @@
-//  Copyright (c) 2007-2014 Hartmut Kaiser
+//  Copyright (c) 2007-2016 Hartmut Kaiser
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -6,7 +6,7 @@
 #if !defined(HPX_RUNTIME_ACTIONS_INVOKE_NO_MORE_THAN_MAR_30_2014_0616PM)
 #define HPX_RUNTIME_ACTIONS_INVOKE_NO_MORE_THAN_MAR_30_2014_0616PM
 
-#include <hpx/hpx_fwd.hpp>
+#include <hpx/config.hpp>
 #include <hpx/runtime/naming/name.hpp>
 #include <hpx/runtime/actions/continuation.hpp>
 #include <hpx/lcos/local/spinlock.hpp>
@@ -16,6 +16,8 @@
 #include <hpx/traits/is_future.hpp>
 #include <hpx/traits/action_decorate_function.hpp>
 #include <hpx/traits/action_decorate_continuation.hpp>
+
+#include <boost/exception_ptr.hpp>
 
 #include <memory>
 
@@ -61,6 +63,14 @@ namespace hpx { namespace actions { namespace detail
     template <typename Action, int N>
     struct action_decorate_function
     {
+        // This wrapper is needed to stop infinite recursion when
+        // trying to get the possible additional function decoration
+        // from the component
+        struct action_wrapper
+        {
+            typedef typename Action::component_type component_type;
+        };
+
         static_assert(
             !Action::direct_execution::value,
             "explicit decoration of direct actions is not supported");
@@ -86,12 +96,11 @@ namespace hpx { namespace actions { namespace detail
         static threads::thread_function_type
         call(naming::address::address_type lva, F && f, boost::mpl::false_)
         {
-            typedef typename Action::component_type component_type;
-
             return util::bind(
                 util::one_shot(&action_decorate_function::thread_function),
                 util::placeholders::_1,
-                component_type::decorate_action(lva, std::forward<F>(f))
+                traits::action_decorate_function<action_wrapper>::call(
+                    lva, std::forward<F>(f))
             );
         }
 
@@ -110,12 +119,11 @@ namespace hpx { namespace actions { namespace detail
         static threads::thread_function_type
         call(naming::address::address_type lva, F && f, boost::mpl::true_)
         {
-            typedef typename Action::component_type component_type;
-
             return util::bind(
                 util::one_shot(&action_decorate_function::thread_function_future),
                 util::placeholders::_1,
-                component_type::decorate_action(lva, std::forward<F>(f))
+                traits::action_decorate_function<action_wrapper>::call(
+                    lva, std::forward<F>(f))
             );
         }
 
@@ -133,12 +141,16 @@ namespace hpx { namespace actions { namespace detail
     ///////////////////////////////////////////////////////////////////////////
     template <typename Action, int N>
     class wrapped_continuation
-      : public typed_continuation<typename Action::result_type>
+      : public typed_continuation<
+            typename Action::local_result_type,
+            typename Action::remote_result_type
+        >
     {
         typedef action_decorate_function_semaphore<Action, N>
             construct_semaphore_type;
-        typedef typename Action::result_type result_type;
-        typedef typed_continuation<result_type> base_type;
+        typedef typename Action::local_result_type local_result_type;
+        typedef typename Action::remote_result_type remote_result_type;
+        typedef typed_continuation<local_result_type, remote_result_type> base_type;
 
     public:
         wrapped_continuation(std::unique_ptr<continuation> cont)
@@ -155,29 +167,12 @@ namespace hpx { namespace actions { namespace detail
             construct_semaphore_type::get_sem().signal();
         }
 
-        void deferred_trigger(result_type&& result)
+        void trigger_value(remote_result_type && result)
         {
-            if (cont_) {
+            if(cont_)
                 static_cast<base_type *>(cont_.get())->
-                    deferred_trigger(std::move(result));
-            }
+                    trigger_value(std::move(result));
             construct_semaphore_type::get_sem().signal();
-        }
-
-        void trigger_value(result_type && result)
-        {
-            // if the future is ready, send the result back immediately
-            if (result.is_ready()) {
-                deferred_trigger(std::move(result));
-                return;
-            }
-
-            // attach continuation to this future which will send the result back
-            // once its ready
-            result.then(
-                util::bind(&wrapped_continuation::deferred_trigger,
-                    std::move(*this),
-                    util::placeholders::_1));
         }
 
         void trigger_error(boost::exception_ptr const& e)

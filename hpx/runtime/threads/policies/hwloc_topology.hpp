@@ -7,22 +7,32 @@
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 ////////////////////////////////////////////////////////////////////////////////
 
-#if !defined(HPX_50DFC0FC_EE99_43F5_A918_01EC45A58036)
-#define HPX_50DFC0FC_EE99_43F5_A918_01EC45A58036
-
-#include <hwloc.h>
+#ifndef HPX_RUNTIME_THREADS_POLICIES_HWLOC_TOPOLOGY_HPP
+#define HPX_RUNTIME_THREADS_POLICIES_HWLOC_TOPOLOGY_HPP
 
 #include <hpx/config.hpp>
+
+#if defined(HPX_HAVE_HWLOC)
+#include <hwloc.h>
+
+#include <hpx/error_code.hpp>
+#include <hpx/runtime/naming_fwd.hpp>
 #include <hpx/runtime/threads/topology.hpp>
-#include <hpx/exception.hpp>
 
 #include <hpx/util/spinlock.hpp>
+#include <hpx/util/static.hpp>
 
-#include <boost/format.hpp>
+#include <boost/thread/thread.hpp>
+
+#include <cstddef>
+#include <iosfwd>
+#include <vector>
 
 #if defined(HPX_NATIVE_MIC) && HWLOC_API_VERSION < 0x00010600
 #error On Intel Xeon/Phi coprosessors HPX cannot be use with a HWLOC version earlier than V1.6.
 #endif
+
+#include <hpx/config/warnings_prefix.hpp>
 
 namespace hpx { namespace threads
 {
@@ -109,7 +119,7 @@ namespace hpx { namespace threads
             ) const;
 
         mask_type get_thread_affinity_mask_from_lva(
-            naming::address::address_type
+            naming::address_type
           , error_code& ec = throws
             ) const;
 
@@ -241,7 +251,6 @@ namespace hpx { namespace threads
         std::size_t num_of_pus_;
 
         mutable hpx::util::spinlock topo_mtx;
-        typedef hpx::util::spinlock::scoped_lock scoped_lock;
 
         std::vector<std::size_t> socket_numbers_;
         std::vector<std::size_t> numa_node_numbers_;
@@ -263,5 +272,8 @@ namespace hpx { namespace threads
     }
 }}
 
-#endif // HPX_50DFC0FC_EE99_43F5_A918_01EC45A58036
+#include <hpx/config/warnings_suffix.hpp>
 
+#endif
+
+#endif /*HPX_RUNTIME_THREADS_POLICIES_HWLOC_TOPOLOGY_HPP*/

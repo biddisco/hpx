@@ -1,4 +1,4 @@
-//  Copyright (c) 2014 Hartmut Kaiser
+//  Copyright (c) 2014-2015 Hartmut Kaiser
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -9,6 +9,10 @@
 #include <hpx/util/lightweight_test.hpp>
 
 #include <boost/range/functions.hpp>
+
+#include <numeric>
+#include <string>
+#include <vector>
 
 #include "test_utils.hpp"
 
@@ -34,7 +38,7 @@ void test_transform_binary(ExPolicy policy, IteratorTag)
             return v1 + v2;
         };
 
-    hpx::util::tuple<iterator, base_iterator, base_iterator> result =
+    auto result =
         hpx::parallel::transform(policy,
             iterator(boost::begin(c1)), iterator(boost::end(c1)),
             boost::begin(c2), boost::begin(d1), add);
@@ -75,7 +79,7 @@ void test_transform_binary_async(ExPolicy p, IteratorTag)
             return v1 + v2;
         };
 
-    hpx::future<hpx::util::tuple<iterator, base_iterator, base_iterator> > f =
+    auto f =
         hpx::parallel::transform(p,
             iterator(boost::begin(c1)), iterator(boost::end(c1)),
             boost::begin(c2), boost::begin(d1), add);
@@ -113,12 +117,14 @@ void test_transform_binary()
     test_transform_binary_async(seq(task), IteratorTag());
     test_transform_binary_async(par(task), IteratorTag());
 
+#if defined(HPX_HAVE_GENERIC_EXECUTION_POLICY)
     test_transform_binary(execution_policy(seq), IteratorTag());
     test_transform_binary(execution_policy(par), IteratorTag());
     test_transform_binary(execution_policy(par_vec), IteratorTag());
 
     test_transform_binary(execution_policy(seq(task)), IteratorTag());
     test_transform_binary(execution_policy(par(task)), IteratorTag());
+#endif
 }
 
 void transform_binary_test()
@@ -182,7 +188,7 @@ void test_transform_binary_exception_async(ExPolicy p, IteratorTag)
     bool caught_exception = false;
     bool returned_from_algorithm = false;
     try {
-        hpx::future<void> f =
+        auto f =
             hpx::parallel::transform(p,
                 iterator(boost::begin(c1)), iterator(boost::end(c1)),
                 boost::begin(c2), boost::begin(d1),
@@ -220,11 +226,13 @@ void test_transform_binary_exception()
     test_transform_binary_exception_async(seq(task), IteratorTag());
     test_transform_binary_exception_async(par(task), IteratorTag());
 
+#if defined(HPX_HAVE_GENERIC_EXECUTION_POLICY)
     test_transform_binary_exception(execution_policy(seq), IteratorTag());
     test_transform_binary_exception(execution_policy(par), IteratorTag());
 
     test_transform_binary_exception(execution_policy(seq(task)), IteratorTag());
     test_transform_binary_exception(execution_policy(par(task)), IteratorTag());
+#endif
 }
 
 void transform_binary_exception_test()
@@ -287,7 +295,7 @@ void test_transform_binary_bad_alloc_async(ExPolicy p, IteratorTag)
     bool caught_bad_alloc = false;
     bool returned_from_algorithm = false;
     try {
-        hpx::future<void> f =
+        auto f =
             hpx::parallel::transform(p,
                 iterator(boost::begin(c1)), iterator(boost::end(c1)),
                 boost::begin(c2), boost::begin(d1),
@@ -324,11 +332,13 @@ void test_transform_binary_bad_alloc()
     test_transform_binary_bad_alloc_async(seq(task), IteratorTag());
     test_transform_binary_bad_alloc_async(par(task), IteratorTag());
 
+#if defined(HPX_HAVE_GENERIC_EXECUTION_POLICY)
     test_transform_binary_bad_alloc(execution_policy(seq), IteratorTag());
     test_transform_binary_bad_alloc(execution_policy(par), IteratorTag());
 
     test_transform_binary_bad_alloc(execution_policy(seq(task)), IteratorTag());
     test_transform_binary_bad_alloc(execution_policy(par(task)), IteratorTag());
+#endif
 }
 
 void transform_binary_bad_alloc_test()
@@ -368,7 +378,7 @@ int main(int argc, char* argv[])
     // By default this test should run on all available cores
     std::vector<std::string> cfg;
     cfg.push_back("hpx.os_threads=" +
-        boost::lexical_cast<std::string>(hpx::threads::hardware_concurrency()));
+        std::to_string(hpx::threads::hardware_concurrency()));
 
     // Initialize and run HPX
     HPX_TEST_EQ_MSG(hpx::init(desc_commandline, argc, argv, cfg), 0,

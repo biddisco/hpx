@@ -7,14 +7,13 @@
 #define HPX_UTIL_DETAIL_COLOCATED_HELPERS_FEB_04_2014_0828PM
 
 #include <hpx/config.hpp>
-#include <hpx/exception.hpp>
+#include <hpx/throw_exception.hpp>
 #include <hpx/runtime/naming/name.hpp>
 #include <hpx/runtime/agas/response.hpp>
 #include <hpx/runtime/serialization/serialize.hpp>
 #include <hpx/runtime/serialization/unique_ptr.hpp>
 #include <hpx/util/result_of.hpp>
 #include <hpx/util/decay.hpp>
-#include <hpx/util/move.hpp>
 
 #include <memory>
 
@@ -26,8 +25,6 @@ namespace hpx { namespace util { namespace functional
     ///////////////////////////////////////////////////////////////////////////
     struct extract_locality
     {
-        typedef naming::id_type result_type;
-
         extract_locality() {}
 
         naming::id_type operator()(agas::response const& rep,
@@ -52,17 +49,9 @@ namespace hpx { namespace util { namespace functional
         template <typename Bound>
         struct apply_continuation_impl
         {
-            HPX_MOVABLE_BUT_NOT_COPYABLE(apply_continuation_impl);
+            HPX_MOVABLE_ONLY(apply_continuation_impl);
         public:
             typedef typename util::decay<Bound>::type bound_type;
-
-            template <typename T>
-            struct result;
-
-            template <typename F, typename T1, typename T2>
-            struct result<F(T1, T2)>
-              : util::result_of<F(T1, T2)>
-            {};
 
             apply_continuation_impl() {}
 
@@ -87,6 +76,7 @@ namespace hpx { namespace util { namespace functional
             {
                 bound_ = std::move(o.bound_);
                 cont_ = std::move(o.cont_);
+                return *this;
             }
 
             template <typename T>
@@ -109,7 +99,7 @@ namespace hpx { namespace util { namespace functional
             friend class hpx::serialization::access;
 
             template <typename Archive>
-            BOOST_FORCEINLINE void save(Archive& ar, unsigned int const) const
+            HPX_FORCEINLINE void save(Archive& ar, unsigned int const) const
             {
                 bool has_continuation = cont_ ? true : false;
                 ar & bound_ & has_continuation;
@@ -120,7 +110,7 @@ namespace hpx { namespace util { namespace functional
             }
 
             template <typename Archive>
-            BOOST_FORCEINLINE void load(Archive& ar, unsigned int const)
+            HPX_FORCEINLINE void load(Archive& ar, unsigned int const)
             {
                 bool has_continuation = cont_ ? true : false;
                 ar & bound_ & has_continuation;
@@ -160,17 +150,9 @@ namespace hpx { namespace util { namespace functional
         template <typename Bound>
         struct async_continuation_impl
         {
-            HPX_MOVABLE_BUT_NOT_COPYABLE(async_continuation_impl);
+            HPX_MOVABLE_ONLY(async_continuation_impl);
         public:
             typedef typename util::decay<Bound>::type bound_type;
-
-            template <typename T>
-            struct result;
-
-            template <typename F, typename T1, typename T2>
-            struct result<F(T1, T2)>
-              : util::result_of<F(T1, T2)>
-            {};
 
             async_continuation_impl() {}
 
@@ -195,6 +177,7 @@ namespace hpx { namespace util { namespace functional
             {
                 bound_ = std::move(o.bound_);
                 cont_ = std::move(o.cont_);
+                return *this;
             }
 
             template <typename T>
@@ -217,7 +200,7 @@ namespace hpx { namespace util { namespace functional
             friend class hpx::serialization::access;
 
             template <typename Archive>
-            BOOST_FORCEINLINE void save(Archive& ar, unsigned int const) const
+            HPX_FORCEINLINE void save(Archive& ar, unsigned int const) const
             {
                 bool has_continuation = cont_ ? true : false;
                 ar & bound_ & has_continuation;
@@ -228,7 +211,7 @@ namespace hpx { namespace util { namespace functional
             }
 
             template <typename Archive>
-            BOOST_FORCEINLINE void load(Archive& ar, unsigned int const)
+            HPX_FORCEINLINE void load(Archive& ar, unsigned int const)
             {
                 bool has_continuation = cont_ ? true : false;
                 ar & bound_ & has_continuation;

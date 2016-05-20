@@ -7,6 +7,9 @@
 #ifndef HPX_PARCELSET_POLICIES_IBVERBS_RECEIVER_HPP
 #define HPX_PARCELSET_POLICIES_IBVERBS_RECEIVER_HPP
 
+#include <hpx/config.hpp>
+
+#if defined(HPX_HAVE_PARCELPORT_IBVERBS)
 
 #include <hpx/util/high_resolution_timer.hpp>
 #include <hpx/runtime/parcelset/parcelport_connection.hpp>
@@ -18,13 +21,12 @@
 
 #include <boost/asio/placeholders.hpp>
 #include <boost/integer/endian.hpp>
-#include <boost/tuple/tuple.hpp>
 #include <boost/atomic.hpp>
-#include <boost/bind.hpp>
-#include <boost/enable_shared_from_this.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/shared_ptr.hpp>
-#include <boost/thread/locks.hpp>
+
+#include <cstring>
+#include <memory>
+#include <mutex>
+#include <vector>
 
 namespace hpx { namespace parcelset { namespace policies { namespace ibverbs
 {
@@ -58,14 +60,14 @@ namespace hpx { namespace parcelset { namespace policies { namespace ibverbs
         /// Get the data window associated with the parcelport_connection.
         server_context& context() { return context_; }
 
-        boost::shared_ptr<parcel_buffer_type> get_buffer(parcel const & p = parcel(),
+        std::shared_ptr<parcel_buffer_type> get_buffer(parcel const & p = parcel(),
             std::size_t arg_size = 0)
         {
             if(!buffer_ || (buffer_ && !buffer_->parcels_decoded_))
             {
                 boost::system::error_code ec;
                 buffer_
-                    = boost::shared_ptr<parcel_buffer_type>(
+                    = std::shared_ptr<parcel_buffer_type>(
                         new parcel_buffer_type(
                             allocator<message::payload_size>(memory_pool_)
                         )
@@ -95,7 +97,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ibverbs
         {
             next_function_type f = 0;
             {
-                boost::lock_guard<hpx::lcos::local::spinlock> l(mtx_);
+                std::lock_guard<hpx::lcos::local::spinlock> l(mtx_);
                 f = next_;
             }
             if(f != 0)
@@ -184,7 +186,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ibverbs
 
         bool next(next_function_type f)
         {
-            boost::lock_guard<hpx::lcos::local::spinlock> l(mtx_);
+            std::lock_guard<hpx::lcos::local::spinlock> l(mtx_);
             next_ = f;
             return false;
         }
@@ -204,13 +206,8 @@ namespace hpx { namespace parcelset { namespace policies { namespace ibverbs
         /// Counters and timers for parcels received.
         util::high_resolution_timer timer_;
     };
-
-    // this makes sure we can store our connections in a set
-    inline bool operator<(boost::shared_ptr<receiver> const& lhs,
-        boost::shared_ptr<receiver> const& rhs)
-    {
-        return lhs.get() < rhs.get();
-    }
 }}}}
+
+#endif
 
 #endif

@@ -7,14 +7,14 @@
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 ////////////////////////////////////////////////////////////////////////////////
 
-#define HPX_LIMIT 6
-
 #include <hpx/hpx_init.hpp>
 #include <hpx/include/plain_actions.hpp>
 #include <hpx/include/async.hpp>
 #include <hpx/include/async.hpp>
 #include <hpx/util/lightweight_test.hpp>
 #include <hpx/config/compiler_specific.hpp>
+
+#include <vector>
 
 #include <tests/regressions/actions/components/movable_objects.hpp>
 

@@ -15,14 +15,22 @@
 #endif
 
 #include <hpx/config/defines.hpp>
-#include <hpx/config/version.hpp>
-#include <hpx/config/compiler_specific.hpp>
 #include <hpx/config/branch_hints.hpp>
-#include <hpx/config/manual_profiling.hpp>
-#include <hpx/config/forceinline.hpp>
 #include <hpx/config/constexpr.hpp>
+#include <hpx/config/compiler_specific.hpp>
+#include <hpx/config/emulate_deleted.hpp>
+#include <hpx/config/export_definitions.hpp>
+#include <hpx/config/forceinline.hpp>
+#include <hpx/config/manual_profiling.hpp>
+#include <hpx/config/noexcept.hpp>
+#include <hpx/config/version.hpp>
 
 #include <boost/version.hpp>
+
+#if BOOST_VERSION < 105000
+// Please update your Boost installation (see www.boost.org for details).
+#error HPX cannot be compiled with a Boost version earlier than 1.50.0
+#endif
 
 #if BOOST_VERSION == 105400
 #include <cstdint> // Boost.Atomic has trouble finding [u]intptr_t
@@ -35,7 +43,7 @@
 #include <boost/preprocessor/cat.hpp>
 #include <boost/preprocessor/stringize.hpp>
 
-#if defined(_MSC_VER)
+#if defined(HPX_MSVC)
 // On Windows, make sure winsock.h is not included even if windows.h is
 // included before winsock2.h
 #define _WINSOCKAPI_
@@ -69,24 +77,6 @@
 /// executable
 #if !defined(HPX_RUNTIME_INSTANCE_LIMIT)
 #  define HPX_RUNTIME_INSTANCE_LIMIT 1
-#endif
-
-///////////////////////////////////////////////////////////////////////////////
-// Properly handle all preprocessing limits
-#if !defined(HPX_LIMIT)
-#  define HPX_LIMIT 5
-#elif (HPX_LIMIT < 5)
-#  error "HPX_LIMIT is too low, it must be at least 5"
-#endif
-
-// make sure Fusion sizes are adjusted appropriately as well
-#if HPX_LIMIT > 5 && !defined(FUSION_MAX_VECTOR_SIZE)
-#  define FUSION_MAX_VECTOR_SIZE 20
-#endif
-
-// make sure boost::result_of is adjusted appropriately as well
-#if HPX_LIMIT > 5 && !defined(BOOST_RESULT_OF_NUM_ARGS)
-#  define BOOST_RESULT_OF_NUM_ARGS 20
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -183,22 +173,18 @@
 #endif
 
 /// This defines the number of AGAS address translations kept in the local
-/// cache on a per OS-thread basis (system wide used OS threads).
-#if !defined(HPX_AGAS_LOCAL_CACHE_SIZE_PER_THREAD)
-#  define HPX_AGAS_LOCAL_CACHE_SIZE_PER_THREAD 32
-#endif
-
-/// This defines the number of AGAS address translations kept in the local
 /// cache. This is just the initial size which may be adjusted depending on the
-/// load of the system, etc. It must be a minimum of 3 for AGAS v3
+/// load of the system (not implemented yet), etc. It must be a minimum of 3 for AGAS v3
 /// bootstrapping.
-/// The actual number of local cache entries used is determined by
 ///
-///  max(HPX_INITIAL_AGAS_LOCAL_CACHE_SIZE,
-///      HPX_AGAS_LOCAL_CACHE_SIZE_PER_THREAD * num_nodes)
+/// This value can be changes at runtime by setting the configuration parameter:
 ///
-#if !defined(HPX_INITIAL_AGAS_LOCAL_CACHE_SIZE)
-#  define HPX_INITIAL_AGAS_LOCAL_CACHE_SIZE 256
+///   hpx.agas.local_cache_size = ...
+///
+/// (or by setting the corresponding environment variable
+/// HPX_AGAS_LOCAL_CACHE_SIZE)
+#if !defined(HPX_AGAS_LOCAL_CACHE_SIZE)
+#  define HPX_AGAS_LOCAL_CACHE_SIZE 4096
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -228,10 +214,24 @@
 
 ///////////////////////////////////////////////////////////////////////////////
 /// By default, enable minimal thread deadlock detection in debug builds only.
-#if !defined(HPX_THREAD_MINIMAL_DEADLOCK_DETECTION)
+#if !defined(HPX_HAVE_THREAD_MINIMAL_DEADLOCK_DETECTION)
 #  if defined(HPX_DEBUG)
-#    define HPX_THREAD_MINIMAL_DEADLOCK_DETECTION
+#    define HPX_HAVE_THREAD_MINIMAL_DEADLOCK_DETECTION
 #  endif
+#endif
+#if !defined(HPX_HAVE_SPINLOCK_DEADLOCK_DETECTION)
+#  if defined(HPX_DEBUG)
+//#    define HPX_HAVE_SPINLOCK_DEADLOCK_DETECTION
+#  endif
+#endif
+#if !defined(HPX_SPINLOCK_DEADLOCK_DETECTION_LIMIT)
+#  define HPX_SPINLOCK_DEADLOCK_DETECTION_LIMIT 1000000
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+/// This defines the default number of coroutine heaps.
+#if !defined(HPX_COROUTINE_NUM_HEAPS)
+#  define HPX_COROUTINE_NUM_HEAPS 7
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -278,8 +278,8 @@
 #endif
 
 /// By default we capture only 5 levels of stack back trace on suspension
-#if !defined(HPX_THREAD_BACKTRACE_ON_SUSPENSION_DEPTH)
-#  define HPX_THREAD_BACKTRACE_ON_SUSPENSION_DEPTH 5
+#if !defined(HPX_HAVE_THREAD_BACKTRACE_DEPTH)
+#  define HPX_HAVE_THREAD_BACKTRACE_DEPTH 5
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -298,9 +298,10 @@
 //    - to delimit several HPX ini paths
 //    - used as file extensions for shared libraries
 //    - used as path delimiters
-#ifdef BOOST_WINDOWS  // windows
+#ifdef HPX_WINDOWS  // windows
 #  define HPX_INI_PATH_DELIMITER            ";"
 #  define HPX_SHARED_LIB_EXTENSION          ".dll"
+#  define HPX_EXECUTABLE_EXTENSION          ".exe"
 #  define HPX_PATH_DELIMITERS               "\\/"
 #else                 // unix like
 #  define HPX_INI_PATH_DELIMITER            ":"
@@ -312,10 +313,11 @@
 #  else  // linux & co
 #    define HPX_SHARED_LIB_EXTENSION        ".so"
 #  endif
+#  define HPX_EXECUTABLE_EXTENSION          ""
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
-#if !defined(BOOST_WINDOWS)
+#if !defined(HPX_WINDOWS)
 #  if defined(HPX_DEBUG)
 #    define HPX_MAKE_DLL_STRING(n)  "lib" + n + "d" + HPX_SHARED_LIB_EXTENSION
 #  else
@@ -344,6 +346,14 @@
 #  define HPX_COMPONENT_STRING BOOST_PP_STRINGIZE(HPX_COMPONENT_NAME)
 #endif
 
+#if !defined(HPX_PLUGIN_COMPONENT_PREFIX)
+#  if defined(HPX_PLUGIN_NAME)
+#    define HPX_PLUGIN_COMPONENT_PREFIX HPX_MANGLE_NAME(HPX_PLUGIN_NAME)
+#  elif defined(HPX_COMPONENT_NAME)
+#    define HPX_PLUGIN_COMPONENT_PREFIX HPX_MANGLE_NAME(HPX_COMPONENT_NAME)
+#  endif
+#endif
+
 ///////////////////////////////////////////////////////////////////////////////
 #if !defined(HPX_PLUGIN_NAME)
 #  define HPX_PLUGIN_NAME hpx
@@ -358,12 +368,6 @@
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
-#if !defined(HPX_PLUGIN_COMPONENT_PREFIX)
-#  define HPX_PLUGIN_COMPONENT_PREFIX HPX_MANGLE_NAME(HPX_COMPONENT_NAME)
-#endif
-
-///////////////////////////////////////////////////////////////////////////////
-
 #if !defined(HPX_APPLICATION_STRING)
 #  if defined(HPX_APPLICATION_NAME)
 #    define HPX_APPLICATION_STRING BOOST_PP_STRINGIZE(HPX_APPLICATION_NAME)
@@ -373,7 +377,7 @@
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
-#if defined(BOOST_WINDOWS) && defined(_MSC_VER) && _MSC_VER < 1900
+#if defined(HPX_WINDOWS) && defined(HPX_MSVC) && HPX_MSVC < 1900
 #  define snprintf _snprintf
 #endif
 
@@ -424,14 +428,41 @@
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
+
+#if !defined(HPX_THREADS_STACK_OVERHEAD)
+#  if defined(HPX_DEBUG)
+#    if defined(HPX_GCC_VERSION)
+#      define HPX_THREADS_STACK_OVERHEAD 0x3000
+#    else
+#      define HPX_THREADS_STACK_OVERHEAD 0x2800
+#    endif
+#  else
+#    if defined(HPX_INTEL_VERSION)
+#      define HPX_THREADS_STACK_OVERHEAD 0x2800
+#    elif defined(HPX_GCC_VERSION) && HPX_GCC_VERSION < 40700
+#      define HPX_THREADS_STACK_OVERHEAD 0x2800
+#    else
+#      define HPX_THREADS_STACK_OVERHEAD 0x800
+#    endif
+#  endif
+#endif
+
 #if !defined(HPX_SMALL_STACK_SIZE)
-#  if defined(BOOST_WINDOWS) && !defined(HPX_HAVE_GENERIC_CONTEXT_COROUTINES)
+#  if defined(__has_feature)
+#    if __has_feature(address_sanitizer)
+#      define HPX_SMALL_STACK_SIZE  0x20000       // 128kByte
+#    endif
+#  endif
+#endif
+
+#if !defined(HPX_SMALL_STACK_SIZE)
+#  if defined(HPX_WINDOWS) && !defined(HPX_HAVE_GENERIC_CONTEXT_COROUTINES)
 #    define HPX_SMALL_STACK_SIZE    0x4000        // 16kByte
 #  else
 #    if defined(HPX_DEBUG)
-#      define HPX_SMALL_STACK_SIZE  0x10000       // 64kByte
+#      define HPX_SMALL_STACK_SIZE  0x20000       // 128kByte
 #    else
-#      define HPX_SMALL_STACK_SIZE  0x8000        // 32kByte
+#      define HPX_SMALL_STACK_SIZE  0xC000        // 48kByte
 #    endif
 #  endif
 #endif
@@ -450,6 +481,16 @@
 // This limits how deep the internal recursion of future continuations will go
 // before a new operation is re-spawned.
 #if !defined(HPX_CONTINUATION_MAX_RECURSION_DEPTH)
+#  if defined(__has_feature)
+#    if __has_feature(address_sanitizer)
+// if we build under AddressSanitizer we set the max recursion depth to 1 to not
+// run into stack overflows.
+#      define HPX_CONTINUATION_MAX_RECURSION_DEPTH 1
+#    endif
+#  endif
+#endif
+
+#if !defined(HPX_CONTINUATION_MAX_RECURSION_DEPTH)
 #if defined(HPX_DEBUG)
 #define HPX_CONTINUATION_MAX_RECURSION_DEPTH 14
 #else
@@ -458,31 +499,28 @@
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
-// Older Boost versions do not have BOOST_NOEXCEPT defined
-#if !defined(BOOST_NOEXCEPT)
-#  define BOOST_NOEXCEPT
-#  define BOOST_NOEXCEPT_IF(Predicate)
-#  define BOOST_NOEXCEPT_EXPR(Expression) false
-#endif
-
-///////////////////////////////////////////////////////////////////////////////
-// Older Boost versions do not have BOOST_NOINLINE defined
-#if !defined(BOOST_NOINLINE)
-#  if defined(_MSC_VER)
-#    define BOOST_NOINLINE __declspec(noinline)
-#  else
-#    define BOOST_NOINLINE
-#  endif
-#endif
-
-///////////////////////////////////////////////////////////////////////////////
-// Older Boost versions do not have BOOST_NORETURN defined
-#if defined(BOOST_NORETURN)
-#  define HPX_ATTRIBUTE_NORETURN BOOST_NORETURN
-#elif defined(BOOST_ATTRIBUTE_NORETURN)
-#  define HPX_ATTRIBUTE_NORETURN BOOST_ATTRIBUTE_NORETURN
+#if defined(HPX_MSVC)
+#   define HPX_NOINLINE __declspec(noinline)
+#elif defined(__GNUC__)
+#   if defined(__CUDACC__)
+        // nvcc doesn't always parse __noinline
+#       define HPX_NOINLINE __attribute__ ((noinline))
+#   else
+#       define HPX_NOINLINE __attribute__ ((__noinline__))
+#   endif
 #else
-#  define HPX_ATTRIBUTE_NORETURN
+#   define HPX_NOINLINE
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
+#if !defined(HPX_ATTRIBUTE_NORETURN)
+#  if defined(_MSC_VER)
+#    define HPX_ATTRIBUTE_NORETURN __declspec(noreturn)
+#  elif defined(__GNUC__)
+#    define HPX_ATTRIBUTE_NORETURN __attribute__ ((__noreturn__))
+#  else
+#    define HPX_ATTRIBUTE_NORETURN
+#  endif
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -519,7 +557,7 @@
 #if !defined(HPX_NO_DEPRECATED)
 #  define HPX_DEPRECATED_MSG \
    "This function is deprecated and will be removed in the future."
-#  if defined(_MSC_VER)
+#  if defined(HPX_MSVC)
 #    define HPX_DEPRECATED(x) __declspec(deprecated(x))
 #  elif (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5))
 #    define HPX_DEPRECATED(x) __attribute__((__deprecated__(x)))

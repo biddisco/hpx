@@ -1,11 +1,11 @@
-//  Copyright (c) 2007-2013 Hartmut Kaiser
+//  Copyright (c) 2007-2016 Hartmut Kaiser
 //  Copyright (c)      2011 Bryce Lelbach
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#if !defined(HPX_UTIL_RUNTIME_CONFIGURATION_OCT_02_2008_0530PM)
-#define HPX_UTIL_RUNTIME_CONFIGURATION_OCT_02_2008_0530PM
+#ifndef HPX_UTIL_RUNTIME_CONFIGURATION_HPP
+#define HPX_UTIL_RUNTIME_CONFIGURATION_HPP
 
 #include <hpx/config.hpp>
 #include <hpx/runtime/agas_fwd.hpp>
@@ -13,12 +13,20 @@
 #include <hpx/runtime/threads/thread_enums.hpp>
 #include <hpx/util/ini.hpp>
 #include <hpx/util/plugin/dll.hpp>
-#include <hpx/plugins/plugin_registry_base.hpp>
 
-#include <boost/cstdint.hpp>
 
-#include <vector>
+#include <cstddef>
+#include <cstdint>
+#include <map>
+#include <memory>
 #include <string>
+#include <vector>
+
+///////////////////////////////////////////////////////////////////////////////
+namespace hpx { namespace plugins
+{
+    struct HPX_EXPORT plugin_registry_base;
+}}
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx { namespace util
@@ -44,8 +52,9 @@ namespace hpx { namespace util
         // any explicit command line options
         void reconfigure(std::vector<std::string> const& ini_defs);
 
-        std::vector<boost::shared_ptr<plugins::plugin_registry_base> >
-        load_modules();
+        std::vector<std::shared_ptr<plugins::plugin_registry_base> >
+            load_modules();
+
         void load_components_static(std::vector<
             components::static_factory_load_data_type> const& static_modules);
 
@@ -55,21 +64,19 @@ namespace hpx { namespace util
         agas::service_mode get_agas_service_mode() const;
 
         // initial number of localities
-        boost::uint32_t get_num_localities() const;
-        void set_num_localities(boost::uint32_t);
+        std::uint32_t get_num_localities() const;
+        void set_num_localities(std::uint32_t);
 
         // sequence number of first usable pu
-        boost::uint32_t get_first_used_core() const;
-        void set_first_used_core(boost::uint32_t);
+        std::uint32_t get_first_used_core() const;
+        void set_first_used_core(std::uint32_t);
 
         // Get the size of the ipc parcelport data buffer cache
         std::size_t get_ipc_data_buffer_cache_size() const;
 
         // Get AGAS client-side local cache size
         std::size_t get_agas_local_cache_size(
-            std::size_t dflt = HPX_INITIAL_AGAS_LOCAL_CACHE_SIZE) const;
-        std::size_t get_agas_local_cache_size_per_thread(
-            std::size_t dflt = HPX_AGAS_LOCAL_CACHE_SIZE_PER_THREAD) const;
+            std::size_t dflt = HPX_AGAS_LOCAL_CACHE_SIZE) const;
 
         bool get_agas_caching_mode() const;
 
@@ -98,6 +105,8 @@ namespace hpx { namespace util
 
         // Enable minimal deadlock detection for HPX threads
         bool enable_minimal_deadlock_detection() const;
+        bool enable_spinlock_deadlock_detection() const;
+        std::size_t get_spinlock_deadlock_detection_limit() const;
 
         // Returns the number of OS threads this locality is running.
         std::size_t get_os_thread_count() const;
@@ -121,8 +130,8 @@ namespace hpx { namespace util
         std::string get_endian_out() const;
 
         // Return maximally allowed message sizes
-        boost::uint64_t get_max_inbound_message_size() const;
-        boost::uint64_t get_max_outbound_message_size() const;
+        std::uint64_t get_max_inbound_message_size() const;
+        std::uint64_t get_max_outbound_message_size() const;
 
         std::map<std::string, hpx::util::plugin::dll> & modules()
         {
@@ -149,7 +158,7 @@ namespace hpx { namespace util
         void reconfigure();
 
     private:
-        mutable boost::uint32_t num_localities;
+        mutable std::uint32_t num_localities;
         std::ptrdiff_t small_stacksize;
         std::ptrdiff_t medium_stacksize;
         std::ptrdiff_t large_stacksize;
@@ -163,4 +172,4 @@ namespace hpx { namespace util
     };
 }}
 
-#endif
+#endif /*HPX_UTIL_RUNTIME_CONFIGURATION_HPP*/

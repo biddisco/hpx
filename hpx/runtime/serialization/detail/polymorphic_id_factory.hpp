@@ -8,20 +8,21 @@
 #ifndef HPX_SERIALIZATION_POLYMORPHIC_ID_FACTORY_HPP
 #define HPX_SERIALIZATION_POLYMORPHIC_ID_FACTORY_HPP
 
+#include <hpx/config.hpp>
+#include <hpx/throw_exception.hpp>
 #include <hpx/runtime/serialization/serialization_fwd.hpp>
 #include <hpx/runtime/serialization/detail/polymorphic_intrusive_factory.hpp>
 #include <hpx/traits/polymorphic_traits.hpp>
+#include <hpx/util/assert.hpp>
 #include <hpx/util/static.hpp>
-#include <hpx/util/safe_lexical_cast.hpp>
-#include <hpx/util/move.hpp>
-#include <hpx/exception.hpp>
 
 #include <boost/preprocessor/stringize.hpp>
-#include <boost/unordered_map.hpp>
 #include <boost/atomic.hpp>
 #include <boost/mpl/bool.hpp>
 
 #include <map>
+#include <string>
+#include <vector>
 
 #include <hpx/config/warnings_prefix.hpp>
 
@@ -29,15 +30,17 @@ namespace hpx { namespace serialization {
 
     namespace detail
     {
-        class id_registry : boost::noncopyable
+        class id_registry
         {
+            HPX_NON_COPYABLE(id_registry);
+
         public:
             typedef void* (*ctor_t) ();
             typedef std::map<std::string, ctor_t> typename_to_ctor_t;
             typedef std::map<std::string, boost::uint32_t> typename_to_id_t;
             typedef std::vector<ctor_t> cache_t;
 
-            BOOST_STATIC_CONSTEXPR boost::uint32_t invalid_id = ~0u;
+            HPX_STATIC_CONSTEXPR boost::uint32_t invalid_id = ~0u;
 
             void register_factory_function(const std::string& type_name,
                 ctor_t ctor)
@@ -125,8 +128,10 @@ namespace hpx { namespace serialization {
             cache_t cache;
         };
 
-        class polymorphic_id_factory : boost::noncopyable
+        class polymorphic_id_factory
         {
+            HPX_NON_COPYABLE(polymorphic_id_factory);
+
             typedef id_registry::ctor_t ctor_t;
             typedef id_registry::typename_to_ctor_t typename_to_ctor_t;
             typedef id_registry::typename_to_id_t typename_to_id_t;
@@ -141,8 +146,7 @@ namespace hpx { namespace serialization {
                 if (id > vec.size()) //-V104
                     HPX_THROW_EXCEPTION(serialization_error
                       , "polymorphic_id_factory::create"
-                      , "Unknown type descriptor " +
-                            util::safe_lexical_cast<std::string>(id));
+                      , "Unknown type descriptor " + std::to_string(id));
 
                 ctor_t ctor = vec[id]; //-V108
                 HPX_ASSERT(ctor != NULL);

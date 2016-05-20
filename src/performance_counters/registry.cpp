@@ -1,10 +1,10 @@
-//  Copyright (c) 2007-2013 Hartmut Kaiser
+//  Copyright (c) 2007-2015 Hartmut Kaiser
 //  Copyright (c)      2011 Bryce Lelbach
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <hpx/hpx_fwd.hpp>
+#include <hpx/config.hpp>
 #include <hpx/runtime/agas/interface.hpp>
 #include <hpx/runtime/components/server/create_component.hpp>
 #include <hpx/performance_counters/registry.hpp>
@@ -12,11 +12,16 @@
 #include <hpx/performance_counters/server/elapsed_time_counter.hpp>
 #include <hpx/performance_counters/server/statistics_counter.hpp>
 #include <hpx/performance_counters/server/arithmetics_counter.hpp>
+#include <hpx/util/bind.hpp>
 #include <hpx/util/function.hpp>
 #include <hpx/util/logging.hpp>
 
 #include <boost/format.hpp>
 #include <boost/regex.hpp>
+#include <boost/accumulators/statistics_fwd.hpp>
+
+#include <string>
+#include <vector>
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx { namespace performance_counters
@@ -291,18 +296,25 @@ namespace hpx { namespace performance_counters
         discover_counter_func discover_counter,
         discover_counters_mode mode, error_code& ec)
     {
+        // Introducing this temporary silence a report about a potential memory
+        // from clang's static analyzer
+        discover_counter_func discover_counter_;
         if (mode == discover_counters_full)
         {
             using hpx::util::placeholders::_1;
-            discover_counter = hpx::util::bind(&expand_counter_info, _1,
-                discover_counter, boost::ref(ec));
+            discover_counter_ = hpx::util::bind(&expand_counter_info, _1,
+                std::move(discover_counter), boost::ref(ec));
+        }
+        else
+        {
+            discover_counter_ = std::move(discover_counter);
         }
 
         for (counter_type_map_type::value_type const& d : countertypes_)
         {
             if (!d.second.discover_counters_.empty() &&
                 !d.second.discover_counters_(
-                      d.second.info_, discover_counter, mode, ec))
+                      d.second.info_, discover_counter_, mode, ec))
             {
                 return status_invalid_data;
             }
@@ -432,8 +444,9 @@ namespace hpx { namespace performance_counters
     counter_status registry::create_raw_counter_value(counter_info const& info,
         boost::int64_t* countervalue, naming::gid_type& id, error_code& ec)
     {
+        using util::placeholders::_1;
         hpx::util::function_nonser<boost::int64_t(bool)> func(
-            boost::bind(wrap_counter, countervalue, ::_1));
+            util::bind(wrap_counter, countervalue, _1));
         return create_raw_counter(info, func, id, ec);
     }
 
@@ -447,8 +460,9 @@ namespace hpx { namespace performance_counters
         hpx::util::function_nonser<boost::int64_t()> const& f, naming::gid_type& id,
         error_code& ec)
     {
+        using util::placeholders::_1;
         hpx::util::function_nonser<boost::int64_t(bool)> func(
-            boost::bind(&wrap_raw_counter, f, ::_1));
+            util::bind(&wrap_raw_counter, f, _1));
         return create_raw_counter(info, func, id, ec);
     }
 

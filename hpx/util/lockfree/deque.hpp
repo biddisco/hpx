@@ -18,12 +18,12 @@
 #if !defined(HPX_F985C12D_03E7_4E25_8CB1_018A56A265E0)
 #define HPX_F985C12D_03E7_4E25_8CB1_018A56A265E0
 
+#include <hpx/config.hpp>
+
 #include <iostream>
 #include <boost/thread/thread.hpp>
 
-#include <boost/config.hpp>
 #include <boost/atomic.hpp>
-#include <boost/noncopyable.hpp>
 
 #include <boost/lockfree/detail/tagged_ptr.hpp>
 
@@ -141,8 +141,12 @@ template <typename T,
           typename freelist_t = caching_freelist_t,
           typename Alloc = std::allocator<T>
           >
-struct deque: private boost::noncopyable
+struct deque
 {
+  private:
+    HPX_NON_COPYABLE(deque);
+
+  public:
     typedef deque_node<T> node;
     typedef typename node::pointer node_pointer;
     typedef typename node::atomic_pointer atomic_node_pointer;
@@ -165,8 +169,8 @@ struct deque: private boost::noncopyable
     anchor anchor_;
     pool pool_;
 
-    BOOST_STATIC_CONSTANT(int, //-V103
-        padding_size = BOOST_LOCKFREE_CACHELINE_BYTES - sizeof(anchor));
+    HPX_STATIC_CONSTEXPR int
+        padding_size = BOOST_LOCKFREE_CACHELINE_BYTES - sizeof(anchor); //-V103
     char padding[padding_size];
 
     node* alloc_node(node* lptr, node* rptr, T const& v,

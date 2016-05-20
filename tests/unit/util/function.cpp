@@ -5,6 +5,7 @@
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <hpx/hpx.hpp>
 #include <hpx/hpx_init.hpp>
 #include <hpx/util/function.hpp>
 
@@ -173,7 +174,7 @@ int hpx_main(variables_map& vm)
 {
     {
         {
-            if (sizeof(small_object) <= sizeof(void*))
+            if (sizeof(small_object) <= hpx::util::detail::vtable::function_storage_size)
                 std::cout << "object is small\n";
             else
                 std::cout << "object is large\n";
@@ -194,7 +195,7 @@ int hpx_main(variables_map& vm)
         }
 
         {
-            if (sizeof(big_object) <= sizeof(void*))
+            if (sizeof(big_object) <= hpx::util::detail::vtable::function_storage_size)
                 std::cout << "object is small\n";
             else
                 std::cout << "object is large\n";
@@ -219,7 +220,7 @@ int hpx_main(variables_map& vm)
     // non serializable version
     {
         {
-            if (sizeof(small_object) <= sizeof(void*))
+            if (sizeof(small_object) <= hpx::util::detail::vtable::function_storage_size)
                 std::cout << "object is small\n";
             else
                 std::cout << "object is large\n";
@@ -240,7 +241,7 @@ int hpx_main(variables_map& vm)
         }
 
         {
-            if (sizeof(big_object) <= sizeof(void*))
+            if (sizeof(big_object) <= hpx::util::detail::vtable::function_storage_size)
                 std::cout << "object is small\n";
             else
                 std::cout << "object is large\n";

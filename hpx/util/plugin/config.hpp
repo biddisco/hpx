@@ -3,31 +3,29 @@
 // (See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#if !defined(HPX_PLUGIN_CONFIG_HPP_HK_2005_11_07)
-#define HPX_PLUGIN_CONFIG_HPP_HK_2005_11_07
+#ifndef HPX_UTIL_PLUGIN_CONFIG_HPP
+#define HPX_UTIL_PLUGIN_CONFIG_HPP
 
 #include <hpx/config.hpp>
-#include <boost/config.hpp>
+
+#include <boost/preprocessor/stringize.hpp>
 
 ///////////////////////////////////////////////////////////////////////////////
 #if !defined(HPX_PLUGIN_NO_EXPORT_API)
 
-# if defined(BOOST_WINDOWS)
+#define HPX_PLUGIN_EXPORT_API HPX_SYMBOL_EXPORT
 
-#   define HPX_PLUGIN_EXPORT_API      __declspec(dllexport)
+# if defined(HPX_WINDOWS)
+
 #   define HPX_PLUGIN_API             __cdecl
 
-# else // BOOST_WINDOWS
-
-#   if defined(HPX_HAVE_PLUGIN_GCC_HIDDEN_VISIBILITY)
-#     define HPX_PLUGIN_EXPORT_API    __attribute__((visibility ("default")))
-#   endif
+# else // HPX_WINDOWS
 
 #   if defined(__GNUC__) && defined(__i386)
 #     define HPX_PLUGIN_API           __attribute__((cdecl))
 #   endif
 
-#endif // BOOST_WINDOWS
+#endif // HPX_WINDOWS
 
 #endif // !HPX_PLUGIN_NO_EXPORT_API
 
@@ -72,4 +70,4 @@
     BOOST_PP_STRINGIZE(HPX_PLUGIN_SYMBOLS_PREFIX)                             \
 /**/
 
-#endif // HPX_PLUGIN_CONFIG_HPP_HK_2005_11_07
+#endif /*HPX_UTIL_PLUGIN_CONFIG_HPP*/

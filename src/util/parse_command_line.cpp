@@ -6,13 +6,12 @@
 #include <hpx/runtime.hpp>
 #include <hpx/util/ini.hpp>
 #include <hpx/util/parse_command_line.hpp>
-#include <hpx/util/runtime_configuration.hpp>
 #include <hpx/util/safe_lexical_cast.hpp>
 
-#include <string>
-#include <stdexcept>
 #include <cctype>
 #include <fstream>
+#include <stdexcept>
+#include <string>
 #include <vector>
 
 #include <boost/filesystem.hpp>
@@ -408,7 +407,7 @@ namespace hpx { namespace util
                 ("hpx:expect-connecting-localities",
                   "this locality expects other localities to dynamically connect "
                   "(implied if the number of initial localities is larger than 1)")
-#if defined(HPX_HAVE_HWLOC) || defined(BOOST_WINDOWS)
+#if defined(HPX_HAVE_HWLOC) || defined(HPX_WINDOWS)
                 ("hpx:pu-offset", value<std::size_t>(),
                   "the first processing unit this instance of HPX should be "
                   "run on (default: 0), valid for "
@@ -499,7 +498,7 @@ namespace hpx { namespace util
                   "parcel transport logs to the target destination")
                 // enable debug output from command line handling
                 ("hpx:debug-clp", "debug command line processing")
-#if defined(_POSIX_VERSION) || defined(BOOST_WINDOWS)
+#if defined(_POSIX_VERSION) || defined(HPX_WINDOWS)
                 ("hpx:attach-debugger",
                   value<std::string>()->implicit_value("startup"),
                   "wait for a debugger to be attached, possible values: "
@@ -671,7 +670,7 @@ namespace hpx { namespace util
         std::vector<std::string>* unregistered_options)
     {
         using namespace boost::program_options;
-#if defined(BOOST_WINDOWS)
+#if defined(HPX_WINDOWS)
         std::vector<std::string> args = split_winmain(cmdline);
 #else
         std::vector<std::string> args = split_unix(cmdline);
@@ -762,13 +761,13 @@ namespace hpx { namespace util
             }
             else if (boost::any_cast<double>(&value)) {
                 add_as_option(command_line, v.first,
-                    boost::lexical_cast<std::string>(v.second.as<double>()));
+                    std::to_string(v.second.as<double>()));
                 if (!command_line.empty())
                     command_line += " ";
             }
             else if (boost::any_cast<int>(&value)) {
                 add_as_option(command_line, v.first,
-                    boost::lexical_cast<std::string>(v.second.as<int>()));
+                    std::to_string(v.second.as<int>()));
                 if (!command_line.empty())
                     command_line += " ";
             }

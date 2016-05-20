@@ -20,6 +20,8 @@
 
 #include <boost/shared_array.hpp>
 
+#include <vector>
+
 #include "print_time_results.hpp"
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -217,7 +219,7 @@ struct stepper
     static partition heat_part(partition const& left, partition const& middle,
         partition const& right)
     {
-        using hpx::lcos::local::dataflow;
+        using hpx::dataflow;
         using hpx::util::unwrapped;
 
         return dataflow(
@@ -249,7 +251,7 @@ HPX_PLAIN_ACTION(stepper::heat_part, heat_part_action);
 // time steps
 stepper::space stepper::do_work(std::size_t np, std::size_t nx, std::size_t nt)
 {
-    using hpx::lcos::local::dataflow;
+    using hpx::dataflow;
 
     // U[t][i] is the state of position i at time t.
     std::vector<space> U(2);

@@ -1,16 +1,19 @@
-//  Copyright (c) 2007-2015 Hartmut Kaiser
+//  Copyright (c) 2007-2016 Hartmut Kaiser
 //  Copyright (c) 2015 Nidhi Makhijani
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <hpx/hpx_fwd.hpp>
+#include <hpx/config.hpp>
+#include <hpx/error_code.hpp>
 #include <hpx/runtime/threads/thread_executor.hpp>
 #include <hpx/runtime/threads/resource_manager.hpp>
 #include <hpx/lcos/local/once.hpp>
 #include <hpx/util/reinitializable_static.hpp>
 
-#include <boost/thread/locks.hpp>
+#include <mutex>
+
+#include <vector>
 
 namespace hpx { namespace threads
 {
@@ -51,7 +54,7 @@ namespace hpx { namespace threads
         if (ec1) max_punits = get_os_thread_count();
 
         // lock the resource manager from this point on
-        boost::lock_guard<mutex_type> l(mtx_);
+        std::lock_guard<mutex_type> l(mtx_);
 
         // allocate initial resources for the given executor
         std::vector<std::pair<std::size_t, std::size_t> > cores =
@@ -75,7 +78,7 @@ namespace hpx { namespace threads
     // the resource manager is locked while executing this function
     std::size_t resource_manager::reserve_processing_units(
         std::size_t use_count, std::size_t desired,
-        std::vector<BOOST_SCOPED_ENUM(punit_status)>& available_punits)
+        std::vector<punit_status>& available_punits)
     {
         std::size_t available = 0;
         for (std::size_t i = 0; i != punits_.size(); ++i)
@@ -95,7 +98,7 @@ namespace hpx { namespace threads
     // calls reserve_processing_units
     std::size_t resource_manager::reserve_at_higher_use_count(
             std::size_t desired,
-            std::vector<BOOST_SCOPED_ENUM(punit_status)>& available_punits)
+            std::vector<punit_status>& available_punits)
     {
         std::size_t use_count = 1;
         std::size_t available = 0;
@@ -117,7 +120,7 @@ namespace hpx { namespace threads
     // release_borrowed_cores - scheduler should release all its borrowed cores
     bool resource_manager::release_scheduler_resources(
         allocation_data_map_type::iterator it, std::size_t number_to_free,
-        std::vector<BOOST_SCOPED_ENUM(punit_status)>& available_punits)
+        std::vector<punit_status>& available_punits)
     {
         static_allocation_data st;
         std::size_t borrowed_cores;
@@ -186,7 +189,7 @@ namespace hpx { namespace threads
     // available cores for the new scheduler
     std::size_t resource_manager::release_cores_on_existing_schedulers(
         std::size_t number_to_free,
-        std::vector<BOOST_SCOPED_ENUM(punit_status)>& available_punits)
+        std::vector<punit_status>& available_punits)
     {
         // Ask previously allocated schedulers to release surplus cores,
         // until either the request is satisfied, or we're out of
@@ -222,7 +225,7 @@ namespace hpx { namespace threads
     // and reserve any freed cores for the new scheduler.
     std::size_t resource_manager::redistribute_cores_among_all(
         std::size_t reserved, std::size_t min_punits, std::size_t max_punits,
-        std::vector<BOOST_SCOPED_ENUM(punit_status)>& available_punits)
+        std::vector<punit_status>& available_punits)
     {
         std::size_t available = 0;
 
@@ -293,7 +296,7 @@ namespace hpx { namespace threads
                 while (true)
                 {
                     // scaling factor
-                    scaling = total_allocated/total_desired;
+                    scaling = double(total_allocated) / total_desired;
 
                     for (allocation_data_map_type::iterator it =
                             scaled_static_allocation_data.begin();
@@ -374,7 +377,8 @@ namespace hpx { namespace threads
 
                         if (st.min_proxy_cores_ > st.allocation_)
                         {
-                            double new_desired = st.min_proxy_cores_/scaling;
+                            double new_desired =
+                                double(st.min_proxy_cores_) / scaling;
 
                             // Bias desired to get allocation closer to min.
                             total_desired += new_desired - st.adjusted_desired_;
@@ -505,7 +509,7 @@ namespace hpx { namespace threads
         std::vector<coreids_type> core_ids;
 
         // array of available processing units
-        std::vector<BOOST_SCOPED_ENUM(punit_status)> available_punits(
+        std::vector<punit_status> available_punits(
             get_os_thread_count(), punit_status::unassigned);
 
         // find all available processing units with zero use count
@@ -531,7 +535,7 @@ namespace hpx { namespace threads
                         release_cores_to_min, available_punits);
                     if (reserved < min_punits)
                     {
-                        reserved += reserve_at_higher_use_count(
+                        reserve_at_higher_use_count(
                             min_punits - reserved , available_punits);
                     }
                 }
@@ -574,7 +578,7 @@ namespace hpx { namespace threads
     // Stop the executor identified with the given cookie
     void resource_manager::stop_executor(std::size_t cookie, error_code& ec)
     {
-        boost::lock_guard<mutex_type> l(mtx_);
+        std::lock_guard<mutex_type> l(mtx_);
         proxies_map_type::iterator it = proxies_.find(cookie);
         if (it == proxies_.end()) {
             HPX_THROWS_IF(ec, bad_parameter, "resource_manager::detach",
@@ -593,7 +597,7 @@ namespace hpx { namespace threads
     // Detach the executor identified with the given cookie
     void resource_manager::detach(std::size_t cookie, error_code& ec)
     {
-        boost::lock_guard<mutex_type> l(mtx_);
+        std::lock_guard<mutex_type> l(mtx_);
         proxies_map_type::iterator it = proxies_.find(cookie);
         if (it == proxies_.end()) {
             HPX_THROWS_IF(ec, bad_parameter, "resource_manager::detach",

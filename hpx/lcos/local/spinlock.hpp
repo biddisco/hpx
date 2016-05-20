@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 //  Copyright (c) 2011 Bryce Lelbach
-//  Copyright (c) 2011-2012 Hartmut Kaiser
+//  Copyright (c) 2011-2016 Hartmut Kaiser
 //  Copyright (c) 2014 Thomas Heller
 //
 //  Copyright (c) 2008 Peter Dimov
@@ -13,18 +13,20 @@
 #define HPX_B3A83B49_92E0_4150_A551_488F9F5E1113
 
 #include <hpx/config.hpp>
-#include <hpx/config/emulate_deleted.hpp>
-#include <hpx/util/move.hpp>
+#ifdef HPX_HAVE_SPINLOCK_DEADLOCK_DETECTION
+#include <hpx/throw_exception.hpp>
+#endif
+#include <hpx/runtime/threads/thread_helpers.hpp>
 #include <hpx/util/itt_notify.hpp>
 #include <hpx/util/register_locks.hpp>
-#include <hpx/runtime/threads/thread_helpers.hpp>
 
-#include <boost/thread/locks.hpp>
-
-#if defined(BOOST_WINDOWS)
+#if defined(HPX_WINDOWS)
 #  include <boost/smart_ptr/detail/spinlock.hpp>
+#  if !defined( BOOST_SP_HAS_SYNC )
+#    include <boost/detail/interlocked.hpp>
+#  endif
 #else
-#  if !defined(__ANDROID__) && !defined(ANDROID)
+#  if !defined(__ANDROID__) && !defined(ANDROID) && !defined(__arm__)
 #    include <boost/smart_ptr/detail/spinlock_sync.hpp>
 #    if defined( __ia64__ ) && defined( __INTEL_COMPILER )
 #      include <ia64intrin.h>
@@ -32,12 +34,22 @@
 #  endif
 #endif
 
+#include <cstddef>
+
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx { namespace lcos { namespace local
 {
+#ifdef HPX_HAVE_SPINLOCK_DEADLOCK_DETECTION
+    HPX_API_EXPORT extern bool spinlock_break_on_deadlock;
+    HPX_API_EXPORT extern std::size_t spinlock_deadlock_detection_limit;
+#endif
+
     /// boost::mutex-compatible spinlock class
     struct spinlock
     {
+    private:
+        HPX_NON_COPYABLE(spinlock);
+
     private:
 #if defined(__ANDROID__) && defined(ANDROID)
         int v_;
@@ -63,11 +75,11 @@ namespace hpx { namespace lcos { namespace local
                 if (hpx::threads::get_self_ptr())
                 {
                     hpx::this_thread::suspend(hpx::threads::pending,
-                        "spinlock::yield");
+                        "hpx::lcos::local::spinlock::yield");
                 }
                 else
                 {
-#if defined(BOOST_WINDOWS)
+#if defined(HPX_WINDOWS)
                     Sleep(0);
 #elif defined(BOOST_HAS_PTHREADS)
                     sched_yield();
@@ -77,14 +89,24 @@ namespace hpx { namespace lcos { namespace local
             }
             else
             {
+#ifdef HPX_HAVE_SPINLOCK_DEADLOCK_DETECTION
+                if (spinlock_break_on_deadlock &&
+                    k > spinlock_deadlock_detection_limit)
+                {
+                    HPX_THROW_EXCEPTION(deadlock,
+                        "hpx::lcos::local::spinlock::yield",
+                        "possible deadlock detected");
+                }
+#endif
+
                 if (hpx::threads::get_self_ptr())
                 {
                     hpx::this_thread::suspend(hpx::threads::pending,
-                        "local::spinlock::yield");
+                        "hpx::lcos::local::spinlock::yield");
                 }
                 else
                 {
-#if defined(BOOST_WINDOWS)
+#if defined(HPX_WINDOWS)
                     Sleep(1);
 #elif defined(BOOST_HAS_PTHREADS)
                     // g++ -Wextra warns on {} or {0}
@@ -109,8 +131,6 @@ namespace hpx { namespace lcos { namespace local
         {
             HPX_ITT_SYNC_CREATE(this, desc, "");
         }
-
-        HPX_NON_COPYABLE(spinlock);
 
         ~spinlock()
         {
@@ -178,10 +198,6 @@ namespace hpx { namespace lcos { namespace local
             __sync_lock_release(&v_);
 #endif
         }
-
-    public:
-        typedef boost::unique_lock<spinlock> scoped_lock;
-        typedef boost::detail::try_lock_wrapper<spinlock> scoped_try_lock;
     };
 }}}
 

@@ -21,12 +21,13 @@
 #ifndef JT28092007_format_write_detail_HPP_DEFINED
 #define JT28092007_format_write_detail_HPP_DEFINED
 
-#if defined(_MSC_VER) && (_MSC_VER >= 1020)
+#if defined(HPX_MSVC) && (HPX_MSVC >= 1020)
 # pragma once
 #endif
 
 #include <hpx/util/logging/detail/fwd.hpp>
 #include <boost/type_traits/is_base_of.hpp>
+#include <memory>
 
 namespace hpx { namespace util { namespace logging {
 

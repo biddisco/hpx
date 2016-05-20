@@ -8,6 +8,8 @@
 
 #include <hpx/runtime/serialization/serialize.hpp>
 
+#include <vector>
+
 ///////////////////////////////////////////////////////////////////////////////
 #define ZEROCOPY_DATASIZE   1024*1024
 
@@ -28,12 +30,12 @@ public:
     typedef std::size_t size_type;
     typedef std::ptrdiff_t difference_type;
 
-    pointer_allocator() BOOST_NOEXCEPT
+    pointer_allocator() HPX_NOEXCEPT
       : pointer_(0), size_(0)
     {
     }
 
-    pointer_allocator(pointer p, size_type size) BOOST_NOEXCEPT
+    pointer_allocator(pointer p, size_type size) HPX_NOEXCEPT
       : pointer_(p), size_(size)
     {
     }

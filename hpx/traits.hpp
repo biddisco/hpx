@@ -1,4 +1,4 @@
-//  Copyright (c) 2007-2014 Hartmut Kaiser
+//  Copyright (c) 2007-2016 Hartmut Kaiser
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -6,8 +6,19 @@
 #if !defined(HPX_TRAITS_OCT_26_2011_0838AM)
 #define HPX_TRAITS_OCT_26_2011_0838AM
 
+#include <hpx/config.hpp>
+
 namespace hpx { namespace traits
 {
+    namespace detail
+    {
+        // wraps int so that int argument is favored over wrap_int
+        struct wrap_int
+        {
+            HPX_CONSTEXPR wrap_int(int) {}
+        };
+    }
+
     ///////////////////////////////////////////////////////////////////////////
     template <typename Result, typename Enable = void>
     struct promise_remote_result;
@@ -18,6 +29,10 @@ namespace hpx { namespace traits
     ///////////////////////////////////////////////////////////////////////////
     template <typename Result, typename RemoteResult, typename Enable = void>
     struct get_remote_result;
+
+    ///////////////////////////////////////////////////////////////////////////
+    template <typename F, typename Enable = void>
+    struct get_function_address;
 
     ///////////////////////////////////////////////////////////////////////////
     template <typename Component, typename Enable = void>
@@ -31,6 +46,9 @@ namespace hpx { namespace traits
 
     template <typename Component, typename Enable = void>
     struct component_type_is_compatible;
+
+    template <typename Component, typename Enable = void>
+    struct component_supports_migration;
 
     ///////////////////////////////////////////////////////////////////////////
     template <typename T, typename Enable = void>
@@ -64,6 +82,12 @@ namespace hpx { namespace traits
     ///////////////////////////////////////////////////////////////////////////
     template <typename Action, typename Enable = void>
     struct is_action;
+
+    template <typename Action, typename Component, typename Enable = void>
+    struct is_valid_action;
+
+    template <typename Action, typename Enable = void>
+    struct extract_action;
 
     template <typename Action, typename Enable = void>
     struct is_continuation;
@@ -103,6 +127,9 @@ namespace hpx { namespace traits
     template <typename Action, typename Enable = void>
     struct action_schedule_thread;
 
+    template <typename Action, typename Enable = void>
+    struct action_was_object_migrated;
+
     ///////////////////////////////////////////////////////////////////////////
     template <typename A, typename Enable = void>
     struct is_chunk_allocator;
@@ -111,16 +138,36 @@ namespace hpx { namespace traits
     struct default_chunk_size;
 
     ///////////////////////////////////////////////////////////////////////////
+    template <typename Iterator, typename Enable = void>
+    struct is_iterator;
+
+    template <typename Iterator, typename Enable = void>
+    struct is_input_iterator;
+
+    template <typename Iterator, typename Enable = void>
+    struct is_output_iterator;
+
+    template <typename Iterator, typename Enable = void>
+    struct is_forward_iterator;
+
+    template <typename Iterator, typename Enable = void>
+    struct is_bidirectional_iterator;
+
+    template <typename Iterator, typename Enable = void>
+    struct is_random_access_iterator;
+
+    ///////////////////////////////////////////////////////////////////////////
     template <typename Range, typename Enable = void>
     struct is_range;
 
-    template <typename Future, typename Enable = void>
+    ///////////////////////////////////////////////////////////////////////////
+    template <typename Future>
     struct is_future;
 
-    template <typename Future, typename Enable = void>
+    template <typename Future>
     struct future_traits;
 
-    template <typename Future, typename Enable = void>
+    template <typename Future>
     struct future_access;
 
     template <typename Range, typename Enable = void>
@@ -164,6 +211,9 @@ namespace hpx { namespace traits
     template <typename Iterator, typename Enable = void>
     struct segmented_local_iterator_traits;
 
+    template <typename Iterator, typename Enable = void>
+    struct is_segmented_local_iterator;
+
     template <typename T, typename Enable = void>
     struct projected_iterator;
 
@@ -179,6 +229,16 @@ namespace hpx { namespace traits
 
     template <typename T, typename Enable = void>
     struct is_executor_parameters;
+
+    ///////////////////////////////////////////////////////////////////////////
+    struct general_pointer_tag {};
+
+#if defined(HPX_HAVE_CXX11_STD_IS_TRIVIALLY_COPYABLE)
+    struct trivially_copyable_pointer_tag : general_pointer_tag {};
+#endif
+
+    template <typename Source, typename Dest>
+    general_pointer_tag get_pointer_category(Source const&, Dest const&);
 }}
 
 #endif

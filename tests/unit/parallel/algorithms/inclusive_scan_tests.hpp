@@ -14,7 +14,47 @@
 #include <boost/iterator/counting_iterator.hpp>
 #include <boost/range/functions.hpp>
 
+#include <vector>
+
 #include "test_utils.hpp"
+
+///////////////////////////////////////////////////////////////////////////////
+void inclusive_scan_benchmark()
+{
+    try {
+      std::vector<double> c(100000000);
+      std::vector<double> d(c.size());
+      std::fill(boost::begin(c), boost::end(c), std::size_t(1));
+
+      double const val(0);
+      auto op =
+          [val](double v1, double v2) {
+              return v1 + v2;
+          };
+
+      hpx::util::high_resolution_timer t;
+      hpx::parallel::inclusive_scan(hpx::parallel::par,
+          boost::begin(c), boost::end(c), boost::begin(d),
+          val, op);
+      double elapsed = t.elapsed();
+
+      // verify values
+      std::vector<double> e(c.size());
+      hpx::parallel::v1::detail::sequential_inclusive_scan(
+          boost::begin(c), boost::end(c), boost::begin(e), val, op);
+
+      bool ok = std::equal(boost::begin(d), boost::end(d), boost::begin(e));
+      HPX_TEST(ok);
+      if (ok) {
+          std::cout << "<DartMeasurement name=\"InclusiveScanTime\" \n"
+              << "type=\"numeric/double\">" << elapsed << "</DartMeasurement> \n";
+      }
+    }
+    catch (...)
+    {
+      HPX_TEST(false);
+    }
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 template <typename ExPolicy, typename IteratorTag>
@@ -367,7 +407,7 @@ void test_inclusive_scan_validate(ExPolicy p, std::vector<int> &a, std::vector<i
     //
     for (int i=0; i<static_cast<int>(b.size()); ++i) {
         // counting from zero,
-        int value = b[i];
+        int value = b[i]; //-V108
         int expected_value  = check_n_triangle(i);
         if (!HPX_TEST(value == expected_value)) break;
     }
@@ -382,7 +422,7 @@ void test_inclusive_scan_validate(ExPolicy p, std::vector<int> &a, std::vector<i
     //
     for (int i=0; i<static_cast<int>(b.size()); ++i) {
         // counting from 1, use i+1
-        int value = b[i];
+        int value = b[i]; //-V108
         int expected_value  = check_n_triangle(i+1);
         if (!HPX_TEST(value == expected_value)) break;
     }
@@ -395,7 +435,7 @@ void test_inclusive_scan_validate(ExPolicy p, std::vector<int> &a, std::vector<i
                                   [](int bar, int baz){ return bar+baz; });
     //
     for (int i=0; i<static_cast<int>(b.size()); ++i) {
-        int value = b[i];
+        int value = b[i]; //-V108
         int expected_value  = check_n_const(i+1, FILL_VALUE);
         if (!HPX_TEST(value == expected_value)) break;
     }

@@ -14,10 +14,11 @@
 #include <cstdlib>
 #include <cstdarg>
 
-#include <list>
-#include <vector>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <list>
+#include <string>
+#include <vector>
 
 #include <hpx/exception.hpp>
 #include <hpx/util/assert.hpp>
@@ -28,15 +29,13 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/replace.hpp>
-#include <boost/bind.hpp>
 #include <boost/regex.hpp>
-#include <boost/lexical_cast.hpp>
 #include <boost/assign/std/vector.hpp>
 
 #ifdef __APPLE__
 #include <crt_externs.h>
 #define environ (*_NSGetEnviron())
-#elif !defined(BOOST_WINDOWS)
+#elif !defined(HPX_WINDOWS)
 extern char **environ;
 #endif
 
@@ -616,7 +615,7 @@ void section::line_msg(std::string msg, std::string const& file,
 {
     msg += " " + file;
     if (lnum > 0)
-        msg += ": line " + boost::lexical_cast<std::string>(lnum);
+        msg += ": line " + std::to_string(lnum);
     if (!line.empty())
         msg += " (offending entry: " + line + ")";
 

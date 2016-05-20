@@ -10,17 +10,16 @@
 #if !defined(HPX_LCOS_LOCAL_SPINLOCK_NO_BACKOFF)
 #define HPX_LCOS_LOCAL_SPINLOCK_NO_BACKOFF
 
-#include <hpx/config/emulate_deleted.hpp>
-#include <hpx/util/move.hpp>
+#include <hpx/config.hpp>
 #include <hpx/util/itt_notify.hpp>
 #include <hpx/util/register_locks.hpp>
 #include <hpx/runtime/threads/thread_helpers.hpp>
 
-#include <boost/thread/locks.hpp>
-#include <boost/config.hpp>
-
-#if defined(BOOST_WINDOWS)
+#if defined(HPX_WINDOWS)
 #  include <boost/smart_ptr/detail/spinlock.hpp>
+#  if !defined( BOOST_SP_HAS_SYNC )
+#    include <boost/detail/interlocked.hpp>
+#  endif
 #else
 #  include <boost/smart_ptr/detail/spinlock_sync.hpp>
 #  if defined( __ia64__ ) && defined( __INTEL_COMPILER )
@@ -35,6 +34,9 @@ namespace hpx { namespace lcos { namespace local
     struct spinlock_no_backoff
     {
     private:
+        HPX_NON_COPYABLE(spinlock_no_backoff);
+
+    private:
         boost::uint64_t v_;
 
     public:
@@ -42,8 +44,6 @@ namespace hpx { namespace lcos { namespace local
         {
             HPX_ITT_SYNC_CREATE(this, "hpx::lcos::local::spinlock_no_backoff", "");
         }
-
-        HPX_NON_COPYABLE(spinlock_no_backoff);
 
         ~spinlock_no_backoff()
         {
@@ -97,11 +97,7 @@ namespace hpx { namespace lcos { namespace local
             HPX_ITT_SYNC_RELEASED(this);
             util::unregister_lock(this);
         }
-
-        typedef boost::unique_lock<spinlock_no_backoff> scoped_lock;
-        typedef boost::detail::try_lock_wrapper<spinlock_no_backoff> scoped_try_lock;
     };
 }}}
 
 #endif // HPX_B3A83B49_92E0_4150_A551_488F9F5E1113
-

@@ -10,6 +10,10 @@
 
 #include <boost/range/functions.hpp>
 
+#include <numeric>
+#include <string>
+#include <vector>
+
 #include "test_utils.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -56,7 +60,7 @@ void test_remove_copy_async(ExPolicy p, IteratorTag)
     std::fill(boost::begin(c), middle, 1);
     std::fill(middle, boost::end(c), 2);
 
-    hpx::future<base_iterator> f =
+    auto f =
         hpx::parallel::remove_copy(p, iterator(boost::begin(c)),
             iterator(boost::end(c)), boost::begin(d), std::size_t(2));
 
@@ -151,14 +155,16 @@ void test_remove_copy()
     test_remove_copy_async(seq(task), IteratorTag());
     test_remove_copy_async(par(task), IteratorTag());
 
+#if defined(HPX_HAVE_GENERIC_EXECUTION_POLICY)
     test_remove_copy(execution_policy(seq), IteratorTag());
     test_remove_copy(execution_policy(par), IteratorTag());
     test_remove_copy(execution_policy(par_vec), IteratorTag());
 
     test_remove_copy(execution_policy(seq(task)), IteratorTag());
     test_remove_copy(execution_policy(par(task)), IteratorTag());
+#endif
 
-    //assure output iterator will work
+    // assure output iterator will work
     test_remove_copy_outiter(seq, IteratorTag());
     test_remove_copy_outiter(par, IteratorTag());
     test_remove_copy_outiter(par_vec, IteratorTag());
@@ -166,12 +172,14 @@ void test_remove_copy()
     test_remove_copy_outiter_async(seq(task), IteratorTag());
     test_remove_copy_outiter_async(par(task), IteratorTag());
 
+#if defined(HPX_HAVE_GENERIC_EXECUTION_POLICY)
     test_remove_copy_outiter(execution_policy(seq), IteratorTag());
     test_remove_copy_outiter(execution_policy(par), IteratorTag());
     test_remove_copy_outiter(execution_policy(par_vec), IteratorTag());
 
     test_remove_copy_outiter(execution_policy(seq(task)), IteratorTag());
     test_remove_copy_outiter(execution_policy(par(task)), IteratorTag());
+#endif
 }
 
 void remove_copy_test()
@@ -232,7 +240,7 @@ void test_remove_copy_exception_async(ExPolicy p, IteratorTag)
     bool caught_exception = false;
     bool returned_from_algorithm = false;
     try {
-        hpx::future<base_iterator> f =
+        auto f =
             hpx::parallel::remove_copy(p,
                 decorated_iterator(
                     boost::begin(c),
@@ -270,11 +278,13 @@ void test_remove_copy_exception()
     test_remove_copy_exception_async(seq(task), IteratorTag());
     test_remove_copy_exception_async(par(task), IteratorTag());
 
+#if defined(HPX_HAVE_GENERIC_EXECUTION_POLICY)
     test_remove_copy_exception(execution_policy(seq), IteratorTag());
     test_remove_copy_exception(execution_policy(par), IteratorTag());
 
     test_remove_copy_exception(execution_policy(seq(task)), IteratorTag());
     test_remove_copy_exception(execution_policy(par(task)), IteratorTag());
+#endif
 }
 
 void remove_copy_exception_test()
@@ -334,7 +344,7 @@ void test_remove_copy_bad_alloc_async(ExPolicy p, IteratorTag)
     bool caught_bad_alloc = false;
     bool returned_from_algorithm = false;
     try {
-        hpx::future<base_iterator> f =
+        auto f =
             hpx::parallel::remove_copy(p,
                 decorated_iterator(
                     boost::begin(c),
@@ -371,11 +381,13 @@ void test_remove_copy_bad_alloc()
     test_remove_copy_bad_alloc_async(seq(task), IteratorTag());
     test_remove_copy_bad_alloc_async(par(task), IteratorTag());
 
+#if defined(HPX_HAVE_GENERIC_EXECUTION_POLICY)
     test_remove_copy_bad_alloc(execution_policy(seq), IteratorTag());
     test_remove_copy_bad_alloc(execution_policy(par), IteratorTag());
 
     test_remove_copy_bad_alloc(execution_policy(seq(task)), IteratorTag());
     test_remove_copy_bad_alloc(execution_policy(par(task)), IteratorTag());
+#endif
 }
 
 void remove_copy_bad_alloc_test()
@@ -415,12 +427,11 @@ int main(int argc, char* argv[])
     // By default this test should run on all available cores
     std::vector<std::string> cfg;
     cfg.push_back("hpx.os_threads=" +
-        boost::lexical_cast<std::string>(hpx::threads::hardware_concurrency()));
+        std::to_string(hpx::threads::hardware_concurrency()));
 
     // Initialize and run HPX
     HPX_TEST_EQ_MSG(hpx::init(desc_commandline, argc, argv, cfg), 0,
         "HPX main exited with non-zero status");
 
     return hpx::util::report_errors();
-
 }

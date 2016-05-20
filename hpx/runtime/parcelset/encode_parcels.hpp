@@ -10,13 +10,22 @@
 #ifndef HPX_PARCELSET_ENCODE_PARCEL_HPP
 #define HPX_PARCELSET_ENCODE_PARCEL_HPP
 
+#include <hpx/config.hpp>
+#include <hpx/exception.hpp>
+#include <hpx/runtime_fwd.hpp>
+#include <hpx/runtime/parcelset_fwd.hpp>
+#include <hpx/runtime/parcelset/parcel.hpp>
 #include <hpx/runtime/parcelset/parcel_buffer.hpp>
 #include <hpx/runtime/serialization/serialize.hpp>
 #include <hpx/util/high_resolution_timer.hpp>
 #include <hpx/util/integer/endian.hpp>
 #include <hpx/traits/is_chunk_allocator.hpp>
 
+#include <boost/cstdint.hpp>
+
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace hpx
 {
@@ -69,8 +78,8 @@ namespace hpx
                 LPT_(debug) << binary_archive_content(buffer);
 
                 performance_counters::parcels::data_point& data = buffer.data_point_;
-                data.bytes_ = arg_size;
-                data.raw_bytes_ = buffer.data_.size();
+                data.bytes_ = buffer.data_.size();
+                data.raw_bytes_ = arg_size;
 
                 // prepare chunk data for transmission, the transmission_chunks data
                 // first holds all zero-copy, then all non-zero-copy chunk infos

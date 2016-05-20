@@ -7,11 +7,17 @@
 #if !defined(HPX_RUNTIME_RUNTIME_JUN_10_2008_1012AM)
 #define HPX_RUNTIME_RUNTIME_JUN_10_2008_1012AM
 
-#include <hpx/hpx_fwd.hpp>
+#include <hpx/config.hpp>
 #include <hpx/state.hpp>
-#include <hpx/runtime/threads/policies/affinity_data.hpp>
-#include <hpx/runtime/threads/topology.hpp>
+#include <hpx/runtime_fwd.hpp>
+#include <hpx/runtime/applier_fwd.hpp>
+#include <hpx/runtime/components/component_type.hpp>
+#include <hpx/runtime/parcelset_fwd.hpp>
 #include <hpx/runtime/parcelset/locality.hpp>
+#include <hpx/runtime/runtime_mode.hpp>
+#include <hpx/runtime/threads/policies/affinity_data.hpp>
+#include <hpx/runtime/threads/policies/callback_notifier.hpp>
+#include <hpx/runtime/threads/topology.hpp>
 #include <hpx/lcos/local/spinlock.hpp>
 #include <hpx/util/static_reinit.hpp>
 #include <hpx/util/runtime_configuration.hpp>
@@ -25,10 +31,15 @@
 #include <hpx/components/security/certificate_store.hpp>
 #endif
 
+#include <boost/atomic.hpp>
+#include <boost/exception_ptr.hpp>
 #include <boost/smart_ptr/scoped_ptr.hpp>
-#include <boost/thread/locks.hpp>
 
+#include <map>
 #include <memory>
+#include <mutex>
+#include <string>
+#include <vector>
 
 #include <hpx/config/warnings_prefix.hpp>
 
@@ -94,7 +105,7 @@ namespace hpx
         /// \brief Manage list of functions to call on exit
         void on_exit(util::function_nonser<void()> const& f)
         {
-            boost::lock_guard<boost::mutex> l(mtx_);
+            std::lock_guard<boost::mutex> l(mtx_);
             on_exit_functions_.push_back(f);
         }
 
@@ -111,7 +122,7 @@ namespace hpx
 
             typedef util::function_nonser<void()> value_type;
 
-            boost::lock_guard<boost::mutex> l(mtx_);
+            std::lock_guard<boost::mutex> l(mtx_);
             for (value_type const& f : on_exit_functions_)
                 f();
         }
@@ -153,20 +164,10 @@ namespace hpx
         /// \brief Allow access to the registry counter registry instance used
         ///        by the HPX runtime.
         performance_counters::registry& get_counter_registry();
-        /*
-        {
-            return *counters_;
-        }
-        */
 
         /// \brief Allow access to the registry counter registry instance used
         ///        by the HPX runtime.
         performance_counters::registry const& get_counter_registry() const;
-        /*
-        {
-            return *counters_;
-        }
-        */
 
         /// \brief Return a reference to the internal PAPI thread manager
         util::thread_mapper& get_thread_mapper();
@@ -306,13 +307,13 @@ namespace hpx
         /// for the given type yet), registers this factory with the
         /// runtime_support object and asks the factory for it's heap object
         // which can be used to create new promises of the given type.
-        boost::shared_ptr<util::one_size_heap_list_base> get_promise_heap(
+        std::shared_ptr<util::one_size_heap_list_base> get_promise_heap(
             components::component_type type);
 
         ///////////////////////////////////////////////////////////////////////
         // management API for active performance counters
         void register_query_counters(
-            boost::shared_ptr<util::query_counters> const& active_counters);
+            std::shared_ptr<util::query_counters> const& active_counters);
 
         void start_active_counters(error_code& ec = throws);
         void stop_active_counters(error_code& ec = throws);
@@ -323,6 +324,8 @@ namespace hpx
         // stop periodic evaluation of counters during shutdown
         void stop_evaluating_counters();
 
+        void register_message_handler(char const* message_handler_type,
+            char const* action, error_code& ec = throws);
         parcelset::policies::message_handler* create_message_handler(
             char const* message_handler_type, char const* action,
             parcelset::parcelport* pp, std::size_t num_messages,
@@ -388,8 +391,8 @@ namespace hpx
         mutable boost::mutex mtx_;
 
         util::runtime_configuration ini_;
-        boost::shared_ptr<performance_counters::registry> counters_;
-        boost::shared_ptr<util::query_counters> active_counters_;
+        std::shared_ptr<performance_counters::registry> counters_;
+        std::shared_ptr<util::query_counters> active_counters_;
 
         long instance_number_;
         static boost::atomic<int> instance_number_counter_;
@@ -433,7 +436,7 @@ namespace hpx {
     bool runtime::verify_parcel_suffix(Buffer const& data,
         naming::gid_type& parcel_id, error_code& ec) const
     {
-        boost::lock_guard<lcos::local::spinlock> l(security_mtx_);
+        std::lock_guard<lcos::local::spinlock> l(security_mtx_);
         return components::security::verify(*cert_store(ec), data, parcel_id);
     }
 }

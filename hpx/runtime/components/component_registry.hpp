@@ -8,8 +8,6 @@
 #define HPX_COMPONENT_REGISTRY_MAR_10_2010_0720PM
 
 #include <hpx/config.hpp>
-#include <hpx/hpx_fwd.hpp>
-
 #include <hpx/runtime/components/unique_component_name.hpp>
 #include <hpx/runtime/components/component_registry_base.hpp>
 #include <hpx/runtime/components/component_factory_base.hpp>
@@ -23,6 +21,9 @@
 #include <boost/preprocessor/stringize.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/classification.hpp>
+
+#include <string>
+#include <vector>
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx { namespace components
@@ -63,7 +64,7 @@ namespace hpx { namespace components
             {
                 if (filepath.empty()) {
                     fillini += std::string("path = ") +
-                        util::find_prefixes("/lib/hpx", HPX_COMPONENT_STRING);
+                        util::find_prefixes("/hpx", HPX_COMPONENT_STRING);
                 }
                 else {
                     fillini += std::string("path = ") + filepath;

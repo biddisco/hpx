@@ -8,6 +8,9 @@
 #if !defined(HPX_PARALLEL_ALGORITHMS_IS_SORTED_FEB_9_2015_0331PM)
 #define HPX_PARALLEL_ALGORITHMS_IS_SORTED_FEB_9_2015_0331PM
 
+#include <hpx/config.hpp>
+#include <hpx/traits/is_iterator.hpp>
+
 #include <hpx/parallel/config/inline_namespace.hpp>
 #include <hpx/parallel/algorithms/detail/dispatch.hpp>
 #include <hpx/parallel/execution_policy.hpp>
@@ -17,13 +20,12 @@
 #include <hpx/parallel/util/loop.hpp>
 
 #include <boost/range/functions.hpp>
-#include <boost/type_traits/is_base_of.hpp>
-#include <boost/type_traits/is_same.hpp>
-#include <boost/utility/enable_if.hpp>
 
 #include <algorithm>
-#include <iterator>
 #include <functional>
+#include <iterator>
+#include <type_traits>
+#include <vector>
 
 namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
 {
@@ -36,7 +38,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
         struct is_sorted: public detail::algorithm<is_sorted<FwdIter>, bool>
         {
             is_sorted()
-                : is_sorted::algorithm("is_sorted")
+              : is_sorted::algorithm("is_sorted")
             {}
 
             template<typename ExPolicy, typename Pred>
@@ -49,11 +51,8 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
 
             template <typename ExPolicy, typename Pred>
             static typename util::detail::algorithm_result<ExPolicy, bool>::type
-            parallel(ExPolicy policy, FwdIter first, FwdIter last,
-                Pred && pred)
+            parallel(ExPolicy && policy, FwdIter first, FwdIter last, Pred && pred)
             {
-                typedef typename std::iterator_traits<FwdIter>::reference
-                    reference;
                 typedef typename std::iterator_traits<FwdIter>::difference_type
                     difference_type;
                 typedef typename util::detail::algorithm_result<ExPolicy, bool>
@@ -65,7 +64,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
 
                 util::cancellation_token<> tok;
                 return util::partitioner<ExPolicy, bool>::call(
-                    policy, first, count,
+                    std::forward<ExPolicy>(policy), first, count,
                     [tok, pred, last](FwdIter part_begin,
                     std::size_t part_size) mutable -> bool
                     {
@@ -78,9 +77,11 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
                                     tok.cancel();
                                 }
                             });
+
                         FwdIter i = trail++;
-                        //trail now points one past the current grouping
-                        //unless cancelled
+                        // trail now points one past the current grouping
+                        // unless canceled
+
                         if (!tok.was_cancelled() && trail != last)
                         {
                             return !pred(*trail, *i);
@@ -126,14 +127,13 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
     ///                     the second argument. The signature of the function
     ///                     should be equivalent to
     ///                     \code
-    ///                     bool pred(const Type1 &a, const Type2 &b);
+    ///                     bool pred(const Type &a, const Type &b);
     ///                     \endcode \n
     ///                     The signature does not need to have const &, but
     ///                     the function must not modify the objects passed to
-    ///                     it. The types \a Type1 and \a Type2 must be such
-    ///                     that objects of types \a InIter1 and \a InIter2 can
-    ///                     be dereferenced and then implicitly converted to
-    ///                     \a Type1 and \a Type2 respectively
+    ///                     it. The type \a Type must be such that objects of
+    ///                     types \a FwdIter can be dereferenced and then
+    ///                     implicitly converted to Type.
     ///
     /// The comparison operations in the parallel \a is_sorted algorithm invoked
     /// with an execution policy object of type \a sequential_execution_policy
@@ -149,27 +149,22 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
     ///           if the execution policy is of type \a task_execution_policy
     ///           and returns \a bool otherwise.
     ///           The \a is_sorted algorithm returns a bool if each element in
-    ///           the sequence [first, last) is greater than or equal to the
-    ///           previous element. If the range [first, last) contains less
-    ///           than two elements, the function always returns true.
+    ///           the sequence [first, last) satisfies the predicate passed.
+    ///           If the range [first, last) contains less than two elements,
+    ///           the function always returns true.
     ///
-
     template <typename ExPolicy, typename FwdIter, typename Pred>
-    inline typename boost::enable_if<
-        is_execution_policy<ExPolicy>,
+    inline typename std::enable_if<
+        is_execution_policy<ExPolicy>::value,
         typename util::detail::algorithm_result<ExPolicy, bool>::type
     >::type
     is_sorted(ExPolicy && policy, FwdIter first, FwdIter last, Pred && pred)
     {
-        typedef typename std::iterator_traits<FwdIter>::iterator_category
-            iterator_category;
         static_assert(
-            (boost::is_base_of<
-             std::forward_iterator_tag, iterator_category
-                 >::value),
+            (hpx::traits::is_forward_iterator<FwdIter>::value),
             "Requires at least forward iterator.");
 
-        typedef typename is_sequential_execution_policy<ExPolicy>::type is_seq;
+        typedef is_sequential_execution_policy<ExPolicy> is_seq;
 
         return detail::is_sorted<FwdIter>().call(
             std::forward<ExPolicy>(policy), is_seq(), first, last,
@@ -217,29 +212,23 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
     ///           than two elements, the function always returns true.
     ///
     template <typename ExPolicy, typename FwdIter>
-    inline typename boost::enable_if<
-        is_execution_policy<ExPolicy>,
+    inline typename std::enable_if<
+        is_execution_policy<ExPolicy>::value,
         typename util::detail::algorithm_result<ExPolicy, bool>::type
     >::type
     is_sorted(ExPolicy && policy, FwdIter first, FwdIter last)
     {
-        typedef typename std::iterator_traits<FwdIter>::iterator_category
-            iterator_category;
-        typedef typename std::iterator_traits<FwdIter>::value_type
-            value_type;
         static_assert(
-                                (boost::is_base_of<
-                                 std::forward_iterator_tag, iterator_category
-                                 >::value),
-                                "Requires at least forward iterator.");
+            (hpx::traits::is_forward_iterator<FwdIter>::value),
+            "Requires at least forward iterator.");
 
-        typedef typename is_sequential_execution_policy<ExPolicy>::type is_seq;
+        typedef is_sequential_execution_policy<ExPolicy> is_seq;
+        typedef typename std::iterator_traits<FwdIter>::value_type value_type;
 
         return detail::is_sorted<FwdIter>().call(
-            std::forward<ExPolicy>(policy), is_seq(),first, last,
+            std::forward<ExPolicy>(policy), is_seq(), first, last,
             std::less<value_type>());
     }
-
 
     ////////////////////////////////////////////////////////////////////////////
     // is_sorted_until
@@ -251,7 +240,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
             public detail::algorithm<is_sorted_until<FwdIter>, FwdIter>
         {
             is_sorted_until()
-                : is_sorted_until::algorithm("is_sorted_until")
+              : is_sorted_until::algorithm("is_sorted_until")
             {}
 
             template<typename ExPolicy, typename Pred>
@@ -267,8 +256,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
             static typename util::detail::algorithm_result<
                 ExPolicy, FwdIter
             >::type
-            parallel(ExPolicy policy, FwdIter first, FwdIter last,
-                Pred && pred)
+            parallel(ExPolicy && policy, FwdIter first, FwdIter last, Pred && pred)
             {
                 typedef typename std::iterator_traits<FwdIter>::reference
                     reference;
@@ -286,7 +274,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
                 util::cancellation_token<difference_type> tok(count);
                 return util::partitioner<ExPolicy, FwdIter, void>::
                 call_with_index(
-                    policy, first, count ,
+                    std::forward<ExPolicy>(policy), first, count, 1,
                     [tok, pred, last](std::size_t base_idx, FwdIter part_begin,
                     std::size_t part_size) mutable
                     {
@@ -304,7 +292,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
                         FwdIter i = trail++;
 
                         //trail now points one past the current grouping
-                        //unless cancelled
+                        //unless canceled
                         if (!tok.was_cancelled(base_idx + part_size)
                             && trail != last)
                         {
@@ -314,7 +302,8 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
                             }
                         }
                     },
-                    [first, tok](std::vector<hpx::future<void> > &&) mutable -> FwdIter
+                    [first, tok](std::vector<hpx::future<void> > &&) mutable
+                    ->  FwdIter
                     {
                         difference_type loc = tok.get_data();
                         std::advance(first, loc);
@@ -350,14 +339,13 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
     ///                     the second argument. The signature of the function
     ///                     should be equivalent to
     ///                     \code
-    ///                     bool pred(const Type1 &a, const Type2 &b);
+    ///                     bool pred(const Type &a, const Type &b);
     ///                     \endcode \n
     ///                     The signature does not need to have const &, but
     ///                     the function must not modify the objects passed to
-    ///                     it. The types \a Type1 and \a Type2 must be such
-    ///                     that objects of types \a InIter1 and \a InIter2 can
-    ///                     be dereferenced and then implicitly converted to
-    ///                     \a Type1 and \a Type2 respectively
+    ///                     it. The type \a Type must be such that objects of
+    ///                     types \a FwdIter can be dereferenced and then
+    ///                     implicitly converted to Type.
     ///
     /// The comparison operations in the parallel \a is_sorted_until algorithm
     /// invoked with an execution policy object of type
@@ -378,21 +366,17 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
     ///           sequence is sorted, last is returned.
     ///
     template <typename ExPolicy, typename FwdIter, typename Pred>
-    inline typename boost::enable_if<
-        is_execution_policy<ExPolicy>,
+    inline typename std::enable_if<
+        is_execution_policy<ExPolicy>::value,
         typename util::detail::algorithm_result<ExPolicy, FwdIter>::type
     >::type
     is_sorted_until(ExPolicy && policy, FwdIter first, FwdIter last, Pred && pred)
     {
-        typedef typename std::iterator_traits<FwdIter>::iterator_category
-            iterator_category;
         static_assert(
-            (boost::is_base_of<
-             std::forward_iterator_tag, iterator_category
-                 >::value),
+            (hpx::traits::is_forward_iterator<FwdIter>::value),
             "Requires at least forward iterator.");
 
-        typedef typename is_sequential_execution_policy<ExPolicy>::type is_seq;
+        typedef is_sequential_execution_policy<ExPolicy> is_seq;
 
         return detail::is_sorted_until<FwdIter>().call(
             std::forward<ExPolicy>(policy), is_seq(), first, last,
@@ -438,31 +422,23 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
     ///           sequence is sorted, last is returned.
     ///
     template <typename ExPolicy, typename FwdIter>
-    inline typename boost::enable_if<
-        is_execution_policy<ExPolicy>,
+    inline typename std::enable_if<
+        is_execution_policy<ExPolicy>::value,
         typename util::detail::algorithm_result<ExPolicy, FwdIter>::type
     >::type
     is_sorted_until(ExPolicy && policy, FwdIter first, FwdIter last)
     {
-        typedef typename std::iterator_traits<FwdIter>::iterator_category
-            iterator_category;
-        typedef typename std::iterator_traits<FwdIter>::value_type
-            value_type;
         static_assert(
-            (boost::is_base_of<
-             std::forward_iterator_tag, iterator_category
-                 >::value),
+            (hpx::traits::is_forward_iterator<FwdIter>::value),
             "Requires at least forward iterator.");
 
-        typedef typename is_sequential_execution_policy<ExPolicy>::type is_seq;
+        typedef is_sequential_execution_policy<ExPolicy> is_seq;
+        typedef typename std::iterator_traits<FwdIter>::value_type value_type;
 
         return detail::is_sorted_until<FwdIter>().call(
             std::forward<ExPolicy>(policy), is_seq(), first, last,
             std::less<value_type>());
     }
-
-
-
 }}}
 
 #endif

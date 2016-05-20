@@ -7,7 +7,7 @@
 #if !defined(HPX_COMPONENTS_JUN_01_2007_0526PM)
 #define HPX_COMPONENTS_JUN_01_2007_0526PM
 
-#include <hpx/hpx_fwd.hpp>
+#include <hpx/config.hpp>
 #include <hpx/runtime/components/component_registry.hpp>
 
 #include <hpx/runtime/components/component_factory.hpp>
@@ -30,6 +30,7 @@
 
 #include <hpx/runtime/components/stubs/runtime_support.hpp>
 #include <hpx/runtime/components/client_base.hpp>
+#include <hpx/runtime/components/client.hpp>
 
 #include <hpx/runtime/components/server/component.hpp>
 #include <hpx/runtime/components/server/component_base.hpp>
@@ -45,6 +46,7 @@
 #include <hpx/runtime/components/new.hpp>
 #include <hpx/runtime/components/copy_component.hpp>
 #include <hpx/runtime/components/migrate_component.hpp>
+#include <hpx/runtime/components/pinned_ptr.hpp>
 
 #include <hpx/runtime/components/default_distribution_policy.hpp>
 #include <hpx/runtime/components/colocating_distribution_policy.hpp>

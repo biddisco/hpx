@@ -3,11 +3,11 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <hpx/hpx_fwd.hpp>
+#include <hpx/hpx.hpp>
 
 ///////////////////////////////////////////////////////////////////////////////
 // This is code specific to Windows
-#if defined(BOOST_WINDOWS)
+#if defined(HPX_WINDOWS)
 
 #include <windows.h>
 #include <perflib.h>
@@ -17,7 +17,6 @@
 #include "hpx_counters.hpp"
 
 #include <iostream>
-#include <boost/lexical_cast.hpp>
 
 ///////////////////////////////////////////////////////////////////////////////
 PPERF_COUNTERSET_INSTANCE queue_counter = 0;
@@ -32,7 +31,7 @@ void install_windows_counters()
     ULONG status = CounterInitialize(NULL, NULL, NULL, NULL);
     if (status != ERROR_SUCCESS) {
         std::cerr << "CounterInitialize failed with error code: "
-                  << boost::lexical_cast<std::string>(status);
+                  << std::to_string(status);
         return;
     }
 
@@ -41,7 +40,7 @@ void install_windows_counters()
     if (queue_counter == NULL) {
         std::cerr << "PerfCreateInstance for 'sum_queue_counter' failed "
                      "with error code: "
-                  << boost::lexical_cast<std::string>(GetLastError());
+                  << std::to_string(GetLastError());
         return;
     }
 
@@ -50,7 +49,7 @@ void install_windows_counters()
     if (avg_queue_counter == NULL) {
         std::cerr << "PerfCreateInstance for 'avg_queue_counter' failed"
                      "with error code: "
-                  << boost::lexical_cast<std::string>(GetLastError());
+                  << std::to_string(GetLastError());
         return;
     }
 }
@@ -64,7 +63,7 @@ void update_windows_counters(boost::uint64_t value)
     if (status != ERROR_SUCCESS) {
         std::cerr << "PerfSetCounterRefValue for 'sum_queue_counter' failed "
                      "with error code: "
-                  << boost::lexical_cast<std::string>(GetLastError());
+                  << std::to_string(GetLastError());
         return;
     }
 
@@ -73,7 +72,7 @@ void update_windows_counters(boost::uint64_t value)
     if (status != ERROR_SUCCESS) {
         std::cerr << "PerfSetCounterRefValue for 'avg_queue_counter' failed "
                      "with error code: "
-                  << boost::lexical_cast<std::string>(GetLastError());
+                  << std::to_string(GetLastError());
         return;
     }
 }

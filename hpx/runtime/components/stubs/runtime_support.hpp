@@ -7,7 +7,8 @@
 #if !defined(HPX_COMPONENTS_STUBS_RUNTIME_SUPPORT_JUN_09_2008_0503PM)
 #define HPX_COMPONENTS_STUBS_RUNTIME_SUPPORT_JUN_09_2008_0503PM
 
-#include <hpx/hpx_fwd.hpp>
+#include <hpx/config.hpp>
+#include <hpx/throw_exception.hpp>
 #include <hpx/runtime/naming/name.hpp>
 #include <hpx/runtime/components/component_type.hpp>
 #include <hpx/runtime/actions/manage_object_action.hpp>
@@ -16,10 +17,12 @@
 #include <hpx/runtime/serialization/vector.hpp>
 #include <hpx/lcos/detail/async_colocated_fwd.hpp>
 #include <hpx/util/ini.hpp>
-#include <hpx/util/move.hpp>
 #include <hpx/util/decay.hpp>
 #include <hpx/lcos/future.hpp>
 #include <hpx/async.hpp>
+
+#include <memory>
+#include <vector>
 
 namespace hpx { namespace components { namespace stubs
 {
@@ -153,7 +156,7 @@ namespace hpx { namespace components { namespace stubs
         template <typename Component>
         static lcos::future<naming::id_type>
         copy_create_component_async(naming::id_type const& gid,
-            boost::shared_ptr<Component> const& p, bool local_op)
+            std::shared_ptr<Component> const& p, bool local_op)
         {
             if (!naming::is_locality(gid))
             {
@@ -171,7 +174,7 @@ namespace hpx { namespace components { namespace stubs
 
         template <typename Component>
         static naming::id_type copy_create_component(naming::id_type const& gid,
-            boost::shared_ptr<Component> const& p, bool local_op)
+            std::shared_ptr<Component> const& p, bool local_op)
         {
             // The following get yields control while the action above
             // is executed and the result is returned to the future
@@ -183,7 +186,7 @@ namespace hpx { namespace components { namespace stubs
         template <typename Component>
         static lcos::future<naming::id_type>
         migrate_component_async(naming::id_type const& target_locality,
-            boost::shared_ptr<Component> const& p,
+            std::shared_ptr<Component> const& p,
             naming::id_type const& to_migrate)
         {
             if (!naming::is_locality(target_locality))
@@ -200,16 +203,26 @@ namespace hpx { namespace components { namespace stubs
             return hpx::async<action_type>(target_locality, p, to_migrate);
         }
 
-        template <typename Component>
+        template <typename Component, typename DistPolicy>
+        static lcos::future<naming::id_type>
+        migrate_component_async(DistPolicy const& policy,
+            std::shared_ptr<Component> const& p,
+            naming::id_type const& to_migrate)
+        {
+            typedef typename server::migrate_component_here_action<Component>
+                action_type;
+            return hpx::async<action_type>(policy, p, to_migrate);
+        }
+
+        template <typename Component, typename Target>
         static naming::id_type migrate_component(
-            naming::id_type const& target_locality,
-            naming::id_type const& to_migrate,
-            boost::shared_ptr<Component> const& p)
+            Target const& target, naming::id_type const& to_migrate,
+            std::shared_ptr<Component> const& p)
         {
             // The following get yields control while the action above
             // is executed and the result is returned to the future
             return migrate_component_async<Component>(
-                target_locality, p, to_migrate).get();
+                target, p, to_migrate).get();
         }
 
         ///////////////////////////////////////////////////////////////////////
@@ -327,13 +340,15 @@ namespace hpx { namespace components { namespace stubs
         /// \brief Retrieve configuration information
         static lcos::future<util::section> get_config_async(
             naming::id_type const& targetgid);
-        static void get_config(naming::id_type const& targetgid, util::section& ini);
+        static void get_config(naming::id_type const& targetgid,
+            util::section& ini);
 
         ///////////////////////////////////////////////////////////////////////
         /// \brief Retrieve instance count for given component type
         static lcos::future<boost::int32_t > get_instance_count_async(
             naming::id_type const& targetgid, components::component_type type);
-        static boost::int32_t  get_instance_count(naming::id_type const& targetgid,
+        static boost::int32_t  get_instance_count(
+            naming::id_type const& targetgid,
             components::component_type type);
 
         ///////////////////////////////////////////////////////////////////////

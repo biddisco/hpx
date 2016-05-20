@@ -15,13 +15,16 @@
 #include <boost/scoped_array.hpp>
 #include <boost/range/irange.hpp>
 
+#include <cstring>
+#include <vector>
+
 ///////////////////////////////////////////////////////////////////////////////
 char* align_buffer (char* ptr, unsigned long align_size)
 {
     return (char*)(((std::size_t)ptr + (align_size - 1)) / align_size * align_size);
 }
 
-#if defined(BOOST_WINDOWS)
+#if defined(HPX_WINDOWS)
 unsigned long getpagesize()
 {
     SYSTEM_INFO si;

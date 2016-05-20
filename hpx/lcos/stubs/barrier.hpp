@@ -7,8 +7,11 @@
 #define HPX_LCOS_STUBS_BARRIER_MAR_10_2010_0306PM
 
 #include <hpx/runtime/components/stubs/stub_base.hpp>
+#include <hpx/async.hpp>
 #include <hpx/lcos/base_lco.hpp>
 #include <hpx/lcos/server/barrier.hpp>
+
+#include <boost/exception_ptr.hpp>
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx { namespace lcos { namespace stubs

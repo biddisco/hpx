@@ -6,13 +6,15 @@
 #if !defined(HPX_PERFORMANCE_COUNTERS_PERFORMANCE_COUNTER_JAN_18_2013_0939AM)
 #define HPX_PERFORMANCE_COUNTERS_PERFORMANCE_COUNTER_JAN_18_2013_0939AM
 
-#include <hpx/hpx_fwd.hpp>
-
+#include <hpx/config.hpp>
 #include <hpx/lcos/future.hpp>
 #include <hpx/runtime/components/client_base.hpp>
 
 #include <hpx/performance_counters/counters.hpp>
 #include <hpx/performance_counters/stubs/performance_counter.hpp>
+
+#include <string>
+#include <vector>
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx { namespace performance_counters
@@ -41,7 +43,7 @@ namespace hpx { namespace performance_counters
 
         ///////////////////////////////////////////////////////////////////////
         future<counter_info> get_info() const;
-        counter_info get_info_sync(error_code& ec = throws);
+        counter_info get_info_sync(error_code& ec = throws) const;
 
         future<counter_value> get_counter_value(bool reset = false);
         future<counter_value> get_counter_value() const;
@@ -59,6 +61,10 @@ namespace hpx { namespace performance_counters
 
         future<void> reset();
         void reset_sync(error_code& ec = throws);
+
+        ///////////////////////////////////////////////////////////////////////
+        future<std::string> get_name() const;
+        std::string get_name_sync() const;
 
     private:
         template <typename T>
@@ -94,6 +100,10 @@ namespace hpx { namespace performance_counters
             return get_counter_value_sync().get_value<T>(ec);
         }
     };
+
+    /// Return all counters matching the given name (with optional wildcards).
+    HPX_API_EXPORT std::vector<performance_counter> discover_counters(
+        std::string const& name, error_code& ec = throws);
 }}
 
 #endif

@@ -17,6 +17,7 @@
 #include <hpx/util/unwrapped.hpp>
 
 #include <iostream>
+#include <string>
 
 #include <boost/cstdint.hpp>
 #include <boost/format.hpp>
@@ -25,7 +26,7 @@
 boost::uint64_t threshold = 2;
 
 ///////////////////////////////////////////////////////////////////////////////
-BOOST_NOINLINE boost::uint64_t fibonacci_serial(boost::uint64_t n)
+HPX_NOINLINE boost::uint64_t fibonacci_serial(boost::uint64_t n)
 {
     if (n < 2)
         return n;
@@ -42,7 +43,7 @@ hpx::future<boost::uint64_t> fibonacci(boost::uint64_t n)
     hpx::future<boost::uint64_t> rhs_future = fibonacci(n-2);
 
     return
-        hpx::lcos::local::dataflow(
+        hpx::dataflow(
             hpx::util::unwrapped(
             [](boost::uint64_t lhs, boost::uint64_t rhs)
             {

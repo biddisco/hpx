@@ -6,12 +6,15 @@
 #include <hpx/hpx_init.hpp>
 
 #include <hpx/include/threads.hpp>
+#include <hpx/runtime/threads/policies/parse_affinity_options.hpp>
 #include <hpx/util/lightweight_test.hpp>
 
 #include <boost/assign/std/vector.hpp>
 
-#include <iostream>
 #include <algorithm>
+#include <iostream>
+#include <string>
+#include <vector>
 
 // The affinity masks this test is verifying the results against are specific
 // to a particular machine. If you enable this option you might see a lot of

@@ -1,36 +1,40 @@
-//  Copyright (c) 2007-2014 Hartmut Kaiser
+//  Copyright (c) 2007-2015 Hartmut Kaiser
 //  Copyright (c)      2011 Bryce Lelbach
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <hpx/hpx_fwd.hpp>
-
+#include <hpx/config.hpp>
 #include <hpx/state.hpp>
 #include <hpx/exception.hpp>
-#include <hpx/include/runtime.hpp>
 #include <hpx/runtime_impl.hpp>
+#include <hpx/util/bind.hpp>
 #include <hpx/util/logging.hpp>
 #include <hpx/util/set_thread_name.hpp>
 #include <hpx/util/thread_mapper.hpp>
 #include <hpx/util/apex.hpp>
+#include <hpx/runtime/agas/big_boot_barrier.hpp>
+#include <hpx/runtime/get_config_entry.hpp>
 #include <hpx/runtime/components/console_error_sink.hpp>
 #include <hpx/runtime/components/server/console_error_sink.hpp>
 #include <hpx/runtime/components/runtime_support.hpp>
+#include <hpx/runtime/shutdown_function.hpp>
+#include <hpx/runtime/startup_function.hpp>
+#include <hpx/runtime/threads/coroutines/detail/context_impl.hpp>
 #include <hpx/runtime/threads/threadmanager_impl.hpp>
-#include <hpx/runtime/agas/big_boot_barrier.hpp>
-#include <hpx/runtime/get_config_entry.hpp>
-#include <hpx/include/performance_counters.hpp>
+#include <hpx/lcos/latch.hpp>
 
-#include <boost/config.hpp>
-#include <boost/bind.hpp>
-#include <boost/thread.hpp>
-#include <boost/thread/locks.hpp>
+#include <boost/cstdint.hpp>
+#include <boost/exception_ptr.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/condition.hpp>
+#include <boost/ref.hpp>
 
 #include <iostream>
+#include <mutex>
 #include <sstream>
+#include <string>
 #include <vector>
-
 
 #if defined(_WIN64) && defined(_DEBUG) && !defined(HPX_HAVE_FIBER_BASED_COROUTINES)
 #include <io.h>
@@ -126,17 +130,17 @@ namespace hpx {
       : runtime(rtcfg, init_affinity),
         mode_(locality_mode), result_(0), num_threads_(num_threads),
         main_pool_(1,
-            boost::bind(&runtime_impl::init_tss, This(),
-                "main-thread", ::_1, ::_2, false),
-            boost::bind(&runtime_impl::deinit_tss, This()), "main_pool"),
+            util::bind(&runtime_impl::init_tss, This(), "main-thread",
+                util::placeholders::_1, util::placeholders::_2, false),
+            util::bind(&runtime_impl::deinit_tss, This()), "main_pool"),
         io_pool_(rtcfg.get_thread_pool_size("io_pool"),
-            boost::bind(&runtime_impl::init_tss, This(), "io-thread",
-                ::_1, ::_2, true),
-            boost::bind(&runtime_impl::deinit_tss, This()), "io_pool"),
+            util::bind(&runtime_impl::init_tss, This(), "io-thread",
+                util::placeholders::_1, util::placeholders::_2, true),
+            util::bind(&runtime_impl::deinit_tss, This()), "io_pool"),
         timer_pool_(rtcfg.get_thread_pool_size("timer_pool"),
-            boost::bind(&runtime_impl::init_tss, This(), "timer-thread",
-                ::_1, ::_2, true),
-            boost::bind(&runtime_impl::deinit_tss, This()), "timer_pool"),
+            util::bind(&runtime_impl::init_tss, This(), "timer-thread",
+                util::placeholders::_1, util::placeholders::_2, true),
+            util::bind(&runtime_impl::deinit_tss, This()), "timer_pool"),
         scheduler_(init),
         notifier_(runtime_impl<SchedulingPolicy>::
             get_notification_policy("worker-thread")),
@@ -144,9 +148,9 @@ namespace hpx {
             new hpx::threads::threadmanager_impl<SchedulingPolicy>(
                 timer_pool_, scheduler_, notifier_, num_threads)),
         parcel_handler_(rtcfg, thread_manager_.get(),
-            boost::bind(&runtime_impl::init_tss, This(), "parcel-thread",
-                ::_1, ::_2, true),
-            boost::bind(&runtime_impl::deinit_tss, This())),
+            util::bind(&runtime_impl::init_tss, This(), "parcel-thread",
+                util::placeholders::_1, util::placeholders::_2, true),
+            util::bind(&runtime_impl::deinit_tss, This())),
         agas_client_(parcel_handler_, ini_, mode_),
         init_logging_(ini_, mode_ == runtime_mode_console, agas_client_),
         applier_(parcel_handler_, *thread_manager_)
@@ -211,6 +215,8 @@ namespace hpx {
     {
         LRT_(debug) << "~runtime_impl(entering)";
 
+        runtime_support_->delete_function_lists();
+
         // stop all services
         parcel_handler_.stop();     // stops parcel pools as well
         thread_manager_->stop();    // stops timer_pool_ as well
@@ -225,7 +231,7 @@ namespace hpx {
     int pre_main(hpx::runtime_mode);
 
     template <typename SchedulingPolicy>
-    threads::thread_state
+    threads::thread_state_enum
     runtime_impl<SchedulingPolicy>::run_helper(
         util::function_nonser<runtime::hpx_main_function_type> func, int& result)
     {
@@ -239,7 +245,7 @@ namespace hpx {
         if (result) {
             LBT_(info) << "runtime_impl::run_helper: bootstrap "
                           "aborted, bailing out";
-            return threads::thread_state(threads::terminated);
+            return threads::terminated;
         }
 
         LBT_(info) << "(4th stage) runtime_impl::run_helper: bootstrap complete";
@@ -258,6 +264,17 @@ namespace hpx {
             evaluate_active_counters(reset, "startup", ec);
         }
 
+        // Connect back to given latch if specified
+        std::string connect_back_to(
+            get_config_entry("hpx.on_startup.wait_on_latch", ""));
+        if (!connect_back_to.empty())
+        {
+            // inform launching process that this locality is up and running
+            hpx::lcos::latch l;
+            l.connect_to(connect_back_to);
+            l.count_down_and_wait();
+        }
+
         // Now, execute the user supplied thread function (hpx_main)
         if (!!func) {
             // Change our thread description, as we're about to call hpx_main
@@ -266,7 +283,7 @@ namespace hpx {
             // Call hpx_main
             result = func();
         }
-        return threads::thread_state(threads::terminated);
+        return threads::terminated;
     }
 
     template <typename SchedulingPolicy>
@@ -313,7 +330,7 @@ namespace hpx {
                       "HPX thread";
 
         threads::thread_init_data data(
-            boost::bind(&runtime_impl::run_helper, this, func,
+            util::bind(&runtime_impl::run_helper, this, func,
                 boost::ref(result_)),
             "run_helper", 0, threads::thread_priority_normal, std::size_t(-1),
             threads::get_stack_size(threads::thread_stacksize_large));
@@ -348,7 +365,7 @@ namespace hpx {
     {
         // signal successful initialization
         {
-            boost::lock_guard<boost::mutex> lk(mtx);
+            std::lock_guard<boost::mutex> lk(mtx);
             running = true;
             cond.notify_all();
         }
@@ -379,14 +396,14 @@ namespace hpx {
         boost::condition cond;
         bool running = false;
 
-        boost::thread t (boost::bind(
+        boost::thread t (util::bind(
                 &runtime_impl<SchedulingPolicy>::wait_helper,
                 this, boost::ref(mtx), boost::ref(cond), boost::ref(running)
             ));
 
         // wait for the thread to run
         {
-            boost::unique_lock<boost::mutex> lk(mtx);
+            std::unique_lock<boost::mutex> lk(mtx);
             while (!running)
                 cond.wait(lk);
         }
@@ -418,19 +435,32 @@ namespace hpx {
         // stop runtime_impl services (threads)
         thread_manager_->stop(false);    // just initiate shutdown
 
-        // schedule task in timer_pool to execute stopped() below
-        // this is necessary as this function (stop()) might have been called
-        // from a HPX thread, so it would deadlock by waiting for the thread
-        // manager
-        boost::mutex mtx;
-        boost::condition cond;
-        boost::unique_lock<boost::mutex> l(mtx);
+        if (threads::get_self_ptr())
+        {
+            // schedule task on separate thread to execute stopped() below
+            // this is necessary as this function (stop()) might have been called
+            // from a HPX thread, so it would deadlock by waiting for the thread
+            // manager
+            boost::mutex mtx;
+            boost::condition cond;
+            std::unique_lock<boost::mutex> l(mtx);
 
-        boost::thread t(boost::bind(&runtime_impl::stopped, this, blocking,
-            boost::ref(cond), boost::ref(mtx)));
-        cond.wait(l);
+            boost::thread t(util::bind(&runtime_impl::stopped, this, blocking,
+                boost::ref(cond), boost::ref(mtx)));
+            cond.wait(l);
 
-        t.join();
+            t.join();
+        }
+        else
+        {
+            runtime_support_->stopped();         // re-activate shutdown HPX-thread
+            thread_manager_->stop(blocking);     // wait for thread manager
+
+            // this disables all logging from the main thread
+            deinit_tss();
+
+            LRT_(info) << "runtime_impl: stopped all services";
+        }
 
         // stop the rest of the system
         parcel_handler_.stop(blocking);     // stops parcel pools as well
@@ -455,7 +485,7 @@ namespace hpx {
 
         LRT_(info) << "runtime_impl: stopped all services";
 
-        boost::lock_guard<boost::mutex> l(mtx);
+        std::lock_guard<boost::mutex> l(mtx);
         cond.notify_all();                  // we're done now
     }
 
@@ -472,7 +502,7 @@ namespace hpx {
 
             // store the exception to be able to rethrow it later
             {
-                boost::lock_guard<boost::mutex> l(mtx_);
+                std::lock_guard<boost::mutex> l(mtx_);
                 exception_ = e;
             }
 
@@ -516,7 +546,7 @@ namespace hpx {
     {
         if (state_.load() > state_running)
         {
-            boost::lock_guard<boost::mutex> l(mtx_);
+            std::lock_guard<boost::mutex> l(mtx_);
             if (exception_)
             {
                 boost::exception_ptr e = exception_;
@@ -577,10 +607,16 @@ namespace hpx {
     threads::policies::callback_notifier runtime_impl<SchedulingPolicy>::
         get_notification_policy(char const* prefix)
     {
+        typedef void (runtime_impl::*report_error_t)(
+            std::size_t, boost::exception_ptr const&);
+
+        using util::placeholders::_1;
+        using util::placeholders::_2;
         return notification_policy_type(
-            boost::bind(&runtime_impl::init_tss, This(), prefix, ::_1, ::_2, false),
-            boost::bind(&runtime_impl::deinit_tss, This()),
-            boost::bind(&runtime_impl::report_error, This(), _1, _2));
+            util::bind(&runtime_impl::init_tss, This(), prefix, _1, _2, false),
+            util::bind(&runtime_impl::deinit_tss, This()),
+            util::bind(static_cast<report_error_t>(&runtime_impl::report_error),
+                This(), _1, _2));
     }
 
     template <typename SchedulingPolicy>
@@ -600,7 +636,7 @@ namespace hpx {
             std::string* fullname = new std::string(context);
             if (postfix && *postfix)
                 *fullname += postfix;
-            *fullname += "#" + boost::lexical_cast<std::string>(num);
+            *fullname += "#" + std::to_string(num);
             runtime::thread_name_.reset(fullname);
 
             char const* name = runtime::thread_name_.get()->c_str();
@@ -609,7 +645,7 @@ namespace hpx {
             thread_support_->register_thread(name);
 
             // initialize coroutines context switcher
-            hpx::util::coroutines::thread_startup(name);
+            hpx::threads::coroutines::thread_startup(name);
 
             // register this thread with any possibly active Intel tool
             HPX_ITT_THREAD_SET_NAME(name);
@@ -625,8 +661,8 @@ namespace hpx {
         // if this is a service thread, set its service affinity
         if (service_thread)
         {
-            // FIXME: We don't set the affinity of the service threads on BG/Q, as this is
-            // causing a hang (needs to be investigated
+            // FIXME: We don't set the affinity of the service threads on BG/Q,
+            // as this is causing a hang (needs to be investigated)
 #if !defined(__bgq__)
             threads::mask_cref_type used_processing_units =
                 thread_manager_->get_used_processing_units();
@@ -646,7 +682,7 @@ namespace hpx {
     void runtime_impl<SchedulingPolicy>::deinit_tss()
     {
         // initialize coroutines context switcher
-        hpx::util::coroutines::thread_shutdown();
+        hpx::threads::coroutines::thread_shutdown();
 
         // reset applier TSS
         applier_.deinit_tss();

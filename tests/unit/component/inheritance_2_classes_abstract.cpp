@@ -11,6 +11,8 @@
 #include <hpx/include/iostreams.hpp>
 #include <hpx/util/lightweight_test.hpp>
 
+#include <string>
+
 bool a_ctor = false;
 bool a_dtor = false;
 bool b_ctor = false;
@@ -40,9 +42,6 @@ struct B : A, hpx::components::managed_component_base<B>
 {
     typedef hpx::components::managed_component_base<B>::wrapping_type
         wrapping_type;
-    using hpx::components::managed_component_base<B>::decorate_action;
-    using hpx::components::managed_component_base<B>::schedule_thread;
-    using hpx::components::managed_component_base<B>::is_target_valid;
 
     typedef B type_holder;
     typedef A base_type_holder;

@@ -14,13 +14,13 @@
 #include <hpx/traits/is_future_range.hpp>
 #include <hpx/traits/acquire_future.hpp>
 #include <hpx/util/decay.hpp>
-#include <hpx/util/move.hpp>
 
-#include <vector>
-#include <iterator>
-
-#include <boost/utility/enable_if.hpp>
+#include <boost/intrusive_ptr.hpp>
 #include <boost/range/functions.hpp>
+#include <boost/utility/enable_if.hpp>
+
+#include <iterator>
+#include <vector>
 
 namespace hpx { namespace traits
 {
@@ -36,7 +36,7 @@ namespace hpx { namespace traits
     struct acquire_shared_state_disp
     {
         template <typename T>
-        BOOST_FORCEINLINE typename acquire_shared_state<T>::type
+        HPX_FORCEINLINE typename acquire_shared_state<T>::type
         operator()(T && t) const
         {
             return acquire_shared_state<T>()(std::forward<T>(t));
@@ -47,14 +47,14 @@ namespace hpx { namespace traits
     namespace detail
     {
         template <typename T>
-        BOOST_FORCEINLINE typename acquire_shared_state<T>::type
+        HPX_FORCEINLINE typename acquire_shared_state<T>::type
         get_shared_state(T && t)
         {
             return acquire_shared_state<T>()(std::forward<T>(t));
         }
 
         template <typename R>
-        BOOST_FORCEINLINE
+        HPX_FORCEINLINE
         boost::intrusive_ptr<lcos::detail::future_data<R> > const&
         get_shared_state(
             boost::intrusive_ptr<lcos::detail::future_data<R> > const& t)
@@ -68,9 +68,10 @@ namespace hpx { namespace traits
     struct acquire_shared_state_impl<T,
         typename boost::disable_if_c<is_future_or_future_range<T>::value>::type>
     {
+        typedef T type;
 
         template <typename T_>
-        BOOST_FORCEINLINE
+        HPX_FORCEINLINE
         T operator()(T_ && value) const
         {
             return value;
@@ -85,7 +86,7 @@ namespace hpx { namespace traits
             typename traits::future_traits<T>::type
         >::type const& type;
 
-        BOOST_FORCEINLINE type
+        HPX_FORCEINLINE type
         operator()(T const& f) const
         {
             return traits::future_access<T>::get_shared_state(f);
@@ -104,7 +105,7 @@ namespace hpx { namespace traits
         typedef std::vector<shared_state_ptr> type;
 
         template <typename Range_>
-        BOOST_FORCEINLINE type
+        HPX_FORCEINLINE type
         operator()(Range_&& futures) const
         {
             std::vector<shared_state_ptr> values;

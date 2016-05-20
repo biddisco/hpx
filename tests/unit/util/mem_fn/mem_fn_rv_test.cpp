@@ -1,7 +1,7 @@
 #include <hpx/config.hpp>
 #include <hpx/hpx_init.hpp>
 
-#if defined(BOOST_MSVC)
+#if defined(HPX_MSVC)
 #pragma warning(disable: 4786)  // identifier truncated in debug info
 #pragma warning(disable: 4710)  // function not inlined
 #pragma warning(disable: 4711)  // function selected for automatic inline expansion
@@ -22,9 +22,9 @@
 //
 
 #include <hpx/util/mem_fn.hpp>
-#include <boost/shared_ptr.hpp>
 
 #include <iostream>
+#include <memory>
 
 #include <hpx/util/lightweight_test.hpp>
 
@@ -68,9 +68,9 @@ struct X
         const { g7(a1, a2, a3, a4, a5, a6, a7); g1(a8); return 0; }
 };
 
-boost::shared_ptr<X> make()
+std::shared_ptr<X> make()
 {
-    return boost::shared_ptr<X>(new X);
+    return std::shared_ptr<X>(new X);
 }
 
 int main()

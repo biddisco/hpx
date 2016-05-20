@@ -1,23 +1,31 @@
-//  Copyright (c) 2007-2015 Hartmut Kaiser
+//  Copyright (c) 2007-2016 Hartmut Kaiser
 //  Copyright (c)      2011 Bryce Lelbach
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <hpx/hpx_fwd.hpp>
-#include <hpx/runtime/threads/thread_data.hpp>
 #include <hpx/runtime/threads/thread_helpers.hpp>
-#include <hpx/runtime/threads/thread.hpp>
-#include <hpx/runtime/threads/thread_executor.hpp>
-#include <hpx/runtime/threads/executors/current_executor.hpp>
+
+#include <hpx/error_code.hpp>
+#include <hpx/throw_exception.hpp>
 #include <hpx/runtime/threads/detail/set_thread_state.hpp>
-#include <hpx/util/register_locks.hpp>
-#include <hpx/util/thread_specific_ptr.hpp>
+#include <hpx/runtime/threads/executors/current_executor.hpp>
+#include <hpx/runtime/threads/thread_data_fwd.hpp>
+#include <hpx/runtime/threads/thread_enums.hpp>
 #ifdef HPX_HAVE_THREAD_BACKTRACE_ON_SUSPENSION
 #include <hpx/util/backtrace.hpp>
 #endif
+#include <hpx/util/date_time_chrono.hpp>
+#ifdef HPX_HAVE_VERIFY_LOCKS
+#  include <hpx/util/register_locks.hpp>
+#endif
+#include <hpx/util/thread_description.hpp>
+#include <hpx/util/thread_specific_ptr.hpp>
 
+#include <cstddef>
+#include <limits>
 #include <sstream>
+#include <string>
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx { namespace threads
@@ -45,7 +53,7 @@ namespace hpx { namespace threads
     ///////////////////////////////////////////////////////////////////////////
     thread_state get_thread_state(thread_id_type const& id, error_code& ec)
     {
-        return id ? id->get_state() : thread_state(terminated);
+        return id ? id->get_state() : thread_state(terminated, wait_unknown);
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -198,6 +206,11 @@ namespace hpx { namespace threads
         return *continuation_recursion_count.get();
     }
 
+    void reset_continuation_recursion_count()
+    {
+        delete continuation_recursion_count.get();
+    }
+
     ///////////////////////////////////////////////////////////////////////////
     void run_thread_exit_callbacks(thread_id_type const& id, error_code& ec)
     {
@@ -248,19 +261,20 @@ namespace hpx { namespace threads
     ///////////////////////////////////////////////////////////////////////////
     /// The get_thread_description function is part of the thread related API and
     /// allows to query the description of one of the thread id
-    char const* get_thread_description(thread_id_type const& id, error_code& ec)
+    util::thread_description get_thread_description(thread_id_type const& id,
+        error_code& ec)
     {
-        return id ? id->get_description() : "<unknown>";
+        return id ? id->get_description() : util::thread_description("<unknown>");
     }
 
-    char const* set_thread_description(thread_id_type const& id,
-        char const* desc, error_code& ec)
+    util::thread_description set_thread_description(thread_id_type const& id,
+        util::thread_description const& desc, error_code& ec)
     {
         if (HPX_UNLIKELY(!id)) {
             HPX_THROWS_IF(ec, null_thread_id,
                 "hpx::threads::set_thread_description",
                 "NULL thread id encountered");
-            return NULL;
+            return util::thread_description();
         }
         if (&ec != &throws)
             ec = make_success_code();
@@ -268,8 +282,8 @@ namespace hpx { namespace threads
         return id->set_description(desc);
     }
 
-    char const* get_thread_lco_description(thread_id_type const& id,
-        error_code& ec)
+    util::thread_description get_thread_lco_description(
+        thread_id_type const& id, error_code& ec)
     {
         if (HPX_UNLIKELY(!id)) {
             HPX_THROWS_IF(ec, null_thread_id,
@@ -283,8 +297,10 @@ namespace hpx { namespace threads
 
         return id ? id->get_lco_description() : "<unknown>";
     }
-    char const* set_thread_lco_description(thread_id_type const& id,
-        char const* desc, error_code& ec)
+
+    util::thread_description set_thread_lco_description(
+        thread_id_type const& id, util::thread_description const& desc,
+        error_code& ec)
     {
         if (HPX_UNLIKELY(!id)) {
             HPX_THROWS_IF(ec, null_thread_id,
@@ -305,7 +321,8 @@ namespace hpx { namespace threads
 #ifdef HPX_HAVE_THREAD_FULLBACKTRACE_ON_SUSPENSION
     char const* get_thread_backtrace(thread_id_type const& id, error_code& ec)
 #else
-    util::backtrace const* get_thread_backtrace(thread_id_type const& id, error_code& ec)
+    util::backtrace const* get_thread_backtrace(thread_id_type const& id,
+        error_code& ec)
 #endif
     {
         if (HPX_UNLIKELY(!id)) {
@@ -366,7 +383,8 @@ namespace hpx { namespace this_thread
         struct reset_lco_description
         {
             reset_lco_description(threads::thread_id_type const& id,
-                    char const* description, error_code& ec)
+                    util::thread_description const& description,
+                    error_code& ec)
               : id_(id), ec_(ec)
             {
                 old_desc_ = threads::set_thread_lco_description(id_,
@@ -379,7 +397,7 @@ namespace hpx { namespace this_thread
             }
 
             threads::thread_id_type id_;
-            char const* old_desc_;
+            util::thread_description old_desc_;
             error_code& ec_;
         };
 
@@ -422,7 +440,7 @@ namespace hpx { namespace this_thread
     /// If the suspension was aborted, this function will throw a
     /// \a yield_aborted exception.
     threads::thread_state_ex_enum suspend(threads::thread_state_enum state,
-        char const* description, error_code& ec)
+        util::thread_description const& description, error_code& ec)
     {
         // let the thread manager do other things while waiting
         threads::thread_self& self = threads::get_self();
@@ -460,7 +478,7 @@ namespace hpx { namespace this_thread
             strm << "thread(" << threads::get_self_id() << ", "
                   << threads::get_thread_description(id)
                   << ") aborted (yield returned wait_abort)";
-            HPX_THROWS_IF(ec, yield_aborted, description,
+            HPX_THROWS_IF(ec, yield_aborted, "suspend",
                 strm.str());
         }
 
@@ -472,7 +490,7 @@ namespace hpx { namespace this_thread
 
     threads::thread_state_ex_enum suspend(
         util::steady_time_point const& abs_time,
-        char const* description, error_code& ec)
+        util::thread_description const& description, error_code& ec)
     {
         // schedule a thread waking us up at_time
         threads::thread_self& self = threads::get_self();
@@ -506,10 +524,10 @@ namespace hpx { namespace this_thread
 
             if (statex != threads::wait_timeout)
             {
-                error_code ec(lightweight);    // do not throw
+                error_code ec1(lightweight);    // do not throw
                 threads::set_thread_state(timer_id,
                     threads::pending, threads::wait_abort,
-                    threads::thread_priority_boost, ec);
+                    threads::thread_priority_boost, ec1);
             }
         }
 
@@ -523,7 +541,7 @@ namespace hpx { namespace this_thread
             strm << "thread(" << threads::get_self_id() << ", "
                   << threads::get_thread_description(id)
                   << ") aborted (yield returned wait_abort)";
-            HPX_THROWS_IF(ec, yield_aborted, description,
+            HPX_THROWS_IF(ec, yield_aborted, "suspend_at",
                 strm.str());
         }
 
@@ -534,10 +552,19 @@ namespace hpx { namespace this_thread
     }
 
     ///////////////////////////////////////////////////////////////////////////
-    threads::executors::current_executor
-        get_executor(error_code& ec)
+    threads::executors::current_executor get_executor(error_code& ec)
     {
         return threads::get_executor(threads::get_self_id(), ec);
     }
-}}
 
+    std::ptrdiff_t get_available_stack_space()
+    {
+        threads::thread_self *self = threads::get_self_ptr();
+        if(self)
+        {
+            return self->get_available_stack_space();
+        }
+
+        return (std::numeric_limits<std::ptrdiff_t>::max)();
+    }
+}}

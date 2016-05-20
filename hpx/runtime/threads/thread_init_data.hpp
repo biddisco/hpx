@@ -4,13 +4,19 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#if !defined(HPX_THREAD_INIT_DATA_SEP_22_2009_1034AM)
-#define HPX_THREAD_INIT_DATA_SEP_22_2009_1034AM
+#ifndef HPX_RUNTIME_THREADS_THREAD_INIT_DATA_HPP
+#define HPX_RUNTIME_THREADS_THREAD_INIT_DATA_HPP
 
 #include <hpx/config.hpp>
-#include <hpx/runtime/naming/name.hpp>
 #include <hpx/runtime/naming/address.hpp>
-#include <hpx/util/move.hpp>
+#include <hpx/runtime/naming/id_type.hpp>
+#include <hpx/runtime/threads_fwd.hpp>
+#include <hpx/runtime/threads/thread_data_fwd.hpp>
+#include <hpx/runtime/threads/thread_enums.hpp>
+#include <hpx/util/thread_description.hpp>
+
+#include <cstddef>
+#include <utility>
 
 namespace hpx { namespace threads
 {
@@ -20,7 +26,7 @@ namespace hpx { namespace threads
     ///////////////////////////////////////////////////////////////////////////
     class thread_init_data
     {
-        HPX_MOVABLE_BUT_NOT_COPYABLE(thread_init_data);
+        HPX_MOVABLE_ONLY(thread_init_data);
 
     public:
         thread_init_data()
@@ -29,7 +35,7 @@ namespace hpx { namespace threads
             lva(0),
 #endif
 #if defined(HPX_HAVE_THREAD_DESCRIPTION)
-            description(0),
+            description(),
 #endif
 #if defined(HPX_HAVE_THREAD_PARENT_REFERENCE)
             parent_locality_id(0), parent_id(0), parent_phase(0),
@@ -37,10 +43,11 @@ namespace hpx { namespace threads
             priority(thread_priority_normal),
             num_os_thread(std::size_t(-1)),
             stacksize(get_default_stack_size()),
+            target(),
             scheduler_base(0)
         {}
 
-        thread_init_data(thread_init_data && rhs)
+        thread_init_data(thread_init_data&& rhs)
           : func(std::move(rhs.func)),
 #if defined(HPX_HAVE_THREAD_TARGET_ADDRESS)
             lva(rhs.lva),
@@ -60,7 +67,7 @@ namespace hpx { namespace threads
         {}
 
         template <typename F>
-        thread_init_data(F && f, char const* desc,
+        thread_init_data(F&& f, util::thread_description const& desc,
                 naming::address::address_type lva_ = 0,
                 thread_priority priority_ = thread_priority_normal,
                 std::size_t os_thread = std::size_t(-1),
@@ -90,7 +97,7 @@ namespace hpx { namespace threads
         naming::address::address_type lva;
 #endif
 #if defined(HPX_HAVE_THREAD_DESCRIPTION)
-        char const* description;
+        util::thread_description description;
 #endif
 #if defined(HPX_HAVE_THREAD_PARENT_REFERENCE)
         boost::uint32_t parent_locality_id;
@@ -108,5 +115,4 @@ namespace hpx { namespace threads
     };
 }}
 
-#endif
-
+#endif /*HPX_RUNTIME_THREADS_THREAD_INIT_DATA_HPP*/

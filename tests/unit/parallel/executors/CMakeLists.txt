@@ -1,4 +1,4 @@
-# Copyright (c) 2014-2015 Hartmut Kaiser
+# Copyright (c) 2014-2016 Hartmut Kaiser
 #
 # Distributed under the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -7,14 +7,17 @@ set(tests
     bulk_async
     created_executor
     executor_parameters
+    executor_parameters_timer_hooks
     minimal_async_executor
     minimal_sync_executor
     minimal_timed_async_executor
     minimal_timed_sync_executor
     parallel_executor
     parallel_fork_executor
+    persistent_executor_parameters
     sequential_executor
     service_executors
+    shared_parallel_executor
     this_thread_executors
     thread_pool_attached_executors
     thread_pool_executors

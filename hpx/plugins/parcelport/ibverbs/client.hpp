@@ -6,9 +6,15 @@
 #if !defined(HPX_PARCELSET_POLICIES_IBVERBS_CLIENT_HPP)
 #define HPX_PARCELSET_POLICIES_IBVERBS_CLIENT_HPP
 
+#include <hpx/config.hpp>
+
+#if defined(HPX_HAVE_PARCELPORT_IBVERBS)
+
 #include <hpx/plugins/parcelport/ibverbs/messages.hpp>
 #include <hpx/plugins/parcelport/ibverbs/ibverbs_errors.hpp>
 #include <hpx/util/spinlock.hpp>
+
+#include <cstring>
 
 namespace hpx { namespace parcelset { namespace policies { namespace ibverbs {
     namespace detail {
@@ -329,5 +335,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ibverbs {
         rdma_cm_id *id_;
     };
 }}}}}
+
+#endif
 
 #endif

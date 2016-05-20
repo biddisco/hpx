@@ -1,4 +1,4 @@
-//  Copyright (c) 2007-2012 Hartmut Kaiser
+//  Copyright (c) 2007-2016 Hartmut Kaiser
 //  Copyright (c)      2011 Bryce Lelbach
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -7,28 +7,30 @@
 #if !defined(HPX_RUNTIME_RUNTIME_IMPL_HPP)
 #define HPX_RUNTIME_RUNTIME_IMPL_HPP
 
-#include <hpx/hpx_fwd.hpp>
-#include <hpx/exception.hpp>
+#include <hpx/config.hpp>
 #include <hpx/util/io_service_pool.hpp>
+#include <hpx/runtime.hpp>
 #include <hpx/runtime/naming/resolver_client.hpp>
 #include <hpx/runtime/parcelset/locality.hpp>
 #include <hpx/runtime/parcelset/parcelport.hpp>
 #include <hpx/runtime/parcelset/parcelhandler.hpp>
 #include <hpx/runtime/threads/policies/affinity_data.hpp>
 #include <hpx/runtime/threads/policies/callback_notifier.hpp>
+#include <hpx/runtime/threads/threadmanager.hpp>
 #include <hpx/runtime/threads/topology.hpp>
 #include <hpx/runtime/applier/applier.hpp>
 #include <hpx/runtime/components/server/console_error_sink_singleton.hpp>
 #include <hpx/performance_counters/registry.hpp>
-#include <hpx/util/runtime_configuration.hpp>
+#include <hpx/util_fwd.hpp>
 #include <hpx/util/generate_unique_ids.hpp>
 #include <hpx/util/thread_specific_ptr.hpp>
 #include <hpx/util/init_logging.hpp>
 
-#include <boost/detail/atomic_count.hpp>
-#include <boost/shared_ptr.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/condition.hpp>
 #include <boost/exception_ptr.hpp>
+
+#include <string>
 
 #include <hpx/config/warnings_prefix.hpp>
 
@@ -48,7 +50,7 @@ namespace hpx
         static void default_errorsink(std::string const&);
 
         //
-        threads::thread_state run_helper(
+        threads::thread_state_enum run_helper(
             util::function_nonser<runtime::hpx_main_function_type> func,
             int& result);
 

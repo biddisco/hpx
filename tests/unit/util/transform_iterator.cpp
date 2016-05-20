@@ -9,10 +9,12 @@
 
 #include <hpx/util/transform_iterator.hpp>
 
-#include <sstream>
-#include <iterator>
-#include <vector>
 #include <algorithm>
+#include <iterator>
+#include <numeric>
+#include <sstream>
+#include <string>
+#include <vector>
 
 #include <boost/range/functions.hpp>
 
@@ -20,14 +22,14 @@
 namespace test
 {
     template <typename Iterator>
-    BOOST_FORCEINLINE
+    HPX_FORCEINLINE
     Iterator previous(Iterator it)
     {
         return --it;
     }
 
     template <typename Iterator>
-    BOOST_FORCEINLINE
+    HPX_FORCEINLINE
     Iterator next(Iterator it)
     {
         return ++it;
@@ -36,15 +38,6 @@ namespace test
     template <typename IteratorBase, typename IteratorValue>
     struct previous_transformer
     {
-        template <typename T>
-        struct result;
-
-        template <typename This, typename Iterator>
-        struct result<This(Iterator)>
-        {
-            typedef typename std::iterator_traits<Iterator>::reference type;
-        };
-
         previous_transformer() {}
 
         // at position 'begin' it will dereference 'value', otherwise 'it-1'
@@ -77,15 +70,6 @@ namespace test
     template <typename IteratorBase, typename IteratorValue>
     struct next_transformer
     {
-        template <typename T>
-        struct result;
-
-        template <typename This, typename Iterator>
-        struct result<This(Iterator)>
-        {
-            typedef typename std::iterator_traits<Iterator>::reference type;
-        };
-
         next_transformer() {}
 
         // at position 'end' it will dereference 'value', otherwise 'it+1'

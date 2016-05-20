@@ -7,16 +7,15 @@
 #if !defined(HPX_APPLIER_APPLY_HELPER_JUN_25_2008_0917PM)
 #define HPX_APPLIER_APPLY_HELPER_JUN_25_2008_0917PM
 
-#include <boost/mpl/bool.hpp>
-
-#include <hpx/hpx_fwd.hpp>
-#include <hpx/exception.hpp>
+#include <hpx/config.hpp>
 #include <hpx/runtime/naming/address.hpp>
 #include <hpx/runtime/applier/applier.hpp>
 #include <hpx/runtime/actions/continuation.hpp>
 #include <hpx/runtime/threads/thread_helpers.hpp>
 #include <hpx/traits/action_schedule_thread.hpp>
 #include <hpx/traits/action_stacksize.hpp>
+
+#include <boost/mpl/bool.hpp>
 
 #include <memory>
 
@@ -35,11 +34,11 @@ namespace hpx { namespace applier { namespace detail
 
     ///////////////////////////////////////////////////////////////////////
     template <typename Action,
-        typename DirectExecute = typename Action::direct_execution>
+        bool DirectExecute = Action::direct_execution::value>
     struct apply_helper;
 
     template <typename Action>
-    struct apply_helper<Action, boost::mpl::false_>
+    struct apply_helper<Action, /*DirectExecute=*/false>
     {
         template <typename ...Ts>
         static void
@@ -118,7 +117,7 @@ namespace hpx { namespace applier { namespace detail
     };
 
     template <typename Action>
-    struct apply_helper<Action, boost::mpl::true_>
+    struct apply_helper<Action, /*DirectExecute=*/true>
     {
         // If local and to be directly executed, just call the function
         template <typename ...Ts>
@@ -151,7 +150,7 @@ namespace hpx { namespace applier { namespace detail
                 cont->trigger(Action::execute_function(lva,
                     std::forward<Ts>(vs)...));
             }
-            catch (hpx::exception const& /*e*/) {
+            catch (...) {
                 // make sure hpx::exceptions are propagated back to the client
                 cont->trigger_error(boost::current_exception());
             }

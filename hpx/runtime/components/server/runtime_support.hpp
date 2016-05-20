@@ -9,6 +9,7 @@
 #define HPX_RUNTIME_SUPPORT_JUN_02_2008_1145AM
 
 #include <hpx/config.hpp>
+#include <hpx/throw_exception.hpp>
 #include <hpx/traits/is_component.hpp>
 #include <hpx/runtime/get_lva.hpp>
 #include <hpx/runtime/agas/gva.hpp>
@@ -24,20 +25,26 @@
 #include <hpx/lcos/local/mutex.hpp>
 #include <hpx/lcos/local/condition_variable.hpp>
 #include <hpx/plugins/plugin_factory_base.hpp>
+#include <hpx/util_fwd.hpp>
+#include <hpx/util/one_size_heap_list_base.hpp>
 #include <hpx/util/plugin.hpp>
 #include <hpx/util/bind.hpp>
 #include <hpx/util/functional/new.hpp>
+#include <hpx/util/unlock_guard.hpp>
 
-#include <boost/thread.hpp>
+#include <boost/thread/mutex.hpp>
 #include <boost/thread/condition.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/shared_ptr.hpp>
 #include <boost/program_options/options_description.hpp>
 #include <boost/atomic.hpp>
+#include <boost/mpl/bool.hpp>
 
-#include <map>
 #include <list>
+#include <map>
+#include <memory>
+#include <mutex>
 #include <set>
+#include <string>
+#include <vector>
 
 #include <hpx/config/warnings_prefix.hpp>
 
@@ -58,21 +65,21 @@ namespace hpx { namespace components { namespace server
 
         struct component_factory
         {
-            component_factory() : isenabled(false) {}
+            component_factory() : second(), isenabled(false) {}
 
             component_factory(
-                  boost::shared_ptr<component_factory_base> const& f,
+                  std::shared_ptr<component_factory_base> const& f,
                   hpx::util::plugin::dll const& d, bool enabled = true)
               : first(f), second(d), isenabled(enabled)
             {};
 
             component_factory(
-                  boost::shared_ptr<component_factory_base> const& f,
+                  std::shared_ptr<component_factory_base> const& f,
                   bool enabled = true)
-              : first(f), isenabled(enabled)
+              : first(f), second(), isenabled(enabled)
             {};
 
-            boost::shared_ptr<component_factory_base> first;
+            std::shared_ptr<component_factory_base> first;
             hpx::util::plugin::dll second;
             bool isenabled;
         };
@@ -82,12 +89,12 @@ namespace hpx { namespace components { namespace server
         struct plugin_factory
         {
             plugin_factory(
-                  boost::shared_ptr<plugins::plugin_factory_base> const& f,
+                  std::shared_ptr<plugins::plugin_factory_base> const& f,
                   hpx::util::plugin::dll const& d, bool enabled)
               : first(f), second(d), isenabled(enabled)
             {}
 
-            boost::shared_ptr<plugins::plugin_factory_base> first;
+            std::shared_ptr<plugins::plugin_factory_base> first;
             hpx::util::plugin::dll const& second;
             bool isenabled;
         };
@@ -125,6 +132,7 @@ namespace hpx { namespace components { namespace server
         ///             component instance.
         void finalize() {}
 
+        void delete_function_lists();
         void tidy();
 
         // This component type requires valid locality id for its actions to
@@ -157,11 +165,11 @@ namespace hpx { namespace components { namespace server
 
         template <typename Component>
         naming::gid_type copy_create_component(
-            boost::shared_ptr<Component> const& p, bool);
+            std::shared_ptr<Component> const& p, bool);
 
         template <typename Component>
         naming::gid_type migrate_component_to_here(
-            boost::shared_ptr<Component> const& p, naming::id_type);
+            std::shared_ptr<Component> const& p, naming::id_type);
 
         /// \brief Action to create new memory block
         naming::gid_type create_memory_block(std::size_t count,
@@ -288,25 +296,25 @@ namespace hpx { namespace components { namespace server
 
         void add_pre_startup_function(util::function_nonser<void()> const& f)
         {
-            boost::lock_guard<lcos::local::spinlock> l(globals_mtx_);
+            std::lock_guard<lcos::local::spinlock> l(globals_mtx_);
             pre_startup_functions_.push_back(f);
         }
 
         void add_startup_function(util::function_nonser<void()> const& f)
         {
-            boost::lock_guard<lcos::local::spinlock> l(globals_mtx_);
+            std::lock_guard<lcos::local::spinlock> l(globals_mtx_);
             startup_functions_.push_back(f);
         }
 
         void add_pre_shutdown_function(util::function_nonser<void()> const& f)
         {
-            boost::lock_guard<lcos::local::spinlock> l(globals_mtx_);
+            std::lock_guard<lcos::local::spinlock> l(globals_mtx_);
             pre_shutdown_functions_.push_back(f);
         }
 
         void add_shutdown_function(util::function_nonser<void()> const& f)
         {
-            boost::lock_guard<lcos::local::spinlock> l(globals_mtx_);
+            std::lock_guard<lcos::local::spinlock> l(globals_mtx_);
             shutdown_functions_.push_back(f);
         }
 
@@ -314,25 +322,9 @@ namespace hpx { namespace components { namespace server
 
         void remove_here_from_connection_cache();
 
-        /// This is the default hook implementation for decorate_action which
-        /// does no hooking at all.
-        template <typename F>
-        static threads::thread_function_type
-        decorate_action(naming::address::address_type, F && f)
-        {
-            return std::forward<F>(f);
-        }
-
-        /// This is the default hook implementation for schedule_thread which
-        /// forwards to the default scheduler.
-        static void schedule_thread(naming::address::address_type,
-            threads::thread_init_data& data,
-            threads::thread_state_enum initial_state)
-        {
-            hpx::threads::register_work_plain(data, initial_state); //-V106
-        }
-
         ///////////////////////////////////////////////////////////////////////
+        void register_message_handler(char const* message_handler_type,
+            char const* action, error_code& ec);
         parcelset::policies::message_handler* create_message_handler(
             char const* message_handler_type, char const* action,
             parcelset::parcelport* pp, std::size_t num_messages,
@@ -350,13 +342,15 @@ namespace hpx { namespace components { namespace server
 #endif
 
         ///////////////////////////////////////////////////////////////////////
-        boost::shared_ptr<util::one_size_heap_list_base> get_promise_heap(
+        std::shared_ptr<util::one_size_heap_list_base> get_promise_heap(
             components::component_type type);
 
     protected:
         // Load all components from the ini files found in the configuration
         int load_components(util::section& ini, naming::gid_type const& prefix,
-            naming::resolver_client& agas_client);
+            naming::resolver_client& agas_client,
+            boost::program_options::options_description& options,
+            std::set<std::string>& startup_handled);
 
 #if !defined(HPX_HAVE_STATIC_LINKING)
         bool load_component(hpx::util::plugin::dll& d,
@@ -396,12 +390,23 @@ namespace hpx { namespace components { namespace server
             error_code& ec);
 
         // Load all plugins from the ini files found in the configuration
-        bool load_plugins(util::section& ini);
+        bool load_plugins(util::section& ini,
+            boost::program_options::options_description& options,
+            std::set<std::string>& startup_handled);
 
 #if !defined(HPX_HAVE_STATIC_LINKING)
-        bool load_plugin(util::section& ini, std::string const& instance,
+        bool load_plugin(hpx::util::plugin::dll& d,
+            util::section& ini, std::string const& instance,
             std::string const& component, boost::filesystem::path const& lib,
-            bool isenabled);
+            bool isenabled,
+            boost::program_options::options_description& options,
+            std::set<std::string>& startup_handled);
+        bool load_plugin_dynamic(
+            util::section& ini, std::string const& instance,
+            std::string const& component, boost::filesystem::path lib,
+            bool isenabled,
+            boost::program_options::options_description& options,
+            std::set<std::string>& startup_handled);
 #endif
 
         // the name says it all
@@ -426,7 +431,7 @@ namespace hpx { namespace components { namespace server
 
         typedef hpx::lcos::local::spinlock dijkstra_mtx_type;
         dijkstra_mtx_type dijkstra_mtx_;
-        lcos::local::condition_variable dijkstra_cond_;
+        lcos::local::condition_variable_any dijkstra_cond_;
 
         component_map_mutex_type cm_mtx_;
         plugin_map_mutex_type p_mtx_;
@@ -452,7 +457,7 @@ namespace hpx { namespace components { namespace server
             components::get_component_type<
                 typename Component::wrapped_type>();
 
-        boost::unique_lock<component_map_mutex_type> l(cm_mtx_);
+        std::unique_lock<component_map_mutex_type> l(cm_mtx_);
         component_map_type::const_iterator it = components_.find(type);
         if (it == components_.end()) {
             std::ostringstream strm;
@@ -479,9 +484,9 @@ namespace hpx { namespace components { namespace server
         }
 
         naming::gid_type id;
-        boost::shared_ptr<component_factory_base> factory((*it).second.first);
+        std::shared_ptr<component_factory_base> factory((*it).second.first);
         {
-            util::unlock_guard<boost::unique_lock<component_map_mutex_type> > ul(l);
+            util::unlock_guard<std::unique_lock<component_map_mutex_type> > ul(l);
             id = factory->create();
         }
         LRT_(info) << "successfully created component " << id
@@ -497,7 +502,7 @@ namespace hpx { namespace components { namespace server
             components::get_component_type<
                 typename Component::wrapped_type>();
 
-        boost::unique_lock<component_map_mutex_type> l(cm_mtx_);
+        std::unique_lock<component_map_mutex_type> l(cm_mtx_);
         component_map_type::const_iterator it = components_.find(type);
         if (it == components_.end()) {
             std::ostringstream strm;
@@ -524,14 +529,18 @@ namespace hpx { namespace components { namespace server
         }
 
         naming::gid_type id;
-        boost::shared_ptr<component_factory_base> factory((*it).second.first);
+        std::shared_ptr<component_factory_base> factory((*it).second.first);
         {
-            util::unlock_guard<boost::unique_lock<component_map_mutex_type> > ul(l);
+            util::unlock_guard<std::unique_lock<component_map_mutex_type> > ul(l);
 
             typedef typename Component::wrapping_type wrapping_type;
+
+            // Note, T and Ts can't be (non-const) references, and parameters
+            // should be moved to allow for move-only constructor argument
+            // types.
             id = factory->create_with_args(
                     detail::construct_function<wrapping_type>(
-                        std::forward<T>(v), std::forward<Ts>(vs)...));
+                        std::move(v), std::move(vs)...));
         }
         LRT_(info) << "successfully created component " << id
             << " of type: " << components::get_component_type_name(type);
@@ -547,7 +556,7 @@ namespace hpx { namespace components { namespace server
             components::get_component_type<
                 typename Component::wrapped_type>();
 
-        boost::unique_lock<component_map_mutex_type> l(cm_mtx_);
+        std::unique_lock<component_map_mutex_type> l(cm_mtx_);
         component_map_type::const_iterator it = components_.find(type);
         if (it == components_.end()) {
             std::ostringstream strm;
@@ -576,9 +585,9 @@ namespace hpx { namespace components { namespace server
         std::vector<naming::gid_type> ids;
         ids.reserve(count);
 
-        boost::shared_ptr<component_factory_base> factory((*it).second.first);
+        std::shared_ptr<component_factory_base> factory((*it).second.first);
         {
-            util::unlock_guard<boost::unique_lock<component_map_mutex_type> > ul(l);
+            util::unlock_guard<std::unique_lock<component_map_mutex_type> > ul(l);
             for (std::size_t i = 0; i != count; ++i)
             {
                 ids.push_back(factory->create());
@@ -599,7 +608,7 @@ namespace hpx { namespace components { namespace server
             components::get_component_type<
                 typename Component::wrapped_type>();
 
-        boost::unique_lock<component_map_mutex_type> l(cm_mtx_);
+        std::unique_lock<component_map_mutex_type> l(cm_mtx_);
         component_map_type::const_iterator it = components_.find(type);
         if (it == components_.end()) {
             std::ostringstream strm;
@@ -628,16 +637,19 @@ namespace hpx { namespace components { namespace server
         std::vector<naming::gid_type> ids;
         ids.reserve(count);
 
-        boost::shared_ptr<component_factory_base> factory((*it).second.first);
+        std::shared_ptr<component_factory_base> factory((*it).second.first);
         {
-            util::unlock_guard<boost::unique_lock<component_map_mutex_type> > ul(l);
+            util::unlock_guard<std::unique_lock<component_map_mutex_type> > ul(l);
             for (std::size_t i = 0; i != count; ++i)
             {
                 typedef typename Component::wrapping_type wrapping_type;
 
+                // Note, T and Ts can't be (non-const) references, and parameters
+                // should be moved to allow for move-only constructor argument
+                // types.
                 ids.push_back(factory->create_with_args(
                     detail::construct_function<wrapping_type>(
-                        std::forward<T>(v), std::forward<Ts>(vs)...)));
+                        std::move(v), std::move(vs)...)));
             }
         }
         LRT_(info) << "successfully created " << count //-V128
@@ -649,13 +661,13 @@ namespace hpx { namespace components { namespace server
 
     template <typename Component>
     naming::gid_type runtime_support::copy_create_component(
-        boost::shared_ptr<Component> const& p, bool local_op)
+        std::shared_ptr<Component> const& p, bool local_op)
     {
         components::component_type const type =
             components::get_component_type<
                 typename Component::wrapped_type>();
 
-        boost::unique_lock<component_map_mutex_type> l(cm_mtx_);
+        std::unique_lock<component_map_mutex_type> l(cm_mtx_);
         component_map_type::const_iterator it = components_.find(type);
         if (it == components_.end()) {
             std::ostringstream strm;
@@ -682,9 +694,9 @@ namespace hpx { namespace components { namespace server
         }
 
         naming::gid_type id;
-        boost::shared_ptr<component_factory_base> factory((*it).second.first);
+        std::shared_ptr<component_factory_base> factory((*it).second.first);
         {
-            util::unlock_guard<boost::unique_lock<component_map_mutex_type> > ul(l);
+            util::unlock_guard<std::unique_lock<component_map_mutex_type> > ul(l);
 
             typedef typename Component::wrapping_type wrapping_type;
             if (!local_op) {
@@ -705,51 +717,55 @@ namespace hpx { namespace components { namespace server
     ///////////////////////////////////////////////////////////////////////////
     template <typename Component>
     naming::gid_type runtime_support::migrate_component_to_here(
-        boost::shared_ptr<Component> const& p, naming::id_type to_migrate)
+        std::shared_ptr<Component> const& p, naming::id_type to_migrate)
     {
         components::component_type const type =
             components::get_component_type<
                 typename Component::wrapped_type>();
 
-        boost::unique_lock<component_map_mutex_type> l(cm_mtx_);
-        component_map_type::const_iterator it = components_.find(type);
-        if (it == components_.end()) {
-            std::ostringstream strm;
-            strm << "attempt to migrate component instance of "
-                << "invalid/unknown type: "
-                << components::get_component_type_name(type)
-                << " (component type not found in map)";
-            HPX_THROW_EXCEPTION(hpx::bad_component_type,
-                "runtime_support::migrate_component_to_here",
-                strm.str());
-            return naming::invalid_gid;
-        }
+        std::shared_ptr<component_factory_base> factory;
+        naming::gid_type migrated_id;
 
-        if (!(*it).second.first) {
-            std::ostringstream strm;
-            strm << "attempt to migrate component instance of "
-                << "invalid/unknown type: "
-                << components::get_component_type_name(type)
-                << " (map entry is NULL)";
-            HPX_THROW_EXCEPTION(hpx::bad_component_type,
-                "runtime_support::migrate_component_to_here",
-                strm.str());
-            return naming::invalid_gid;
-        }
-
-        // create a local instance by copying the bits and remapping the id in
-        // AGAS
-        naming::gid_type migrated_id = to_migrate.get_gid();
-
-        naming::gid_type id;
-        boost::shared_ptr<component_factory_base> factory((*it).second.first);
         {
-            util::unlock_guard<boost::unique_lock<component_map_mutex_type> > ul(l);
+            std::unique_lock<component_map_mutex_type> l(cm_mtx_);
+            component_map_type::const_iterator it = components_.find(type);
+            if (it == components_.end()) {
+                std::ostringstream strm;
+                strm << "attempt to migrate component instance of "
+                    << "invalid/unknown type: "
+                    << components::get_component_type_name(type)
+                    << " (component type not found in map)";
 
-            typedef typename Component::wrapping_type wrapping_type;
-            id = factory->create_with_args(migrated_id,
-                detail::construct_function<wrapping_type>(std::move(*p)));
+                l.unlock();
+                HPX_THROW_EXCEPTION(hpx::bad_component_type,
+                    "runtime_support::migrate_component_to_here",
+                    strm.str());
+                return naming::invalid_gid;
+            }
+
+            if (!(*it).second.first) {
+                std::ostringstream strm;
+                strm << "attempt to migrate component instance of "
+                    << "invalid/unknown type: "
+                    << components::get_component_type_name(type)
+                    << " (map entry is NULL)";
+
+                l.unlock();
+                HPX_THROW_EXCEPTION(hpx::bad_component_type,
+                    "runtime_support::migrate_component_to_here",
+                    strm.str());
+                return naming::invalid_gid;
+            }
+
+            // create a local instance by copying the bits and remapping the id in
+            // AGAS
+            migrated_id = to_migrate.get_gid();
+            factory = (*it).second.first;
         }
+
+        typedef typename Component::wrapping_type wrapping_type;
+        naming::gid_type id = factory->create_with_args(migrated_id,
+            detail::construct_function<wrapping_type>(std::move(*p)));
 
         // sanity checks
         if (!id)
@@ -773,6 +789,12 @@ namespace hpx { namespace components { namespace server
         LRT_(info) << "successfully migrated component " << id
             << " of type: " << components::get_component_type_name(type)
             << " to locality: " << find_here();
+
+        // At this point the object has been fully migrated. We now remove
+        // the object from the AGAS table of migrated objects. This is
+        // necessary as this object might have been migrated off this locality
+        // before it was migrated back.
+        agas::unmark_as_migrated(id);
 
         to_migrate.make_unmanaged();
         return id;
@@ -913,7 +935,7 @@ namespace hpx { namespace components { namespace server
     struct copy_create_component_action
       : ::hpx::actions::action<
             naming::gid_type (runtime_support::*)(
-                boost::shared_ptr<Component> const&, bool)
+                std::shared_ptr<Component> const&, bool)
           , &runtime_support::copy_create_component<Component>
           , copy_create_component_action<Component> >
     {};
@@ -921,7 +943,7 @@ namespace hpx { namespace components { namespace server
     struct migrate_component_here_action
       : ::hpx::actions::action<
             naming::gid_type (runtime_support::*)(
-                boost::shared_ptr<Component> const&, naming::id_type)
+                std::shared_ptr<Component> const&, naming::id_type)
           , &runtime_support::migrate_component_to_here<Component>
           , migrate_component_here_action<Component> >
     {};

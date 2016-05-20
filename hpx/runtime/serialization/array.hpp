@@ -13,9 +13,10 @@
 #include <hpx/traits/is_bitwise_serializable.hpp>
 
 #include <cstddef>
+#include <type_traits>
 
 #include <boost/array.hpp>
-#ifndef BOOST_NO_CXX11_HDR_ARRAY
+#ifdef HPX_HAVE_CXX11_STD_ARRAY
 #include <array>
 #endif
 
@@ -43,19 +44,19 @@ namespace hpx { namespace serialization
         }
 
         template <class Archive>
-        void serialize_optimized(Archive& ar, unsigned int v, boost::mpl::false_)
+        void serialize_optimized(Archive& ar, unsigned int v, std::false_type)
         {
             for (std::size_t i = 0; i != m_element_count; ++i)
                 ar & m_t[i];
         }
 
-        void serialize_optimized(output_archive& ar, unsigned int, boost::mpl::true_)
+        void serialize_optimized(output_archive& ar, unsigned int, std::true_type)
         {
             // try using chunking
             ar.save_binary_chunk(m_t, m_element_count * sizeof(T));
         }
 
-        void serialize_optimized(input_archive& ar, unsigned int, boost::mpl::true_)
+        void serialize_optimized(input_archive& ar, unsigned int, std::true_type)
         {
             // try using chunking
             ar.load_binary_chunk(m_t, m_element_count * sizeof(T));
@@ -64,8 +65,8 @@ namespace hpx { namespace serialization
         template <class Archive>
         void serialize(Archive& ar, unsigned int v)
         {
-            typedef typename hpx::traits::is_bitwise_serializable<T>::type
-                use_optimized;
+            typedef std::integral_constant<bool,
+                hpx::traits::is_bitwise_serializable<T>::value> use_optimized;
 
 #ifdef BOOST_BIG_ENDIAN
             bool archive_endianess_differs = ar.endian_little();
@@ -74,7 +75,7 @@ namespace hpx { namespace serialization
 #endif
 
             if (ar.disable_array_optimization() || archive_endianess_differs)
-                serialize_optimized(ar, v, boost::mpl::false_());
+                serialize_optimized(ar, v, std::false_type());
             else
                 serialize_optimized(ar, v, use_optimized());
         }
@@ -85,7 +86,7 @@ namespace hpx { namespace serialization
     };
 
     // make_array function
-    template <class T> BOOST_FORCEINLINE
+    template <class T> HPX_FORCEINLINE
     array<T> make_array(T* begin, std::size_t size)
     {
         return array<T>(begin, size);
@@ -98,40 +99,40 @@ namespace hpx { namespace serialization
         ar & hpx::serialization::make_array(a.begin(), a.size());
     }
 
-#ifndef BOOST_NO_CXX11_HDR_ARRAY
+#ifdef HPX_HAVE_CXX11_STD_ARRAY
   // implement serialization for std::array
     template <class Archive, class T, std::size_t N>
     void serialize(Archive& ar, std::array<T,N>& a, const unsigned int /* version */)
     {
-        ar & hpx::serialization::make_array(a.begin(), a.size());
+        ar & hpx::serialization::make_array(a.data(), a.size());
     }
 #endif
 
     // allow our array to be serialized as prvalue
     // compiler should support good ADL implementation
     // but it is rather for all hpx serialization library
-    template <typename T> BOOST_FORCEINLINE
+    template <typename T> HPX_FORCEINLINE
     output_archive & operator<<(output_archive & ar, array<T> t)
     {
         ar.invoke(t);
         return ar;
     }
 
-    template <typename T> BOOST_FORCEINLINE
+    template <typename T> HPX_FORCEINLINE
     input_archive & operator>>(input_archive & ar, array<T> t)
     {
         ar.invoke(t);
         return ar;
     }
 
-    template <typename T> BOOST_FORCEINLINE
+    template <typename T> HPX_FORCEINLINE
     output_archive & operator&(output_archive & ar, array<T> t) //-V524
     {
         ar.invoke(t);
         return ar;
     }
 
-    template <typename T> BOOST_FORCEINLINE
+    template <typename T> HPX_FORCEINLINE
     input_archive & operator&(input_archive & ar, array<T> t) //-V524
     {
         ar.invoke(t);
@@ -139,7 +140,7 @@ namespace hpx { namespace serialization
     }
 
     // serialize plain arrays:
-    template <typename T, std::size_t N> BOOST_FORCEINLINE
+    template <typename T, std::size_t N> HPX_FORCEINLINE
     output_archive & operator<<(output_archive & ar, T (&t)[N])
     {
         array<T> array = make_array(t, N);
@@ -147,7 +148,7 @@ namespace hpx { namespace serialization
         return ar;
     }
 
-    template <typename T, std::size_t N> BOOST_FORCEINLINE
+    template <typename T, std::size_t N> HPX_FORCEINLINE
     input_archive & operator>>(input_archive & ar, T (&t)[N])
     {
         array<T> array = make_array(t, N);
@@ -155,7 +156,7 @@ namespace hpx { namespace serialization
         return ar;
     }
 
-    template <typename T, std::size_t N> BOOST_FORCEINLINE
+    template <typename T, std::size_t N> HPX_FORCEINLINE
     output_archive & operator&(output_archive & ar, T (&t)[N]) //-V524
     {
         array<T> array = make_array(t, N);
@@ -163,7 +164,7 @@ namespace hpx { namespace serialization
         return ar;
     }
 
-    template <typename T, std::size_t N> BOOST_FORCEINLINE
+    template <typename T, std::size_t N> HPX_FORCEINLINE
     input_archive & operator&(input_archive & ar, T (&t)[N]) //-V524
     {
         array<T> array = make_array(t, N);

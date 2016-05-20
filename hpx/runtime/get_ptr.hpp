@@ -8,8 +8,8 @@
 #if !defined(HPX_RUNTIME_GET_PTR_SEP_18_2013_0622PM)
 #define HPX_RUNTIME_GET_PTR_SEP_18_2013_0622PM
 
-#include <hpx/hpx_fwd.hpp>
-#include <hpx/exception.hpp>
+#include <hpx/config.hpp>
+#include <hpx/throw_exception.hpp>
 #include <hpx/runtime/get_lva.hpp>
 #include <hpx/runtime/naming/address.hpp>
 #include <hpx/runtime/naming/name.hpp>
@@ -17,7 +17,7 @@
 #include <hpx/runtime/components/stubs/runtime_support.hpp>
 #include <hpx/runtime/agas/addressing_service.hpp>
 
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx
@@ -52,6 +52,7 @@ namespace hpx
                 bool was_migrated = p->pin_count() == ~0x0u;
                 p->unpin();
 
+                HPX_ASSERT(was_migrated);
                 if (was_migrated)
                 {
                     using components::stubs::runtime_support;
@@ -66,7 +67,7 @@ namespace hpx
         };
 
         template <typename Component, typename Deleter>
-        boost::shared_ptr<Component>
+        std::shared_ptr<Component>
         get_ptr_postproc_helper(naming::address const& addr,
             naming::id_type const& id)
         {
@@ -75,7 +76,7 @@ namespace hpx
                 HPX_THROW_EXCEPTION(bad_parameter,
                     "hpx::get_ptr_postproc<Component, Deleter>",
                     "the given component id does not belong to a local object");
-                return boost::shared_ptr<Component>();
+                return std::shared_ptr<Component>();
             }
 
             if (!traits::component_type_is_compatible<Component>::call(addr))
@@ -83,18 +84,18 @@ namespace hpx
                 HPX_THROW_EXCEPTION(bad_component_type,
                     "hpx::get_ptr_postproc<Component, Deleter>",
                     "requested component type does not match the given component id");
-                return boost::shared_ptr<Component>();
+                return std::shared_ptr<Component>();
             }
 
             Component* p = get_lva<Component>::call(addr.address_);
-            boost::shared_ptr<Component> ptr(p, Deleter(id));
+            std::shared_ptr<Component> ptr(p, Deleter(id));
 
             ptr->pin();     // the shared_ptr pins the component
             return ptr;
         }
 
         template <typename Component, typename Deleter>
-        boost::shared_ptr<Component>
+        std::shared_ptr<Component>
         get_ptr_postproc(hpx::future<naming::address> f,
             naming::id_type const& id)
         {
@@ -105,7 +106,7 @@ namespace hpx
         // This is similar to get_ptr<> below, except that the shared_ptr will
         // delete the local instance when it goes out of scope.
         template <typename Component>
-        boost::shared_ptr<Component>
+        std::shared_ptr<Component>
         get_ptr_for_migration(naming::address const& addr,
             naming::id_type const& id)
         {
@@ -138,7 +139,7 @@ namespace hpx
     ///            error.
     ///
     template <typename Component>
-    hpx::future<boost::shared_ptr<Component> >
+    hpx::future<std::shared_ptr<Component> >
     get_ptr(naming::id_type const& id)
     {
         using util::placeholders::_1;
@@ -176,10 +177,10 @@ namespace hpx
     ///            hpx::exception.
     ///
     template <typename Component>
-    boost::shared_ptr<Component>
+    std::shared_ptr<Component>
     get_ptr_sync(naming::id_type const& id, error_code& ec = throws)
     {
-        hpx::future<boost::shared_ptr<Component> > ptr =
+        hpx::future<std::shared_ptr<Component> > ptr =
             get_ptr<Component>(id);
         return ptr.get(ec);
     }

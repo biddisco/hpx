@@ -11,6 +11,8 @@
 #include "worker_timed.hpp"
 
 #include <stdexcept>
+#include <string>
+#include <vector>
 
 #include <boost/cstdint.hpp>
 #include <boost/format.hpp>
@@ -42,6 +44,7 @@ void measure_transform_reduce(std::size_t size)
         0.0,
         std::plus<double>()
     );
+    HPX_UNUSED(result);
 }
 
 void measure_transform_reduce_old(std::size_t size)
@@ -61,6 +64,7 @@ void measure_transform_reduce_old(std::size_t size)
                 res.x * res.y + curr.x * curr.y, 1.0};
         }
     );
+    HPX_UNUSED(result);
 }
 
 boost::uint64_t average_out_transform_reduce(std::size_t vector_size)
@@ -104,7 +108,7 @@ int main(int argc, char* argv[])
 {
     std::vector<std::string> cfg;
     cfg.push_back("hpx.os_threads=" +
-        boost::lexical_cast<std::string>(hpx::threads::hardware_concurrency()));
+        std::to_string(hpx::threads::hardware_concurrency()));
     boost::program_options::options_description cmdline(
         "usage: " HPX_APPLICATION_STRING " [options]");
 

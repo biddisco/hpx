@@ -7,7 +7,7 @@
 #ifndef HPX_SERIALIZATION_BASIC_ARCHIVE_HPP
 #define HPX_SERIALIZATION_BASIC_ARCHIVE_HPP
 
-#include <hpx/traits/is_bitwise_serializable.hpp>
+#include <hpx/config.hpp>
 
 #include <boost/cstdint.hpp>
 #include <boost/type_traits/is_pointer.hpp>
@@ -36,7 +36,7 @@ namespace hpx { namespace serialization
         all_archive_flags           = 0x0003e000    // all of the above
     };
 
-    void BOOST_FORCEINLINE
+    void HPX_FORCEINLINE
     reverse_bytes(char size, char* address)
     {
         std::reverse(address, address + size);
@@ -45,7 +45,7 @@ namespace hpx { namespace serialization
     template <typename Archive>
     struct HPX_EXPORT basic_archive
     {
-        static const boost::uint64_t npos = -1;
+        static const boost::uint64_t npos = boost::uint64_t(-1);
 
         basic_archive(boost::uint32_t flags)
           : flags_(flags)

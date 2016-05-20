@@ -20,15 +20,15 @@
 #include <hpx/include/parallel_executor_parameters.hpp>
 #include <hpx/include/iostreams.hpp>
 #include <hpx/include/threads.hpp>
+#include <hpx/util/safe_lexical_cast.hpp>
 
 #include <hpx/parallel/util/numa_allocator.hpp>
 
-#include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
 #include <boost/range/functions.hpp>
 
-#include <vector>
 #include <string>
+#include <vector>
 
 #ifndef STREAM_TYPE
 #define STREAM_TYPE double

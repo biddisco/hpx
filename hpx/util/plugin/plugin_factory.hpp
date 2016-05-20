@@ -7,21 +7,23 @@
 #ifndef HPX_PLUGIN_FACTORY_VP_2004_08_25
 #define HPX_PLUGIN_FACTORY_VP_2004_08_25
 
+#include <hpx/config.hpp>
+#include <hpx/error_code.hpp>
+#include <hpx/throw_exception.hpp>
 #include <hpx/util/function.hpp>
 #include <hpx/util/plugin/virtual_constructor.hpp>
 #include <hpx/util/plugin/abstract_factory.hpp>
 #include <hpx/util/plugin/dll.hpp>
 #include <hpx/util/plugin/export_plugin.hpp>
 
-#include <hpx/exception.hpp>
-
-#include <boost/config.hpp>
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/shared_ptr.hpp>
 #include <boost/type_traits/remove_pointer.hpp>
 
-#include <stdexcept>
+#include <sstream>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace hpx { namespace util { namespace plugin {
 
