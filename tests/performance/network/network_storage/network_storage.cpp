@@ -266,16 +266,15 @@ typedef pointer_allocator<char>                             PointerAllocator;
 typedef hpx::serialization::serialize_buffer<char,
     PointerAllocator> transfer_buffer_type;
 
-typedef std::map<uint64_t, boost::shared_ptr<general_buffer_type>>  alive_map;
+typedef std::map<uint64_t, std::shared_ptr<general_buffer_type>>  alive_map;
 typedef hpx::lcos::local::spinlock                                  mutex_type;
-typedef hpx::lcos::local::spinlock::scoped_lock                     scoped_lock;
 //
 mutex_type keep_alive_mutex;
 alive_map  keep_alive_buffers;
 //
 void async_callback(const uint64_t index, boost::system::error_code const& ec, hpx::parcelset::parcel const& p)
 {
-    scoped_lock lock(keep_alive_mutex);
+    std::lock_guard<mutex_type> lock(keep_alive_mutex);
     DEBUG_OUTPUT(7,
             "Async callback triggered for index " << index
     );
@@ -544,12 +543,12 @@ void test_write(
                 std::lock_guard<hpx::lcos::local::spinlock> lk(FuturesMutex);
 #endif
 
-                boost::shared_ptr<general_buffer_type> temp_buffer = boost::make_shared<general_buffer_type>(
+                std::shared_ptr<general_buffer_type> temp_buffer = std::make_shared<general_buffer_type>(
                         static_cast<char*>(buffer), options.transfer_size_B, general_buffer_type::reference);
                 using hpx::util::placeholders::_1;
                 using hpx::util::placeholders::_2;
                 {
-                    scoped_lock lock(keep_alive_mutex);
+                    std::lock_guard<mutex_type> lock(keep_alive_mutex);
                     keep_alive_buffers[buffer_index] = temp_buffer;
                 }
                 ActiveFutures[send_rank].push_back(
