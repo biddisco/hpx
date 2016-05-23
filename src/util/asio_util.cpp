@@ -172,6 +172,27 @@ namespace hpx { namespace util
         return true;
     }
 
+    ///////////////////////////////////////////////////////////////////////
+    // Take an ip v4 or v6 address and "standardize" it for comparison checks
+    HPX_API_EXPORT std::string cleanup_ip_address(const std::string &addr)
+    {
+        unsigned char buf[sizeof(struct in6_addr)];
+        int i=0, domain[2] = {AF_INET, AF_INET6};
+        char str[INET6_ADDRSTRLEN];
+
+        for (i=0; i<2; ++i) {
+            int s = inet_pton(domain[i], &addr[0], buf);
+            if (s>0) break;
+        }
+        if (i==2) {
+            throw std::runtime_error("Invalid IP address string");
+        }
+
+       if (inet_ntop(domain[i], buf, str, INET6_ADDRSTRLEN) == NULL) {
+           throw std::runtime_error("inet_ntop failure");
+       }
+       return std::string(str);
+    }
 
     endpoint_iterator_type connect_begin(std::string const & address,
         boost::uint16_t port,
