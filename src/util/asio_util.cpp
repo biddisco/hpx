@@ -236,11 +236,13 @@ namespace hpx { namespace util
             if (s>0) break;
         }
         if (i==2) {
-            throw std::runtime_error("Invalid IP address string");
+            HPX_THROW_EXCEPTION(bad_parameter, "cleanup_ip_address",
+                "Invalid IP address string");
         }
 
        if (inet_ntop(domain[i], buf, str, INET6_ADDRSTRLEN) == NULL) {
-           throw std::runtime_error("inet_ntop failure");
+           HPX_THROW_EXCEPTION(bad_parameter, "cleanup_ip_address",
+               "inet_ntop failure");
        }
        return std::string(str);
     }
