@@ -11,7 +11,7 @@
 #include <hpx/util/tagged_pair.hpp>
 #include <hpx/util/tuple.hpp>
 
-#include <hpx/parallel/algorithms/sort.hpp>
+#include <hpx/parallel/algorithms/sort_legacy.hpp>
 #include <hpx/parallel/tagspec.hpp>
 #include <hpx/parallel/util/zip_iterator.hpp>
 
@@ -146,7 +146,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
         std::advance(value_last, std::distance(key_first, key_last));
 
         return detail::get_iter_tagged_pair<tag::in1, tag::in2>(
-            hpx::parallel::sort(
+            hpx::parallel::sort_legacy(
                 std::forward<ExPolicy>(policy),
                 hpx::util::make_zip_iterator(key_first, value_first),
                 hpx::util::make_zip_iterator(key_last, value_last),
