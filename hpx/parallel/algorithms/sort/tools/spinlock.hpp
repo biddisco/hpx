@@ -55,15 +55,15 @@ public :
 /// @brief  class constructor
 /// @param [in]
 //---------------------------------------------------------------------------
-explicit inline spinlock() HPX_NOEXCEPT{ af.clear(); };
+explicit inline spinlock() noexcept{ af.clear(); };
 //
 //---------------------------------------------------------------------------
 //  function : lock
 /// @brief  Lock the spinlock
 //---------------------------------------------------------------------------
-inline void lock() HPX_NOEXCEPT
+inline void lock() noexcept
 {   if ( af.test_and_set(std::memory_order_acquire))
-    {   while ( wait() &&  af.test_and_set(std::memory_order_relaxed) );
+    {   while ( wait() and  af.test_and_set(std::memory_order_relaxed) );
     };
 };
 //
@@ -73,7 +73,7 @@ inline void lock() HPX_NOEXCEPT
 /// @param [in]
 /// @return true :locked false: not previous locked
 //---------------------------------------------------------------------------
-inline bool wait () const HPX_NOEXCEPT
+inline bool wait () const noexcept
 {   hpx::this_thread::yield();
     return true ;
 } ;
@@ -84,15 +84,15 @@ inline bool wait () const HPX_NOEXCEPT
 /// @param [in]
 /// @return true :locked false: not previous locked
 //---------------------------------------------------------------------------
-inline bool try_lock() HPX_NOEXCEPT
-{   return !af.test_and_set(std::memory_order_acquire);
+inline bool try_lock() noexcept
+{   return not af.test_and_set(std::memory_order_acquire);
 };
 //
 //---------------------------------------------------------------------------
 //  function : unlock
 /// @brief  unlock the spinlock
 //---------------------------------------------------------------------------
-inline void unlock() HPX_NOEXCEPT
+inline void unlock() noexcept
 {   //----------------------- begin -----------------
     af.clear(std::memory_order_release );
 };

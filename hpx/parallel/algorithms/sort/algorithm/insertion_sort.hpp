@@ -22,10 +22,12 @@
 #include <utility> // std::swap
 
 
-namespace hpx {
-namespace parallel {
-HPX_INLINE_NAMESPACE(v2) { namespace boostsort {
-namespace algorithm {
+namespace hpx		{
+namespace parallel	{
+HPX_INLINE_NAMESPACE(v2) { namespace boostsort		{
+namespace algorithm	{
+
+using  std::iterator_traits;
 
 //-----------------------------------------------------------------------------
 //  function : insertion_sort
@@ -37,35 +39,31 @@ namespace algorithm {
 //-----------------------------------------------------------------------------
 template < class iter_t,
            typename compare
-                    = std::less <typename std::iterator_traits<iter_t>::value_type >
+		            = std::less <typename iterator_traits<iter_t>::value_type >
          >
 inline void insertion_sort (iter_t first, iter_t last, compare comp=compare())
-{
-    //------------------------- begin ----------------------
-    typedef typename std::iterator_traits<iter_t>::value_type value_t ;
+{   //------------------------- begin ----------------------
+    typedef typename iterator_traits<iter_t>::value_type value_t ;
 
     if ( (last-first) < 2 ) return ;
     for ( iter_t Alfa = first +1 ;Alfa != last ; ++Alfa)
-    {
-        value_t Aux = std::move ( *Alfa);
+    {   value_t Aux = std::move ( *Alfa);
         iter_t Beta  = Alfa ;
 
-        while( Beta != first && comp ( Aux, *(Beta-1) ) )
-        {
-            *Beta = std::move ( *(Beta-1));
+        while( Beta != first and comp ( Aux, *(Beta-1) ) )
+        {   *Beta = std::move ( *(Beta-1));
             --Beta ;
-        }
-
+        };
         *Beta = std::move ( Aux );
-    }
-}
+    };
+};
 
 //
 //****************************************************************************
-}//    End namespace algorithm
-}//    End namespace parallel
-}}//    End HPX_INLINE_NAMESPACE(v2) 
-}//    End namespace boost
+};//    End namespace algorithm
+};//    End namespace parallel
+};};//    End HPX_INLINE_NAMESPACE(v2) 
+};//    End namespace boost
 //****************************************************************************
 //
 #endif
