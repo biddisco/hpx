@@ -35,7 +35,8 @@ namespace policies { namespace verbs
             pos_piggy_back_flag   = 6 * sizeof(value_type),// + (1 * sizeof(flag_type)),
             pos_chunk_offset      = 7 * sizeof(value_type),// + (2 * sizeof(flag_type)),
             pos_piggy_back_offset = 8 * sizeof(value_type),// + (2 * sizeof(flag_type)) + 1,
-            pos_data_zone         = 9 * sizeof(value_type),// + (2 * sizeof(flag_type)) + 1
+            pos_piggy_back_rdma   = 9 * sizeof(value_type),// + (2 * sizeof(flag_type)) + 1,
+            pos_data_zone         =10 * sizeof(value_type),// + (2 * sizeof(flag_type)) + 1
         };
 
         static int const data_size_ = SIZE;
@@ -160,6 +161,13 @@ namespace policies { namespace verbs
                 return static_cast<std::size_t>(pos_data_zone);
         }
 
+        void setRdma(value_type v) {
+            set<pos_piggy_back_rdma>(v);
+        }
+
+        value_type GetRdma(value_type &v) const {
+            return get<pos_piggy_back_rdma>();
+        }
     private:
         boost::array<char, data_size_> data_;
 
