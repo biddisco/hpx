@@ -1522,7 +1522,7 @@ hpx_include(SetOutputPaths)
 set(HPX_STATIC_PARCELPORT_PLUGINS "" CACHE INTERNAL "" FORCE)
 add_hpx_pseudo_target(plugins)
 if (NOT Boost_USE_STATIC_LIBS)
-  add_definitions(-DBOOST_LOG_DYN_LINK)
+#  add_definitions(-DBOOST_LOG_DYN_LINK)
 endif()
 add_subdirectory(plugins)
 
