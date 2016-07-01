@@ -928,7 +928,7 @@ int hpx_main(boost::program_options::variables_map& vm)
     }
 
     test_write(rank, nranks, num_transfer_slots, gen, random_rank, random_slot, options);
-//    test_read (rank, nranks, num_transfer_slots, gen, random_rank, random_slot, options);
+    test_read (rank, nranks, num_transfer_slots, gen, random_rank, random_slot, options);
     //
     delete_local_storage();
 

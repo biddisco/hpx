@@ -27,9 +27,9 @@ namespace hpx { namespace parcelset
     struct connection_handler_traits<policies::verbs::parcelport>
     {
         typedef policies::verbs::sender_connection connection_type;
-        typedef boost::mpl::false_ send_early_parcel;
-        typedef boost::mpl::true_  do_background_work;
-        typedef boost::mpl::false_ do_enable_parcel_handling;
+        typedef boost::mpl::false_                 send_early_parcel;
+        typedef boost::mpl::true_                  do_background_work;
+        typedef boost::mpl::true_                  do_limit_parcel_queue;
 
         static const char * type()
         {

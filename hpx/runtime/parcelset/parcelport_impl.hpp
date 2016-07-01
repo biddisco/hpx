@@ -37,6 +37,7 @@
 #include <string>
 #include <vector>
 
+#include "/users/biddisco/src/hvtkm/hpx/plugins/parcelport/verbs/rdmahelper/include/RdmaLogging.h"
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx
 {
@@ -560,7 +561,12 @@ namespace hpx { namespace parcelset
         void enqueue_parcel(locality const& locality_id,
             parcel&& p, write_handler_type&& f, new_gids_map && new_gids)
         {
+            LOG_DEBUG_MSG("Entering enqueue_parcel");
             typedef pending_parcels_map::mapped_type mapped_type;
+
+            if (connection_handler_traits<ConnectionHandler>::do_limit_parcel_queue::value) {
+                LOG_DEBUG_MSG("Limit Parcel Queue");
+            }
 
             std::unique_lock<lcos::local::spinlock> l(mtx_);
             // We ignore the lock here. It might happen that while enqueuing,
@@ -589,6 +595,7 @@ namespace hpx { namespace parcelset
             std::vector<parcel>&& parcels,
             std::vector<write_handler_type>&& handlers, new_gids_map && new_gids)
         {
+            LOG_DEBUG_MSG("Entering enqueue_parcels");
             typedef pending_parcels_map::mapped_type mapped_type;
 
             std::unique_lock<lcos::local::spinlock> l(mtx_);
