@@ -16,6 +16,8 @@
 #include <hpx/runtime/parcelset/parcel.hpp>
 #include <hpx/runtime/serialization/serialize.hpp>
 
+#include "/users/biddisco/src/hvtkm/hpx/plugins/parcelport/verbs/rdmahelper/include/RdmaLogging.h"
+
 #include <sstream>
 #include <vector>
 
@@ -93,6 +95,7 @@ namespace hpx { namespace parcelset
       , std::size_t num_thread = -1
     )
     {
+        LOG_DEBUG_MSG("decode_message_with_chunks");
         boost::uint64_t inbound_data_size = buffer.data_size_;
 
         // protect from un-handled exceptions bubbling up
@@ -145,6 +148,7 @@ namespace hpx { namespace parcelset
                     data.num_parcels_ = parcel_count;
                     data.raw_bytes_ = archive.bytes_read();
                 }
+                LOG_DEBUG_MSG("decode_message_with_chunks HERE 1");
 
                 // store the time required for serialization
                 data.serialization_time_ = timer.elapsed_nanoseconds() -

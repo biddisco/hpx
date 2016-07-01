@@ -29,7 +29,8 @@
 #include <hpx/runtime/serialization/detail/future_await_container.hpp>
 
 // Local parcelport plugin
-// #define USE_SPECIALIZED_SCHEDULER
+#define USE_SPECIALIZED_SCHEDULER
+//
 #include "sender_connection.hpp"
 #include "connection_handler.hpp"
 #include "locality.hpp"
@@ -60,6 +61,7 @@
 using namespace hpx::parcelset::policies;
 
 namespace hpx { namespace parcelset {
+
     namespace policies { namespace verbs
     {
 
@@ -90,8 +92,7 @@ namespace hpx { namespace parcelset {
     // --------------------------------------------------------------------
     // parcelport, the implementation of the parcelport itself
     // --------------------------------------------------------------------
-    class HPX_EXPORT parcelport
-      : public parcelport_impl<parcelport>
+    class HPX_EXPORT parcelport : public parcelport_impl<parcelport>
     {
     private:
         typedef parcelport_impl<parcelport> base_type;
@@ -318,19 +319,8 @@ namespace hpx { namespace parcelset {
                 send_data.message_region = NULL;
             }
             for (auto r : send_data.zero_copy_regions) {
-                // if this region was registered on the fly, then don't return it to the pool
-                if (r->isTempRegion()) {
-                    LOG_DEBUG_MSG("Deleting " << hexpointer(r));
-                    delete r;
-                }
-                else if (r->isUserRegion()) {
-                    LOG_DEBUG_MSG("Deleting " << hexpointer(r));
-                    delete r;
-                }
-                else {
-                    LOG_DEBUG_MSG("Deallocating " << hexpointer(r));
-                    chunk_pool_->deallocate(r);
-                }
+                LOG_DEBUG_MSG("Deallocating " << hexpointer(r));
+                chunk_pool_->deallocate(r);
             }
             //
             // when a parcel is deleted, it takes a lock, since we are locking before delete
@@ -340,7 +330,7 @@ namespace hpx { namespace parcelset {
             // to avoid the lock held detection by using util::ignore_while_checking
             {
                 unique_lock lock(active_send_mutex);
-//                util::ignore_while_checking<unique_lock> il(&lock);
+                util::ignore_while_checking<unique_lock> il(&lock);
                 active_sends.erase(send);
                 --active_send_count_;
                 LOG_DEBUG_MSG("Active send after erase size " << active_send_count_ );
@@ -361,19 +351,8 @@ namespace hpx { namespace parcelset {
             chunk_pool_->deallocate(recv_data.header_region);
             LOG_DEBUG_MSG("Zero copy regions size is (delete) " << decnumber(recv_data.zero_copy_regions.size()));
             for (auto r : recv_data.zero_copy_regions) {
-                // if this region was registered on the fly, then don't return it to the pool
-                if (r->isTempRegion()) {
-                    LOG_DEBUG_MSG("Deleting " << hexpointer(r));
-                    delete r;
-                }
-                else if (r->isUserRegion()) {
-                    LOG_DEBUG_MSG("Deleting " << hexpointer(r));
-                    delete r;
-                }
-                else {
-                    LOG_DEBUG_MSG("Deallocating " << hexpointer(r));
-                    chunk_pool_->deallocate(r);
-                }
+                LOG_DEBUG_MSG("Deallocating " << hexpointer(r));
+                chunk_pool_->deallocate(r);
             }
             {
                 scoped_lock lock(active_recv_mutex);
@@ -1286,6 +1265,7 @@ namespace hpx { namespace parcelset {
             HPX_ASSERT(threads::get_self_ptr() != 0);
             //
             do {
+//                _rdmaController->refill_client_receives();
                 // if an event comes in, we may spend time processing/handling it and another may arrive
                 // during this handling, so keep checking until none are received
                 done = (_rdmaController->eventMonitor(0) == 0);
