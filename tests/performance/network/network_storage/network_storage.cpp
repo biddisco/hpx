@@ -646,7 +646,9 @@ void test_read(
                         options.transfer_size_B, buffer_address
                     ).then(
                         hpx::launch::sync,
-                        hpx::util::bind(&transfer_data, general_buffer, _1)
+                        [=](hpx::future<transfer_buffer_type> &&f) {
+                          return transfer_data(general_buffer, std::move(f));
+                        }
                     ).then(
                         hpx::launch::sync,
                         [=](hpx::future<void> fut) -> int {
