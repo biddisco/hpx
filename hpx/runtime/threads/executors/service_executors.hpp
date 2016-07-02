@@ -8,10 +8,10 @@
 
 #include <hpx/config.hpp>
 #include <hpx/exception_fwd.hpp>
-#include <hpx/throw_exception.hpp>
 #include <hpx/lcos/local/counting_semaphore.hpp>
 #include <hpx/runtime/threads/thread_enums.hpp>
 #include <hpx/runtime/threads/thread_executor.hpp>
+#include <hpx/throw_exception.hpp>
 #include <hpx/util/date_time_chrono.hpp>
 #include <hpx/util/thread_description.hpp>
 #include <hpx/util/unique_function.hpp>
@@ -127,7 +127,7 @@ namespace hpx { namespace threads { namespace executors
             HPX_THROW_EXCEPTION(bad_parameter,
                 "hpx::threads::detail::get_service_executor",
                 "unknown pool executor type");
-            return 0;
+            return nullptr;
         }
         /// \endcond
     }

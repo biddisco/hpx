@@ -4,14 +4,12 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-/// \file threads_fwd.hpp
-
 #ifndef HPX_RUNTIME_THREADS_FWD_HPP
 #define HPX_RUNTIME_THREADS_FWD_HPP
 
 #include <hpx/config.hpp>
-#include <hpx/runtime/threads/thread_enums.hpp>
 #include <hpx/runtime/threads/thread_data_fwd.hpp>
+#include <hpx/runtime/threads/thread_enums.hpp>
 #include <hpx/util/unique_function.hpp>
 
 #include <boost/thread/mutex.hpp>

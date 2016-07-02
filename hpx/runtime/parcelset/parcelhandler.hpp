@@ -10,17 +10,17 @@
 
 #include <hpx/config.hpp>
 #include <hpx/exception_fwd.hpp>
-#include <hpx/runtime_fwd.hpp>
+#include <hpx/lcos/local/spinlock.hpp>
 #include <hpx/runtime/applier/applier.hpp>
-#include <hpx/runtime/naming/name.hpp>
 #include <hpx/runtime/naming/address.hpp>
+#include <hpx/runtime/naming/name.hpp>
 #include <hpx/runtime/parcelset/locality.hpp>
 #include <hpx/runtime/parcelset/parcelport.hpp>
-#include <hpx/util_fwd.hpp>
+#include <hpx/runtime_fwd.hpp>
 #include <hpx/util/bind.hpp>
 #include <hpx/util/high_resolution_timer.hpp>
 #include <hpx/util/logging.hpp>
-#include <hpx/lcos/local/spinlock.hpp>
+#include <hpx/util_fwd.hpp>
 
 #include <hpx/plugins/parcelport_factory_base.hpp>
 
@@ -406,7 +406,7 @@ namespace hpx { namespace parcelset
         parcelport *find_parcelport(std::string const& type, error_code = throws) const
         {
             int priority = get_priority(type);
-            if(priority <= 0) return 0;
+            if(priority <= 0) return nullptr;
             HPX_ASSERT(pports_.find(priority) != pports_.end());
             return pports_.find(priority)->second.get();
         }

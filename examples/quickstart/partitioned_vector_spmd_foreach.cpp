@@ -114,7 +114,7 @@ private:
 ///////////////////////////////////////////////////////////////////////////////
 int hpx_main(boost::program_options::variables_map& vm)
 {
-    unsigned int seed = (unsigned int)std::time(0);
+    unsigned int seed = (unsigned int)std::time(nullptr);
     if (vm.count("seed"))
         seed = vm["seed"].as<unsigned int>();
 
@@ -148,8 +148,9 @@ int hpx_main(boost::program_options::variables_map& vm)
         }
         else
         {
-            v.connect_to(example_vector_name);
+            hpx::future<void> f1 = v.connect_to(example_vector_name);
             l.connect_to(example_latch_name);
+            f1.get();
         }
 
         boost::random::mt19937 gen(std::rand());

@@ -37,7 +37,9 @@ namespace boost
       { "(\\bboost\\s*::\\s*unordered_set\\b)", "std::unordered_set" },
       { "(\\bboost\\s*::\\s*unordered_multiset\\b)", "std::unordered_multiset" },
       { "(\\bboost\\s*::\\s*detail\\s*::\\s*atomic_count\\b)", "hpx::util::atomic_count" },
-      { 0, 0 }
+      { "(\\bboost\\s*::\\s*function\\b)", "hpx::util::function_nonser" },
+      { "(\\bNULL\\b)", "nullptr" },
+      { nullptr, nullptr }
     };
 
     //  deprecated_name_check constructor  --------------------------------- //
@@ -56,7 +58,7 @@ namespace boost
       register_signature( ".ipp" );
 
       for (deprecated_names const* names_it = &names[0];
-           names_it->name_regex != 0;
+           names_it->name_regex != nullptr;
            ++names_it)
       {
         std::string rx(names_it->name_regex);

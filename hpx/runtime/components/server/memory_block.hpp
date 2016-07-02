@@ -7,16 +7,16 @@
 #define HPX_COMPONENTS_MEMORY_BLOCK_OCT_21_2008_0159PM
 
 #include <hpx/config.hpp>
-#include <hpx/throw_exception.hpp>
-#include <hpx/traits/is_component.hpp>
+#include <hpx/lcos/base_lco_with_value.hpp>
+#include <hpx/runtime/actions/component_action.hpp>
+#include <hpx/runtime/actions/manage_object_action.hpp>
 #include <hpx/runtime/components/component_type.hpp>
 #include <hpx/runtime/components/server/managed_component_base.hpp>
 #include <hpx/runtime/components/server/wrapper_heap.hpp>
 #include <hpx/runtime/components/server/wrapper_heap_list.hpp>
-#include <hpx/runtime/actions/component_action.hpp>
-#include <hpx/runtime/actions/manage_object_action.hpp>
 #include <hpx/runtime/serialization/detail/raw_ptr.hpp>
-#include <hpx/lcos/base_lco_with_value.hpp>
+#include <hpx/throw_exception.hpp>
+#include <hpx/traits/is_component.hpp>
 #include <hpx/util/atomic_count.hpp>
 #include <hpx/util/reinitializable_static.hpp>
 
@@ -69,7 +69,7 @@ namespace hpx { namespace components { namespace server { namespace detail
         /// de-serialized
         explicit memory_block_header(std::size_t size,
                 hpx::actions::manage_object_action_base const& act)
-          : count_(0), size_(size), wrapper_(NULL),
+          : count_(0), size_(size), wrapper_(nullptr),
             managing_object_(act.get_instance())
         {
             HPX_ASSERT(act.construct());
@@ -115,7 +115,7 @@ namespace hpx { namespace components { namespace server { namespace detail
 
         /// Return whether this instance is the master instance of this
         /// memory block
-        bool is_master() const { return 0 != wrapper_; }
+        bool is_master() const { return nullptr != wrapper_; }
 
         static component_type get_component_type()
         {
@@ -202,7 +202,7 @@ namespace hpx { namespace components
         {
             if (!data_) {
                 std::ostringstream strm;
-                strm << "memory_block_data data is NULL ("
+                strm << "memory_block_data data is nullptr ("
                      << components::get_component_type_name(component_memory_block)
                      << ")";
                 HPX_THROW_EXCEPTION(invalid_status,
@@ -215,7 +215,7 @@ namespace hpx { namespace components
         {
             if (!data_) {
                 std::ostringstream strm;
-                strm << "memory_block_data data is NULL ("
+                strm << "memory_block_data data is nullptr ("
                      << components::get_component_type_name(component_memory_block)
                      << ")";
                 HPX_THROW_EXCEPTION(invalid_status,
@@ -229,7 +229,7 @@ namespace hpx { namespace components
         {
             if (!data_) {
                 std::ostringstream strm;
-                strm << "memory_block_data data is NULL ("
+                strm << "memory_block_data data is nullptr ("
                      << components::get_component_type_name(component_memory_block)
                      << ")";
                 HPX_THROW_EXCEPTION(invalid_status,
@@ -256,7 +256,7 @@ namespace hpx { namespace components
         {
             if (!data_) {
                 std::ostringstream strm;
-                strm << "memory_block_data data is NULL ("
+                strm << "memory_block_data data is nullptr ("
                      << components::get_component_type_name(component_memory_block)
                      << ")";
                 HPX_THROW_EXCEPTION(invalid_status,
@@ -289,7 +289,7 @@ namespace hpx { namespace components
         template <class Archive>
         static void save_(Archive & ar, const unsigned int version,
             server::detail::memory_block_header* data,
-            server::detail::memory_block_header* config = 0)
+            server::detail::memory_block_header* config = nullptr)
         {
             std::size_t size = data->get_size();
             actions::manage_object_action_base* act =
@@ -303,18 +303,19 @@ namespace hpx { namespace components
 
             HPX_ASSERT(act->save_function());
             if (config) {
-                act->save_function()(data->get_ptr(), data->get_size(), ar, version,
-                    config->get_ptr());
+                act->save_function()(data->get_ptr(), data->get_size(), ar,
+                    version, config->get_ptr());
             }
             else {
-                act->save_function()(data->get_ptr(), data->get_size(), ar, version, 0);
+                act->save_function()(data->get_ptr(), data->get_size(), ar,
+                    version, nullptr);
             }
         }
 
         template <class Archive>
         void save(Archive & ar, const unsigned int version) const
         {
-            bool has_config = config_ != 0;
+            bool has_config = config_ != nullptr;
             ar << has_config;
             if (has_config)
                 save_(ar, version, config_.get());
@@ -325,10 +326,10 @@ namespace hpx { namespace components
         template <class Archive>
         static server::detail::memory_block_header*
         load_(Archive & ar, const unsigned int version,
-            server::detail::memory_block_header* config = 0)
+            server::detail::memory_block_header* config = nullptr)
         {
             std::size_t size = 0;
-            actions::manage_object_action_base* act = 0;
+            actions::manage_object_action_base* act = nullptr;
 
             ar >> size; //-V128
             ar >> hpx::serialization::detail::raw_ptr(act);
@@ -344,7 +345,7 @@ namespace hpx { namespace components
                     config->get_ptr());
             }
             else {
-                act->load_function()(p->get_ptr(), size, ar, version, 0); //-V522
+                act->load_function()(p->get_ptr(), size, ar, version, nullptr); //-V522
             }
 
             delete act;
@@ -450,7 +451,7 @@ namespace hpx { namespace components { namespace server
 
         /// \brief Construct an empty managed_component
         memory_block()
-          : component_(0)
+          : component_(nullptr)
         {}
 
     private:
@@ -471,7 +472,7 @@ namespace hpx { namespace components { namespace server
         ///             wrapped instance.
         memory_block(std::size_t size,
                 actions::manage_object_action_base const& act)
-          : component_(0)
+          : component_(nullptr)
         {
             typedef detail::memory_block alloc_type;
             alloc_type* p = server::detail::allocate_block<alloc_type>(size);
@@ -483,7 +484,7 @@ namespace hpx { namespace components { namespace server
         ///        parameter
         memory_block(detail::memory_block_header const* rhs,
                 actions::manage_object_action_base const& act)
-          : component_(0)
+          : component_(nullptr)
         {
             std::size_t size = rhs->get_size();
             typedef detail::memory_block alloc_type;
@@ -510,7 +511,7 @@ namespace hpx { namespace components { namespace server
         {
             if (!component_) {
                 std::ostringstream strm;
-                strm << "component is NULL ("
+                strm << "component is nullptr ("
                      << components::get_component_type_name(component_memory_block)
                      << ")";
                 HPX_THROW_EXCEPTION(invalid_status,
@@ -523,7 +524,7 @@ namespace hpx { namespace components { namespace server
         {
             if (!component_) {
                 std::ostringstream strm;
-                strm << "component is NULL ("
+                strm << "component is nullptr ("
                      << components::get_component_type_name(component_memory_block)
                      << ")";
                 HPX_THROW_EXCEPTION(invalid_status,
@@ -585,8 +586,8 @@ namespace hpx { namespace components { namespace server
         }
         static void operator delete(void* p, std::size_t size)
         {
-            if (NULL == p)
-                return;     // do nothing if given a NULL pointer
+            if (nullptr == p)
+                return;     // do nothing if given a nullptr pointer
 
             if (size != sizeof(memory_block)) {
                 ::free(p);
@@ -632,8 +633,8 @@ namespace hpx { namespace components { namespace server
         //          de-allocation of arrays of wrappers
         static void destroy(memory_block* p, std::size_t count = 1)
         {
-            if (NULL == p || 0 == count)
-                return;     // do nothing if given a NULL pointer
+            if (nullptr == p || 0 == count)
+                return;     // do nothing if given a nullptr pointer
 
             p->finalize();
             p->~memory_block();

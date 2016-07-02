@@ -28,8 +28,9 @@ namespace boost
       { "boost/unordered_map\\.hpp", "unordered_map" },
       { "boost/unordered_set\\.hpp", "unordered_set" },
       { "boost/detail/atomic_count\\.hpp", "hpx/util/atomic_count.hpp" },
+      { "boost/function\\.hpp", "hpx/util/function.hpp" },
       { "hpx/hpx_fwd\\.hpp", "nothing (remove unconditionally)" },
-      { 0, 0 }
+      { nullptr, nullptr }
     };
 
     //  deprecated_include_check constructor  -------------------------------//
@@ -48,7 +49,7 @@ namespace boost
       register_signature( ".ipp" );
 
       for (deprecated_includes const* includes_it = &names[0];
-           includes_it->include_regex != 0;
+           includes_it->include_regex != nullptr;
            ++includes_it)
       {
         std::string rx =

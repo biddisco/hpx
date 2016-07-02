@@ -399,6 +399,12 @@ namespace hpx
     /// \param argv         [in] The command line arguments for this
     ///                     application, usually that is the value as passed
     ///                     by the operating system (to `main()`).
+    /// \param cfg          A list of configuration settings which will be added
+    ///                     to the system configuration before the runtime
+    ///                     instance is run. Each of the entries in this list
+    ///                     must have the format of a fully defined key/value
+    ///                     pair from an ini-file (for instance
+    ///                     'hpx.component.enabled=1')
     /// \param mode         [in] The mode the created runtime environment
     ///                     should be initialized in. There has to be exactly
     ///                     one locality in each HPX application which is
@@ -455,7 +461,7 @@ namespace hpx
     ///                     executed in console or worker mode depending on the
     ///                     command line arguments passed in `argc`/`argv`.
     inline bool
-    start(std::string const& app_name, int argc = 0, char** argv = 0,
+    start(std::string const& app_name, int argc = 0, char** argv = nullptr,
         hpx::runtime_mode mode = hpx::runtime_mode_default);
 
     /// \brief Main non-blocking entry point for launching the HPX runtime system.
@@ -495,7 +501,7 @@ namespace hpx
     ///                     runtime system will not support any of the default
     ///                     command line options as described in the section
     ///                     'HPX Command Line Options'.
-    inline bool start(int argc = 0, char** argv = 0,
+    inline bool start(int argc = 0, char** argv = nullptr,
         hpx::runtime_mode mode = hpx::runtime_mode_default);
 
     /// \brief Main non-blocking entry point for launching the HPX runtime system.
@@ -608,7 +614,7 @@ namespace hpx
     /// \note               The created runtime system instance will be
     ///                     executed in console or worker mode depending on the
     ///                     command line arguments passed in `argc`/`argv`.
-    inline bool start(util::function_nonser<int(int, char**)> const&,
+    inline bool start(util::function_nonser<int(int, char**)> const& f,
         std::string const& app_name, int argc, char** argv,
         hpx::runtime_mode mode = hpx::runtime_mode_default);
 

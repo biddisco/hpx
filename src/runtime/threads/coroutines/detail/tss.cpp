@@ -25,12 +25,12 @@ namespace hpx { namespace threads { namespace coroutines { namespace detail
     void tss_data_node::cleanup(bool cleanup_existing)
     {
 #ifdef HPX_HAVE_THREAD_LOCAL_STORAGE
-        if (cleanup_existing && func_ && (value_ != 0))
+        if (cleanup_existing && func_ && (value_ != nullptr))
         {
             (*func_)(value_);
         }
         func_.reset();
-        value_ = 0;
+        value_ = nullptr;
 #endif
     }
 
@@ -43,7 +43,7 @@ namespace hpx { namespace threads { namespace coroutines { namespace detail
         boost::throw_exception(std::runtime_error(
             "thread local storage has been disabled at configuration time, "
             "please specify HPX_HAVE_THREAD_LOCAL_STORAGE=ON to cmake"));
-        return 0;
+        return nullptr;
 #endif
     }
 
@@ -59,14 +59,14 @@ namespace hpx { namespace threads { namespace coroutines { namespace detail
     {
 #ifdef HPX_HAVE_THREAD_LOCAL_STORAGE
         hpx::threads::thread_self* self = hpx::threads::get_self_ptr();
-        if (NULL == self)
+        if (nullptr == self)
         {
             boost::throw_exception(null_thread_id_exception());
             return 0;
         }
 
         detail::tss_storage* tss_map = self->get_thread_tss_data();
-        if (NULL == tss_map)
+        if (nullptr == tss_map)
             return 0;
 
         tss_data_node* node = tss_map->find(0);
@@ -86,14 +86,14 @@ namespace hpx { namespace threads { namespace coroutines { namespace detail
     {
 #ifdef HPX_HAVE_THREAD_LOCAL_STORAGE
         hpx::threads::thread_self* self = hpx::threads::get_self_ptr();
-        if (NULL == self)
+        if (nullptr == self)
         {
             boost::throw_exception(null_thread_id_exception());
             return 0;
         }
 
         detail::tss_storage* tss_map = self->get_or_create_thread_tss_data();
-        if (NULL == tss_map)
+        if (nullptr == tss_map)
         {
             boost::throw_exception(std::bad_alloc());
             return 0;
@@ -123,22 +123,22 @@ namespace hpx { namespace threads { namespace coroutines { namespace detail
     {
 #ifdef HPX_HAVE_THREAD_LOCAL_STORAGE
         hpx::threads::thread_self* self = hpx::threads::get_self_ptr();
-        if (NULL == self)
+        if (nullptr == self)
         {
             boost::throw_exception(null_thread_id_exception());
-            return 0;
+            return nullptr;
         }
 
         detail::tss_storage* tss_map = self->get_thread_tss_data();
-        if (NULL == tss_map)
-            return 0;
+        if (nullptr == tss_map)
+            return nullptr;
 
         return tss_map->find(key);
 #else
         boost::throw_exception(std::runtime_error(
             "thread local storage has been disabled at configuration time, "
             "please specify HPX_HAVE_THREAD_LOCAL_STORAGE=ON to cmake"));
-        return 0;
+        return nullptr;
 #endif
     }
 
@@ -148,7 +148,7 @@ namespace hpx { namespace threads { namespace coroutines { namespace detail
         if (tss_data_node* const current_node = find_tss_data(key))
             return current_node->get_value();
 #endif
-        return NULL;
+        return nullptr;
     }
 
     void add_new_tss_node(void const* key,
@@ -156,14 +156,14 @@ namespace hpx { namespace threads { namespace coroutines { namespace detail
     {
 #ifdef HPX_HAVE_THREAD_LOCAL_STORAGE
         hpx::threads::thread_self* self = hpx::threads::get_self_ptr();
-        if (NULL == self)
+        if (nullptr == self)
         {
             boost::throw_exception(null_thread_id_exception());
             return;
         }
 
         detail::tss_storage* tss_map = self->get_or_create_thread_tss_data();
-        if (NULL == tss_map)
+        if (nullptr == tss_map)
         {
             boost::throw_exception(std::bad_alloc());
             return;
@@ -177,14 +177,14 @@ namespace hpx { namespace threads { namespace coroutines { namespace detail
     {
 #ifdef HPX_HAVE_THREAD_LOCAL_STORAGE
         hpx::threads::thread_self* self = hpx::threads::get_self_ptr();
-        if (NULL == self)
+        if (nullptr == self)
         {
             boost::throw_exception(null_thread_id_exception());
             return;
         }
 
         detail::tss_storage* tss_map = self->get_thread_tss_data();
-        if (NULL != tss_map)
+        if (nullptr != tss_map)
             tss_map->erase(key, cleanup_existing);
 #endif
     }

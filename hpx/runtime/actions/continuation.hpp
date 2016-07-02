@@ -7,30 +7,32 @@
 #define HPX_RUNTIME_ACTIONS_CONTINUATION_JUN_13_2008_1031AM
 
 #include <hpx/config.hpp>
-#include <hpx/throw_exception.hpp>
 #include <hpx/runtime/actions/action_priority.hpp>
 #include <hpx/runtime/actions/basic_action_fwd.hpp>
 #include <hpx/runtime/actions/continuation_fwd.hpp>
 #include <hpx/runtime/agas/interface.hpp>
 #include <hpx/runtime/applier/detail/apply_implementations_fwd.hpp>
 #include <hpx/runtime/find_here.hpp>
-#include <hpx/runtime/trigger_lco.hpp>
 #include <hpx/runtime/naming/id_type.hpp>
 #include <hpx/runtime/naming/name.hpp>
-#include <hpx/runtime/serialization/serialize.hpp>
 #include <hpx/runtime/serialization/base_object.hpp>
-#include <hpx/util/bind.hpp>
-#include <hpx/util/decay.hpp>
-#include <hpx/util/logging.hpp>
-#include <hpx/util/invoke.hpp>
-#include <hpx/util/demangle_helper.hpp>
-#include <hpx/util/result_of.hpp>
-#include <hpx/util/unique_function.hpp>
+#include <hpx/runtime/serialization/serialize.hpp>
+#include <hpx/runtime/trigger_lco.hpp>
+#include <hpx/throw_exception.hpp>
 #include <hpx/traits/action_remote_result.hpp>
-#include <hpx/traits/is_action.hpp>
+#include <hpx/traits/future_traits.hpp>
 #include <hpx/traits/is_callable.hpp>
 #include <hpx/traits/is_continuation.hpp>
 #include <hpx/traits/is_executor.hpp>
+#include <hpx/traits/is_future.hpp>
+#include <hpx/traits/promise_local_result.hpp>
+#include <hpx/util/bind.hpp>
+#include <hpx/util/decay.hpp>
+#include <hpx/util/demangle_helper.hpp>
+#include <hpx/util/invoke.hpp>
+#include <hpx/util/logging.hpp>
+#include <hpx/util/result_of.hpp>
+#include <hpx/util/unique_function.hpp>
 
 #include <boost/exception_ptr.hpp>
 #include <boost/preprocessor/stringize.hpp>
@@ -147,7 +149,8 @@ namespace hpx
                 local_result_type, remote_result_type
             >::set_value_action set_value_action;
 
-        if (move_credits)
+        if (move_credits &&
+            id.get_management_type() != naming::id_type::unmanaged)
         {
             naming::id_type target(id.get_gid(),
                 naming::id_type::managed_move_credit);
@@ -177,7 +180,8 @@ namespace hpx
                 local_result_type, remote_result_type
             >::set_value_action set_value_action;
 
-        if (move_credits)
+        if (move_credits &&
+            id.get_management_type() != naming::id_type::unmanaged)
         {
             naming::id_type target(id.get_gid(),
                 naming::id_type::managed_move_credit);
@@ -332,7 +336,7 @@ namespace hpx { namespace actions
         {
             try {
                 HPX_ASSERT(result.is_ready());
-                HPX_ASSERT((0 !=
+                HPX_ASSERT((nullptr !=
                     dynamic_cast<
                         typed_continuation<Result, RemoteResult>*
                     >(cont.get())));
@@ -401,7 +405,7 @@ namespace hpx { namespace actions
             std::unique_ptr<continuation> cont, F&& f, Ts&&... vs)
         {
             try {
-                HPX_ASSERT((0 !=
+                HPX_ASSERT((nullptr !=
                     dynamic_cast<
                         typed_continuation<Result, RemoteResult>*
                     >(cont.get())));
@@ -945,7 +949,7 @@ namespace hpx { namespace actions
         // for cases when Arg0 is a const&. This does not make the code invalid
         // as trigger_value (which is a virtual function) takes its argument
         // by && anyways.
-        HPX_ASSERT(0 != dynamic_cast<
+        HPX_ASSERT(nullptr != dynamic_cast<
                 typed_continuation<typename util::decay<Arg0>::type> *
             >(this));
 

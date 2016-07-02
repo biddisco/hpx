@@ -17,10 +17,10 @@
 #if defined(HPX_HAVE_PARCELPORT_TCP)
 
 #include <hpx/config/asio.hpp>
-#include <hpx/runtime/parcelset/parcelport_connection.hpp>
-#include <hpx/runtime/parcelset/decode_parcels.hpp>
 #include <hpx/performance_counters/parcels/data_point.hpp>
 #include <hpx/performance_counters/parcels/gatherer.hpp>
+#include <hpx/runtime/parcelset/decode_parcels.hpp>
+#include <hpx/runtime/parcelset/parcelport_connection.hpp>
 #include <hpx/util/bind.hpp>
 #include <hpx/util/high_resolution_timer.hpp>
 #include <hpx/util/protect.hpp>
@@ -166,7 +166,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace tcp
                         static_cast<boost::uint32_t>(buffer_.num_chunks_.second));
 
                 void (receiver::*f)(boost::system::error_code const&,
-                        Handler) = 0;
+                        Handler) = nullptr;
 
                 if (num_zero_copy_chunks != 0) {
                     typedef parcel_buffer_type::transmission_chunk_type

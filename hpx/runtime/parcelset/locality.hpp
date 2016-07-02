@@ -11,8 +11,8 @@
 #include <hpx/config.hpp>
 
 #include <hpx/exception.hpp>
-#include <hpx/traits/is_iterator.hpp>
 #include <hpx/runtime/serialization/map.hpp>
+#include <hpx/traits/is_iterator.hpp>
 
 #include <map>
 #include <memory>
@@ -74,12 +74,12 @@ namespace hpx { namespace parcelset
         {}
 
         locality(locality const & other)
-          : impl_(other.impl_ ? other.impl_->clone() : 0)
+          : impl_(other.impl_ ? other.impl_->clone() : nullptr)
         {
         }
 
         locality(locality && other)
-          : impl_(other.impl_ ? other.impl_->move() : 0)
+          : impl_(other.impl_ ? other.impl_->move() : nullptr)
         {
         }
 

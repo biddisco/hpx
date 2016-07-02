@@ -10,9 +10,9 @@
 #include <hpx/config.hpp>
 #include <hpx/runtime/naming/address.hpp>
 #include <hpx/runtime/naming/id_type.hpp>
-#include <hpx/runtime/threads_fwd.hpp>
 #include <hpx/runtime/threads/thread_data_fwd.hpp>
 #include <hpx/runtime/threads/thread_enums.hpp>
+#include <hpx/runtime/threads_fwd.hpp>
 #include <hpx/util/thread_description.hpp>
 
 #include <cstddef>
@@ -38,13 +38,13 @@ namespace hpx { namespace threads
             description(),
 #endif
 #if defined(HPX_HAVE_THREAD_PARENT_REFERENCE)
-            parent_locality_id(0), parent_id(0), parent_phase(0),
+            parent_locality_id(0), parent_id(nullptr), parent_phase(0),
 #endif
             priority(thread_priority_normal),
             num_os_thread(std::size_t(-1)),
             stacksize(get_default_stack_size()),
             target(),
-            scheduler_base(0)
+            scheduler_base(nullptr)
         {}
 
         thread_init_data(thread_init_data&& rhs)
@@ -73,7 +73,7 @@ namespace hpx { namespace threads
                 std::size_t os_thread = std::size_t(-1),
                 std::ptrdiff_t stacksize_ = std::ptrdiff_t(-1),
                 naming::id_type const& target_ = naming::invalid_id,
-                policies::scheduler_base* scheduler_base_ = 0)
+                policies::scheduler_base* scheduler_base_ = nullptr)
           : func(std::forward<F>(f)),
 #if defined(HPX_HAVE_THREAD_TARGET_ADDRESS)
             lva(lva_),
@@ -82,7 +82,7 @@ namespace hpx { namespace threads
             description(desc),
 #endif
 #if defined(HPX_HAVE_THREAD_PARENT_REFERENCE)
-            parent_locality_id(0), parent_id(0), parent_phase(0),
+            parent_locality_id(0), parent_id(nullptr), parent_phase(0),
 #endif
             priority(priority_), num_os_thread(os_thread),
             stacksize(stacksize_ == std::ptrdiff_t(-1) ?

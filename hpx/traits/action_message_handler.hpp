@@ -13,7 +13,7 @@ namespace hpx { namespace traits
 {
     ///////////////////////////////////////////////////////////////////////////
     // Customization point for action stack size
-    template <typename Action, typename Enable>
+    template <typename Action, typename Enable = void>
     struct action_message_handler
     {
         // return a new instance of a serialization filter
@@ -21,7 +21,7 @@ namespace hpx { namespace traits
             parcelset::parcelhandler*, parcelset::locality const&,
             parcelset::parcel const&)
         {
-            return 0;   // by default actions don't have a message_handler
+            return nullptr;   // by default actions don't have a message_handler
         }
     };
 }}

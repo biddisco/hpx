@@ -9,20 +9,20 @@
 #define HPX_COMPONENTS_DISTRIBUTION_POLICY_APR_07_2015_1246PM
 
 #include <hpx/config.hpp>
-#include <hpx/traits/is_distribution_policy.hpp>
-#include <hpx/traits/extract_action.hpp>
-#include <hpx/traits/component_type_is_compatible.hpp>
+#include <hpx/dataflow.hpp>
+#include <hpx/lcos/future.hpp>
+#include <hpx/lcos/packaged_action.hpp>
 #include <hpx/runtime/actions/action_support.hpp>
 #include <hpx/runtime/applier/apply.hpp>
 #include <hpx/runtime/components/stubs/stub_base.hpp>
-#include <hpx/runtime/naming/name.hpp>
-#include <hpx/runtime/naming/id_type.hpp>
 #include <hpx/runtime/launch_policy.hpp>
+#include <hpx/runtime/naming/id_type.hpp>
+#include <hpx/runtime/naming/name.hpp>
 #include <hpx/runtime/serialization/serialization_fwd.hpp>
 #include <hpx/runtime/serialization/vector.hpp>
-#include <hpx/lcos/packaged_action.hpp>
-#include <hpx/lcos/future.hpp>
-#include <hpx/dataflow.hpp>
+#include <hpx/traits/extract_action.hpp>
+#include <hpx/traits/is_distribution_policy.hpp>
+#include <hpx/traits/promise_local_result.hpp>
 
 #include <algorithm>
 #include <vector>
@@ -63,6 +63,11 @@ namespace hpx { namespace components
             return default_distribution_policy(locs);
         }
 
+        /// Create a new \a default_distribution policy representing the given
+        /// set of localities.
+        ///
+        /// \param locs     [in] The list of localities the new instance should
+        ///                 represent
         default_distribution_policy operator()(
             std::vector<id_type> && locs) const
         {

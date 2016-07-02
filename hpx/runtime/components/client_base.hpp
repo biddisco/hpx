@@ -7,19 +7,20 @@
 #define HPX_COMPONENTS_CLIENT_BASE_OCT_31_2008_0424PM
 
 #include <hpx/config.hpp>
-#include <hpx/throw_exception.hpp>
-#include <hpx/traits/action_remote_result.hpp>
-#include <hpx/traits/is_client.hpp>
-#include <hpx/traits/is_future.hpp>
-#include <hpx/traits/future_access.hpp>
-#include <hpx/traits/acquire_future.hpp>
+#include <hpx/lcos/future.hpp>
 #include <hpx/runtime/agas/interface.hpp>
 #include <hpx/runtime/components/component_type.hpp>
 #include <hpx/runtime/components/stubs/stub_base.hpp>
-#include <hpx/runtime/serialization/serialize.hpp>
 #include <hpx/runtime/naming/unmanaged.hpp>
+#include <hpx/runtime/serialization/serialize.hpp>
+#include <hpx/throw_exception.hpp>
+#include <hpx/traits/acquire_future.hpp>
+#include <hpx/traits/action_remote_result.hpp>
+#include <hpx/traits/future_access.hpp>
+#include <hpx/traits/future_traits.hpp>
+#include <hpx/traits/is_client.hpp>
+#include <hpx/traits/is_future.hpp>
 #include <hpx/util/always_void.hpp>
-#include <hpx/lcos/future.hpp>
 
 #include <boost/exception_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
@@ -255,14 +256,14 @@ namespace hpx { namespace components
           : registered_name_(std::move(rhs.registered_name_)),
             shared_state_(std::move(rhs.shared_state_))
         {
-            rhs.shared_state_ = 0;
+            rhs.shared_state_ = nullptr;
         }
 
         // A future to a client_base can be unwrapped to represent the
         // client_base directly as a client_base is semantically a future to
         // the id of the referenced object.
         client_base(future<Derived> && d)
-          : shared_state_(d.valid() ? lcos::detail::unwrap(std::move(d)) : 0)
+          : shared_state_(d.valid() ? lcos::detail::unwrap(std::move(d)) : nullptr)
         {}
 
         ~client_base()
@@ -326,7 +327,7 @@ namespace hpx { namespace components
         // Returns: true only if *this refers to a shared state.
         bool valid() const HPX_NOEXCEPT
         {
-            return shared_state_ != 0;
+            return shared_state_ != nullptr;
         }
 
         // check whether the embedded shared state is valid
@@ -426,21 +427,21 @@ namespace hpx { namespace components
         // Returns: true if the shared state is ready, false if it isn't.
         bool is_ready() const HPX_NOEXCEPT
         {
-            return shared_state_ != 0 && shared_state_->is_ready();
+            return shared_state_ != nullptr && shared_state_->is_ready();
         }
 
         // Returns: true if the shared state is ready and stores a value,
         //          false if it isn't.
         bool has_value() const HPX_NOEXCEPT
         {
-            return shared_state_ != 0 && shared_state_->has_value();
+            return shared_state_ != nullptr && shared_state_->has_value();
         }
 
         // Returns: true if the shared state is ready and stores an exception,
         //          false if it isn't.
         bool has_exception() const HPX_NOEXCEPT
         {
-            return shared_state_ != 0 && shared_state_->has_exception();
+            return shared_state_ != nullptr && shared_state_->has_exception();
         }
 
         void wait() const

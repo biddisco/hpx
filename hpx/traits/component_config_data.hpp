@@ -12,13 +12,13 @@ namespace hpx { namespace traits
 {
     ///////////////////////////////////////////////////////////////////////////
     // Customization point for component config data injection
-    template <typename Component, typename Enable>
+    template <typename Component, typename Enable = void>
     struct component_config_data
     {
         // by default no additional config data is injected into the factory
         static char const* call()
         {
-            return 0;
+            return nullptr;
         }
     };
 }}

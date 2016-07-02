@@ -10,15 +10,17 @@
 
 #include <hpx/config.hpp>
 #include <hpx/runtime/serialization/serialization_fwd.hpp>
+#include <hpx/traits/get_function_address.hpp>
 #include <hpx/traits/is_callable.hpp>
 #include <hpx/util/detail/empty_function.hpp>
 #include <hpx/util/detail/function_registration.hpp>
 #include <hpx/util/detail/get_table.hpp>
-#include <hpx/util/detail/vtable/vtable.hpp>
 #include <hpx/util/detail/vtable/serializable_vtable.hpp>
+#include <hpx/util/detail/vtable/vtable.hpp>
 
 #include <boost/mpl/bool.hpp>
 
+#include <cstddef>
 #include <cstring>
 #include <string>
 #include <type_traits>
@@ -37,7 +39,7 @@ namespace hpx { namespace util { namespace detail
     template <typename F>
     static bool is_empty_function(F const& f, std::true_type) HPX_NOEXCEPT
     {
-        return f == 0;
+        return f == nullptr;
     }
 
     template <typename F>
@@ -162,6 +164,11 @@ namespace hpx { namespace util { namespace detail
             return *this;
         }
 
+        void assign(std::nullptr_t) HPX_NOEXCEPT
+        {
+            reset();
+        }
+
         template <typename F>
         void assign(F&& f)
         {
@@ -228,7 +235,7 @@ namespace hpx { namespace util { namespace detail
 
             VTablePtr const* f_vptr = get_table_ptr<target_type>();
             if (vptr != f_vptr || empty())
-                return 0;
+                return nullptr;
 
             return &vtable::get<target_type>(object);
         }
@@ -244,7 +251,7 @@ namespace hpx { namespace util { namespace detail
 
             VTablePtr const* f_vptr = get_table_ptr<target_type>();
             if (vptr != f_vptr || empty())
-                return 0;
+                return nullptr;
 
             return &vtable::get<target_type>(object);
         }

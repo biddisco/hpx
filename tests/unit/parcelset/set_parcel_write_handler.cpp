@@ -25,7 +25,7 @@ bool is_test_action(hpx::parcelset::parcel const& p)
 {
     return dynamic_cast<
             hpx::actions::transfer_action<test_action>*
-        >(p.get_action()) != 0;
+        >(p.get_action()) != nullptr;
 }
 
 void write_handler(boost::system::error_code const&,
@@ -51,8 +51,11 @@ int main()
         for (hpx::id_type const& id: localities)
         {
             hpx::lcos::promise<void> p;
+            auto f = p.get_future();
+
             hpx::apply<test_action>(id, p.get_id());
-            wait_for.push_back(p.get_future());
+
+            wait_for.push_back(std::move(f));
         }
 
         hpx::wait_all(wait_for);
@@ -68,8 +71,11 @@ int main()
         for (hpx::id_type const& id: localities)
         {
             hpx::lcos::promise<void> p;
+            auto f = p.get_future();
+
             hpx::apply<test_action>(id, p.get_id());
-            wait_for.push_back(p.get_future());
+
+            wait_for.push_back(std::move(f));
         }
 
         hpx::wait_all(wait_for);

@@ -8,27 +8,27 @@
 #define HPX_RUNTIME_RUNTIME_IMPL_HPP
 
 #include <hpx/config.hpp>
-#include <hpx/util/io_service_pool.hpp>
+#include <hpx/performance_counters/registry.hpp>
 #include <hpx/runtime.hpp>
+#include <hpx/runtime/applier/applier.hpp>
+#include <hpx/runtime/components/server/console_error_sink_singleton.hpp>
 #include <hpx/runtime/naming/resolver_client.hpp>
 #include <hpx/runtime/parcelset/locality.hpp>
-#include <hpx/runtime/parcelset/parcelport.hpp>
 #include <hpx/runtime/parcelset/parcelhandler.hpp>
+#include <hpx/runtime/parcelset/parcelport.hpp>
 #include <hpx/runtime/threads/policies/affinity_data.hpp>
 #include <hpx/runtime/threads/policies/callback_notifier.hpp>
 #include <hpx/runtime/threads/threadmanager.hpp>
 #include <hpx/runtime/threads/topology.hpp>
-#include <hpx/runtime/applier/applier.hpp>
-#include <hpx/runtime/components/server/console_error_sink_singleton.hpp>
-#include <hpx/performance_counters/registry.hpp>
-#include <hpx/util_fwd.hpp>
 #include <hpx/util/generate_unique_ids.hpp>
-#include <hpx/util/thread_specific_ptr.hpp>
 #include <hpx/util/init_logging.hpp>
+#include <hpx/util/io_service_pool.hpp>
+#include <hpx/util/thread_specific_ptr.hpp>
+#include <hpx/util_fwd.hpp>
 
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition.hpp>
 #include <boost/exception_ptr.hpp>
+#include <boost/thread/condition.hpp>
+#include <boost/thread/mutex.hpp>
 
 #include <string>
 
@@ -54,7 +54,7 @@ namespace hpx
             util::function_nonser<runtime::hpx_main_function_type> func,
             int& result);
 
-        void wait_helper(boost::mutex& mtx, boost::condition& cond,
+        void wait_helper(boost::mutex& mtx, boost::condition_variable& cond,
             bool& running);
 
     public:
@@ -143,7 +143,7 @@ namespace hpx
         ///                   return immediately. Use a second call to stop
         ///                   with this parameter set to \a true to wait for
         ///                   all internal work to be completed.
-        void stopped(bool blocking, boost::condition& cond, boost::mutex& mtx);
+        void stopped(bool blocking, boost::condition_variable& cond, boost::mutex& mtx);
 
         /// \brief Report a non-recoverable error to the runtime system
         ///
@@ -351,7 +351,7 @@ namespace hpx
 
         /// Register an external OS-thread with HPX
         bool register_thread(char const* name, std::size_t num = 0,
-            bool service_thread = true);
+            bool service_thread = true, error_code& ec = throws);
 
         /// Unregister an external OS-thread with HPX
         bool unregister_thread();
@@ -361,9 +361,17 @@ namespace hpx
         notification_policy_type get_notification_policy(char const* prefix);
 
     private:
-        void init_tss(char const* context, std::size_t num, char const* postfix,
-            bool service_thread);
         void deinit_tss();
+
+        void init_tss_ex(char const* context, std::size_t num,
+            char const* postfix, bool service_thread, error_code& ec);
+
+        void init_tss(char const* context, std::size_t num, char const* postfix,
+            bool service_thread)
+        {
+            error_code ec(lightweight);
+            return init_tss_ex(context, num, postfix, service_thread, ec);
+        }
 
     private:
         util::unique_id_ranges id_pool_;

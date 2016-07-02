@@ -10,22 +10,24 @@
 //
 #include <hpx/parallel/executors.hpp>
 //
-#include <hpx/parallel/algorithms/sort.hpp>
-#include <hpx/parallel/algorithms/inclusive_scan.hpp>
 #include <hpx/parallel/algorithms/copy.hpp>
 #include <hpx/parallel/algorithms/for_each.hpp>
+#include <hpx/parallel/algorithms/inclusive_scan.hpp>
+#include <hpx/parallel/algorithms/sort.hpp>
 #include <hpx/parallel/util/zip_iterator.hpp>
 #include <hpx/util/transform_iterator.hpp>
 #include <hpx/util/tuple.hpp>
 //
 #include <vector>
 //
+/// \cond NOINTERNAL
 #ifdef EXTRA_DEBUG
 # include <iostream>
 # define debug_reduce_by_key(a) std::cout << a
 #else
 # define debug_reduce_by_key(a)
 #endif
+/// \endcond
 
 namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
 {
@@ -534,6 +536,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
         )
     >
 
+    /// \cond NOINTERNAL
     typename util::detail::algorithm_result<ExPolicy, std::pair<OutIter, OutIter2>>::type
         reduce_by_key(ExPolicy &&policy, RanIter key_first, RanIter key_last,
             RanIter2 values_first, OutIter keys_output, OutIter2 values_output,
@@ -570,7 +573,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
             std::forward<Compare>(comp),
             std::forward<Func>(func));
     }
-
+    /// \endcond
 }}}
 
 #endif

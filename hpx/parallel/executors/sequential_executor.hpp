@@ -9,13 +9,13 @@
 #define HPX_PARALLEL_EXECUTORS_SEQUENTIAL_EXECUTOR_MAY_11_2015_1050AM
 
 #include <hpx/config.hpp>
-#include <hpx/traits/is_executor.hpp>
 #include <hpx/parallel/config/inline_namespace.hpp>
 #include <hpx/parallel/exception_list.hpp>
 #include <hpx/parallel/executors/executor_traits.hpp>
 #include <hpx/runtime/threads/thread_executor.hpp>
-#include <hpx/util/invoke.hpp>
+#include <hpx/traits/is_executor.hpp>
 #include <hpx/util/deferred_call.hpp>
+#include <hpx/util/invoke.hpp>
 #include <hpx/util/unwrapped.hpp>
 
 #include <iterator>
@@ -113,6 +113,14 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v3)
         std::size_t processing_units_count()
         {
             return 1;
+        }
+
+    private:
+        friend class hpx::serialization::access;
+
+        template <typename Archive>
+        void serialize(Archive & ar, const unsigned int version)
+        {
         }
         /// \endcond
     };

@@ -12,16 +12,16 @@
 #include <hpx/traits/is_iterator.hpp>
 #include <hpx/util/zip_iterator.hpp>
 
+#include <hpx/parallel/algorithms/detail/dispatch.hpp>
 #include <hpx/parallel/config/inline_namespace.hpp>
 #include <hpx/parallel/execution_policy.hpp>
-#include <hpx/parallel/algorithms/detail/dispatch.hpp>
 #include <hpx/parallel/util/detail/algorithm_result.hpp>
-#include <hpx/parallel/util/partitioner.hpp>
 #include <hpx/parallel/util/loop.hpp>
+#include <hpx/parallel/util/partitioner.hpp>
 
 #include <algorithm>
-#include <numeric>
 #include <iterator>
+#include <numeric>
 #include <type_traits>
 #include <vector>
 
@@ -244,7 +244,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
     ///                     it.
     ///                     The type \a Ret must be
     ///                     such that it can be implicitly converted to a type
-    ///                     of \tT.
+    ///                     of \a T.
     ///
     /// The operations in the parallel \a inner_product algorithm invoked
     /// with an execution policy object of type \a sequential_execution_policy

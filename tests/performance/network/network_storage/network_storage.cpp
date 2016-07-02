@@ -127,7 +127,7 @@ hpx::lcos::barrier unique_barrier;
 //
 // Each locality allocates a buffer of memory which is used to host transfers
 //
-char                      *local_storage = NULL;
+char                      *local_storage = nullptr;
 hpx::lcos::local::spinlock storage_mutex;
 
 //
@@ -207,7 +207,7 @@ public:
   typedef std::ptrdiff_t difference_type;
 
   pointer_allocator() HPX_NOEXCEPT
-    : pointer_(0), size_(0)
+    : pointer_(nullptr), size_(0)
   {
   }
 
@@ -219,7 +219,7 @@ public:
   pointer address(reference value) const { return &value; }
   const_pointer address(const_reference value) const { return &value; }
 
-  pointer allocate(size_type n, void const* hint = 0)
+  pointer allocate(size_type n, void const* hint = nullptr)
   {
     HPX_ASSERT(n == size_);
     return static_cast<T*>(pointer_);
@@ -326,7 +326,7 @@ namespace Storage {
         // we must allocate a temporary buffer to copy from storage into
         // we can't use the remote buffer supplied because it is a handle to memory on
         // the (possibly) remote node. We allocate here using
-        // a NULL deleter so the array will
+        // a nullptr deleter so the array will
         // not be released by the shared_pointer
         std::allocator<char> local_allocator;
         boost::shared_array<char> local_buffer(local_allocator.allocate(length),

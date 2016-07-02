@@ -12,13 +12,13 @@ namespace hpx { namespace traits
 {
     ///////////////////////////////////////////////////////////////////////////
     // Customization point for plugin config data injection
-    template <typename Plugin, typename Enable>
+    template <typename Plugin, typename Enable = void>
     struct plugin_config_data
     {
         // by default no additional config data is injected into the factory
         static char const* call()
         {
-            return 0;
+            return nullptr;
         }
     };
 }}

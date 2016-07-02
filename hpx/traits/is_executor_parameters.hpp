@@ -1,4 +1,5 @@
 //  Copyright (c) 2014-2016 Hartmut Kaiser
+//  Copyright (c) 2016 Marcin Copik
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -7,15 +8,14 @@
 #define HPX_TRAITS_IS_EXECUTOR_PARAMETERS_AUG_01_2015_0709AM
 
 #include <hpx/config.hpp>
-#include <hpx/traits.hpp>
 #include <hpx/config/inline_namespace.hpp>
 #include <hpx/parallel/config/inline_namespace.hpp>
 #include <hpx/util/decay.hpp>
 
-#include <type_traits>
 #if defined(HPX_HAVE_CXX11_STD_REFERENCE_WRAPPER)
 #include <functional>
 #endif
+#include <type_traits>
 
 #include <boost/ref.hpp>
 
@@ -63,7 +63,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v3)
 namespace hpx { namespace traits
 {
     // new executor framework
-    template <typename Parameters, typename Enable>
+    template <typename Parameters, typename Enable = void>
     struct is_executor_parameters
       : parallel::v3::is_executor_parameters<Parameters>
     {};

@@ -9,17 +9,19 @@
 
 #include <hpx/config.hpp>
 #include <hpx/error_code.hpp>
+#include <hpx/lcos/detail/future_data.hpp>
 #include <hpx/lcos_fwd.hpp>
+#include <hpx/runtime/actions/continuation_fwd.hpp>
+#include <hpx/runtime/launch_policy.hpp>
 #include <hpx/throw_exception.hpp>
 #include <hpx/traits/acquire_shared_state.hpp>
-#include <hpx/traits/is_callable.hpp>
-#include <hpx/traits/is_future.hpp>
+#include <hpx/traits/concepts.hpp>
 #include <hpx/traits/future_access.hpp>
 #include <hpx/traits/future_traits.hpp>
-#include <hpx/traits/is_launch_policy.hpp>
+#include <hpx/traits/is_callable.hpp>
 #include <hpx/traits/is_executor.hpp>
-#include <hpx/traits/concepts.hpp>
-#include <hpx/lcos/detail/future_data.hpp>
+#include <hpx/traits/is_future.hpp>
+#include <hpx/traits/is_launch_policy.hpp>
 #include <hpx/util/always_void.hpp>
 #include <hpx/util/bind.hpp>
 #include <hpx/util/date_time_chrono.hpp>
@@ -28,8 +30,6 @@
 #include <hpx/util/invoke.hpp>
 #include <hpx/util/result_of.hpp>
 #include <hpx/util/void_guard.hpp>
-#include <hpx/runtime/actions/continuation_fwd.hpp>
-#include <hpx/runtime/launch_policy.hpp>
 
 #include <boost/exception_ptr.hpp>
 #include <boost/intrusive_ptr.hpp>
@@ -39,9 +39,9 @@
 #include <boost/utility/declval.hpp>
 #include <boost/utility/enable_if.hpp>
 
+#include <iterator>
 #include <type_traits>
 #include <utility>
-#include <iterator>
 
 namespace hpx { namespace lcos { namespace detail
 {
@@ -431,7 +431,7 @@ namespace hpx { namespace lcos { namespace detail
         future_base(future_base && other) HPX_NOEXCEPT
           : shared_state_(std::move(other.shared_state_))
         {
-            other.shared_state_ = 0;
+            other.shared_state_ = nullptr;
         }
 
         void swap(future_base& other)
@@ -453,7 +453,7 @@ namespace hpx { namespace lcos { namespace detail
             if (this != &other)
             {
                 shared_state_ = std::move(other.shared_state_);
-                other.shared_state_ = 0;
+                other.shared_state_ = nullptr;
             }
             return *this;
         }
@@ -461,27 +461,27 @@ namespace hpx { namespace lcos { namespace detail
         // Returns: true only if *this refers to a shared state.
         bool valid() const HPX_NOEXCEPT
         {
-            return shared_state_ != 0;
+            return shared_state_ != nullptr;
         }
 
         // Returns: true if the shared state is ready, false if it isn't.
         bool is_ready() const HPX_NOEXCEPT
         {
-            return shared_state_ != 0 && shared_state_->is_ready();
+            return shared_state_ != nullptr && shared_state_->is_ready();
         }
 
         // Returns: true if the shared state is ready and stores a value,
         //          false if it isn't.
         bool has_value() const HPX_NOEXCEPT
         {
-            return shared_state_ != 0 && shared_state_->has_value();
+            return shared_state_ != nullptr && shared_state_->has_value();
         }
 
         // Returns: true if the shared state is ready and stores an exception,
         //          false if it isn't.
         bool has_exception() const HPX_NOEXCEPT
         {
-            return shared_state_ != 0 && shared_state_->has_exception();
+            return shared_state_ != nullptr && shared_state_->has_exception();
         }
 
         // Effects:
@@ -779,7 +779,7 @@ namespace hpx { namespace lcos
         //     constructor invocation.
         //   - other.valid() == false.
         future(future<future> && other) HPX_NOEXCEPT
-          : base_type(other.valid() ? detail::unwrap(std::move(other)) : 0)
+          : base_type(other.valid() ? detail::unwrap(std::move(other)) : nullptr)
         {}
 
         // Effects: constructs a future object by moving the instance referred
@@ -789,7 +789,7 @@ namespace hpx { namespace lcos
         //     constructor invocation.
         //   - other.valid() == false.
         future(future<shared_future<R> > && other) HPX_NOEXCEPT
-          : base_type(other.valid() ? detail::unwrap(std::move(other)) : 0)
+          : base_type(other.valid() ? detail::unwrap(std::move(other)) : nullptr)
         {}
 
         // Effects: constructs a future<void> object that will be ready when
@@ -800,8 +800,8 @@ namespace hpx { namespace lcos
         //   - other.valid() == false.
         template <typename T>
         future(future<T>&& other,
-            typename boost::enable_if<boost::is_void<R>, T>::type* = 0
-        ) : base_type(other.valid() ? detail::make_void_continuation(other) : 0)
+            typename boost::enable_if<boost::is_void<R>, T>::type* = nullptr
+        ) : base_type(other.valid() ? detail::make_void_continuation(other) : nullptr)
         {
             other = future<T>();
         }
@@ -952,7 +952,7 @@ namespace hpx { namespace lcos
            !std::is_convertible<Future, hpx::future<T> >::value,
             hpx::future<T>
         >::type
-        make_future_helper(Future && f)
+        make_future_helper(Future && f) //-V659
         {
             return f.then(
                 [](Future && f) -> T
@@ -993,7 +993,7 @@ namespace hpx { namespace lcos
            !std::is_convertible<Future, hpx::future<T> >::value,
             hpx::future<T>
         >::type
-        convert_future_helper(Future && f, Conv && conv)
+        convert_future_helper(Future && f, Conv && conv) //-V659
         {
             return f.then(
                 [conv](Future && f) -> T
@@ -1087,7 +1087,7 @@ namespace hpx { namespace lcos
         //     constructor invocation.
         //   - other.valid() == false.
         shared_future(future<shared_future> && other) HPX_NOEXCEPT
-          : base_type(other.valid() ? detail::unwrap(other.share()) : 0)
+          : base_type(other.valid() ? detail::unwrap(other.share()) : nullptr)
         {}
 
         // Effects: constructs a future<void> object that will be ready when
@@ -1097,8 +1097,8 @@ namespace hpx { namespace lcos
         //     constructor invocation.
         template <typename T>
         shared_future(shared_future<T> const& other,
-            typename boost::enable_if<boost::is_void<R>, T>::type* = 0
-        ) : base_type(other.valid() ? detail::make_void_continuation(other) : 0)
+            typename boost::enable_if<boost::is_void<R>, T>::type* = nullptr
+        ) : base_type(other.valid() ? detail::make_void_continuation(other) : nullptr)
         {}
 
         // Effects:

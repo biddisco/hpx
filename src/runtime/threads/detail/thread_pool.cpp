@@ -364,7 +364,7 @@ namespace hpx { namespace threads { namespace detail
             << " timestamp_scale: " << timestamp_scale_; //-V128
 
         try {
-            HPX_ASSERT(startup_.get() == 0);
+            HPX_ASSERT(startup_.get() == nullptr);
             startup_.reset(
                 new boost::barrier(static_cast<unsigned>(num_threads+1))
             );
@@ -429,7 +429,7 @@ namespace hpx { namespace threads { namespace detail
                 << " failed with: " << e.what();
 
             // trigger the barrier
-            if (startup_.get() != 0)
+            if (startup_.get() != nullptr)
             {
                 while (num_threads-- != 0 && !startup_->wait())
                     ;
@@ -603,7 +603,7 @@ namespace hpx { namespace threads { namespace detail
                         tfunc_times_[num_thread], exec_times_[num_thread]);
 
                     detail::scheduling_callbacks callbacks(
-                        util::bind(
+                        util::bind( //-V107
                             &policies::scheduler_base::idle_callback,
                             &sched_, num_thread
                         ),
@@ -611,7 +611,7 @@ namespace hpx { namespace threads { namespace detail
 
                     if (mode_ & policies::do_background_work)
                     {
-                        callbacks.background_ = util::bind(
+                        callbacks.background_ = util::bind( //-V107
                             &policies::scheduler_base::background_callback,
                             &sched_, num_thread);
                     }

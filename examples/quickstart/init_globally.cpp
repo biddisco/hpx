@@ -31,7 +31,7 @@
 #if defined(linux) || defined(__linux) || defined(__linux__)
 
 int __argc = 0;
-char** __argv = 0;
+char** __argv = nullptr;
 
 void set_argv_argv(int argc, char* argv[], char* env[])
 {
@@ -49,9 +49,9 @@ __attribute__((section(".init_array")))
 inline int get_arraylen(char** argv)
 {
     int count = 0;
-    if (NULL != argv)
+    if (nullptr != argv)
     {
-        while(NULL != argv[count])
+        while(nullptr != argv[count])
             ++count;
     }
     return count;
@@ -73,7 +73,7 @@ char** __argv = *_NSGetArgv();
 struct manage_global_runtime
 {
     manage_global_runtime()
-      : running_(false), rts_(0)
+      : running_(false), rts_(nullptr)
     {
 #if defined(HPX_WINDOWS)
         hpx::detail::init_winsocket();
@@ -106,7 +106,7 @@ struct manage_global_runtime
         // notify hpx_main above to tear down the runtime
         {
             std::lock_guard<hpx::lcos::local::spinlock> lk(mtx_);
-            rts_ = 0;               // reset pointer
+            rts_ = nullptr;               // reset pointer
         }
 
         cond_.notify_one();     // signal exit
@@ -118,11 +118,11 @@ struct manage_global_runtime
     // registration of external (to HPX) threads
     void register_thread(char const* name)
     {
-        rts_->register_thread(name);
+        hpx::register_thread(rts_, name);
     }
     void unregister_thread()
     {
-        rts_->unregister_thread();
+        hpx::unregister_thread(rts_);
     }
 
 protected:
@@ -145,7 +145,7 @@ protected:
         // Now, wait for destructor to be called.
         {
             std::unique_lock<hpx::lcos::local::spinlock> lk(mtx_);
-            if (rts_ != 0)
+            if (rts_ != nullptr)
                 cond_.wait(lk);
         }
 

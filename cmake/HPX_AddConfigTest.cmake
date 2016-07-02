@@ -83,7 +83,7 @@ macro(add_hpx_config_test variable)
         OUTPUT_VARIABLE ${variable}_OUTPUT
         COPY_FILE ${test_binary})
        hpx_debug("Compile test: ${variable}")
-       hpx_debug("Compilation output: \n\n${${variable}_OUTPUT}")
+       hpx_debug("Compilation output: ${${variable}_OUTPUT}")
     endif()
 
     set(_run_msg "Success")
@@ -326,20 +326,6 @@ macro(hpx_check_for_cxx11_std_is_bind_expression)
 endmacro()
 
 ###############################################################################
-macro(hpx_check_for_cxx11_std_is_final)
-  add_hpx_config_test(HPX_WITH_CXX11_IS_FINAL
-    SOURCE cmake/tests/cxx11_std_is_final.cpp
-    FILE ${ARGN})
-endmacro()
-
-###############################################################################
-macro(hpx_check_for_cxx11_std_is_null_pointer)
-  add_hpx_config_test(HPX_WITH_CXX11_IS_NULL_POINTER
-    SOURCE cmake/tests/cxx11_std_is_null_pointer.cpp
-    FILE ${ARGN})
-endmacro()
-
-###############################################################################
 macro(hpx_check_for_cxx11_std_is_placeholder)
   add_hpx_config_test(HPX_WITH_CXX11_IS_PLACEHOLDER
     SOURCE cmake/tests/cxx11_std_is_placeholder.cpp
@@ -438,6 +424,20 @@ macro(hpx_check_for_cxx14_std_integer_sequence)
 endmacro()
 
 ###############################################################################
+macro(hpx_check_for_cxx14_std_is_final)
+  add_hpx_config_test(HPX_WITH_CXX14_IS_FINAL
+    SOURCE cmake/tests/cxx14_std_is_final.cpp
+    FILE ${ARGN})
+endmacro()
+
+###############################################################################
+macro(hpx_check_for_cxx14_std_is_null_pointer)
+  add_hpx_config_test(HPX_WITH_CXX14_IS_NULL_POINTER
+    SOURCE cmake/tests/cxx14_std_is_null_pointer.cpp
+    FILE ${ARGN})
+endmacro()
+
+###############################################################################
 macro(hpx_check_for_cxx14_std_result_of_sfinae)
   add_hpx_config_test(HPX_WITH_CXX14_RESULT_OF_SFINAE
     SOURCE cmake/tests/cxx14_std_result_of_sfinae.cpp
@@ -448,5 +448,12 @@ endmacro()
 macro(hpx_check_for_cxx_experimental_std_optional)
   add_hpx_config_test(HPX_WITH_CXX1Y_EXPERIMENTAL_OPTIONAL
     SOURCE cmake/tests/cxx1y_experimental_std_optional.cpp
+    FILE ${ARGN})
+endmacro()
+
+###############################################################################
+macro(hpx_check_for_mm_prefetch)
+  add_hpx_config_test(HPX_WITH_MM_PREFECTH
+    SOURCE cmake/tests/mm_prefetch.cpp
     FILE ${ARGN})
 endmacro()

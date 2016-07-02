@@ -9,21 +9,21 @@
 #define HPX_PARALLEL_DETAIL_FOR_EACH_MAY_29_2014_0932PM
 
 #include <hpx/config.hpp>
-#include <hpx/util/invoke.hpp>
-#include <hpx/traits/segmented_iterator_traits.hpp>
+#include <hpx/traits/concepts.hpp>
 #include <hpx/traits/is_callable.hpp>
 #include <hpx/traits/is_iterator.hpp>
-#include <hpx/traits/concepts.hpp>
+#include <hpx/traits/segmented_iterator_traits.hpp>
+#include <hpx/util/invoke.hpp>
 
-#include <hpx/parallel/config/inline_namespace.hpp>
-#include <hpx/parallel/execution_policy.hpp>
 #include <hpx/parallel/algorithms/detail/dispatch.hpp>
 #include <hpx/parallel/algorithms/detail/is_negative.hpp>
+#include <hpx/parallel/config/inline_namespace.hpp>
+#include <hpx/parallel/execution_policy.hpp>
+#include <hpx/parallel/traits/projected.hpp>
 #include <hpx/parallel/util/detail/algorithm_result.hpp>
 #include <hpx/parallel/util/foreach_partitioner.hpp>
 #include <hpx/parallel/util/loop.hpp>
 #include <hpx/parallel/util/projection_identity.hpp>
-#include <hpx/parallel/traits/projected.hpp>
 
 #include <algorithm>
 #include <iterator>
@@ -36,6 +36,29 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
     namespace detail
     {
         /// \cond NOINTERNAL
+        template <typename F, typename Proj>
+        struct for_each_iteration
+        {
+            typename hpx::util::decay<F>::type f_;
+            typename hpx::util::decay<Proj>::type proj_;
+
+            template <typename Iter>
+            HPX_HOST_DEVICE
+            void operator()(std::size_t /*part_index*/,
+                Iter part_begin, std::size_t part_size)
+            {
+                typedef typename util::detail::loop_n<Iter>::type it_type;
+
+                util::loop_n(
+                    part_begin, part_size,
+                    [this](it_type curr) mutable
+                    {
+                        hpx::util::invoke(
+                            f_, hpx::util::invoke(proj_, *curr));
+                    });
+            }
+        };
+
         template <typename Iter>
         struct for_each_n : public detail::algorithm<for_each_n<Iter>, Iter>
         {
@@ -45,12 +68,15 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
 
             template <typename ExPolicy, typename InIter, typename F,
                 typename Proj = util::projection_identity>
-            static InIter
+            HPX_HOST_DEVICE
+            static Iter
             sequential(ExPolicy, InIter first, std::size_t count, F && f,
-                Proj && proj = Proj())
+                Proj && proj/* = Proj()*/)
             {
+                typedef typename util::detail::loop_n<InIter>::type it_type;
+
                 return util::loop_n(first, count,
-                    [&f, &proj](InIter curr)
+                    [&f, &proj](it_type curr)
                     {
                         hpx::util::invoke(f, hpx::util::invoke(proj, *curr));
                     });
@@ -58,28 +84,21 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
 
             template <typename ExPolicy, typename InIter, typename F,
                 typename Proj = util::projection_identity>
-            static typename util::detail::algorithm_result<ExPolicy, InIter>::type
+            static typename util::detail::algorithm_result<ExPolicy,
+                InIter>::type
             parallel(ExPolicy && policy, InIter first, std::size_t count,
-                F && f, Proj && proj = Proj())
+                F && f, Proj && proj/* = Proj()*/)
             {
                 if (count != 0)
                 {
-                    // Some compilers complain about loosing const type
-                    // modifiers if the lambdas below are not mutable.
                     return util::foreach_partitioner<ExPolicy>::call(
                         std::forward<ExPolicy>(policy), first, count,
-                        [f, proj](std::size_t /*part_index*/,
-                            InIter part_begin, std::size_t part_size) mutable
+                        for_each_iteration<F, Proj>{
+                            std::forward<F>(f), std::forward<Proj>(proj)
+                        },
+                        [](InIter && last) -> InIter
                         {
-                            // VS2015 bails out when proj or f are captured by
-                            // ref
-                            util::loop_n(
-                                part_begin, part_size,
-                                [=](InIter curr) mutable
-                                {
-                                    hpx::util::invoke(
-                                        f, hpx::util::invoke(proj, *curr));
-                                });
+                            return std::move(last);
                         });
                 }
 
@@ -167,7 +186,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
     ///           \a count and \a first for negative values.
     ///
     template <typename ExPolicy, typename InIter, typename Size, typename F,
-        typename Proj = util::projection_identity,
+        typename Proj,
     HPX_CONCEPT_REQUIRES_(
         is_execution_policy<ExPolicy>::value &&
         hpx::traits::is_iterator<InIter>::value &&
@@ -177,7 +196,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
         >::value)>
     typename util::detail::algorithm_result<ExPolicy, InIter>::type
     for_each_n(ExPolicy && policy, InIter first, Size count, F && f,
-        Proj && proj = Proj())
+        Proj && proj)
     {
         static_assert(
             (hpx::traits::is_input_iterator<InIter>::value),
@@ -201,6 +220,22 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
             std::forward<Proj>(proj));
     }
 
+    /// \cond NOINTERNAL
+    template <typename ExPolicy, typename InIter, typename Size, typename F,
+    HPX_CONCEPT_REQUIRES_(
+        is_execution_policy<ExPolicy>::value &&
+        hpx::traits::is_iterator<InIter>::value &&
+        parallel::traits::is_indirect_callable<
+            F, traits::projected<util::projection_identity, InIter>
+        >::value)>
+    typename util::detail::algorithm_result<ExPolicy, InIter>::type
+    for_each_n(ExPolicy && policy, InIter first, Size count, F && f)
+    {
+        return for_each_n(std::forward<ExPolicy>(policy),
+            first, count, std::forward<F>(f), util::projection_identity());
+    }
+    /// \endcond
+
     ///////////////////////////////////////////////////////////////////////////
     // for_each
     namespace detail
@@ -215,29 +250,23 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
 
             template <typename ExPolicy, typename InIter, typename F,
                 typename Proj>
-            static Iter
+            static InIter
             sequential(ExPolicy, InIter first, InIter last, F && f,
                 Proj && proj)
             {
+                typedef typename util::detail::loop<InIter>::type it_type;
+
                 return util::loop(first, last,
-                    [&f, &proj](Iter curr)
+                    [&f, &proj](it_type curr)
                     {
                         f(hpx::util::invoke(proj, *curr));
                     });
             }
 
-            template <typename ExPolicy, typename InIter, typename F>
-            static InIter
-            sequential(ExPolicy, InIter first, InIter last, F && f,
-                util::projection_identity)
-            {
-                std::for_each(first, last, std::forward<F>(f));
-                return last;
-            }
-
             template <typename ExPolicy, typename InIter, typename F,
                 typename Proj>
-            static typename util::detail::algorithm_result<ExPolicy, InIter>::type
+            static typename util::detail::algorithm_result<ExPolicy,
+                InIter>::type
             parallel(ExPolicy && policy, InIter first, InIter last, F && f,
                 Proj && proj)
             {
@@ -250,7 +279,8 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
 
         ///////////////////////////////////////////////////////////////////////
         // non-segmented implementation
-        template <typename ExPolicy, typename InIter, typename F, typename Proj>
+        template <typename ExPolicy, typename InIter, typename F,
+            typename Proj>
         inline typename util::detail::algorithm_result<ExPolicy, InIter>::type
         for_each_(ExPolicy && policy, InIter first, InIter last, F && f,
             Proj && proj, std::false_type)
@@ -272,7 +302,8 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
         }
 
         // forward declare the segmented version of this algorithm
-        template <typename ExPolicy, typename SegIter, typename F, typename Proj>
+        template <typename ExPolicy, typename SegIter, typename F,
+            typename Proj>
         inline typename util::detail::algorithm_result<ExPolicy, SegIter>::type
         for_each_(ExPolicy && policy, SegIter first, SegIter last, F && f,
             Proj && proj, std::true_type);
@@ -352,8 +383,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
     ///           otherwise.
     ///           It returns \a last.
     ///
-    template <typename ExPolicy, typename InIter, typename F,
-        typename Proj = util::projection_identity,
+    template <typename ExPolicy, typename InIter, typename F, typename Proj,
     HPX_CONCEPT_REQUIRES_(
         is_execution_policy<ExPolicy>::value &&
         hpx::traits::is_iterator<InIter>::value &&
@@ -363,7 +393,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
         >::value)>
     typename util::detail::algorithm_result<ExPolicy, InIter>::type
     for_each(ExPolicy && policy, InIter first, InIter last, F && f,
-        Proj && proj = Proj())
+        Proj && proj)
     {
         static_assert(
             (hpx::traits::is_input_iterator<InIter>::value),
@@ -375,6 +405,22 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
             std::forward<ExPolicy>(policy), first, last,
             std::forward<F>(f), std::forward<Proj>(proj), is_segmented());
     }
+
+    /// \cond NOINTERNAL
+    template <typename ExPolicy, typename InIter, typename F,
+    HPX_CONCEPT_REQUIRES_(
+        is_execution_policy<ExPolicy>::value &&
+        hpx::traits::is_iterator<InIter>::value &&
+        parallel::traits::is_indirect_callable<
+            F, traits::projected<util::projection_identity, InIter>
+        >::value)>
+    typename util::detail::algorithm_result<ExPolicy, InIter>::type
+    for_each(ExPolicy && policy, InIter first, InIter last, F && f)
+    {
+        return for_each(std::forward<ExPolicy>(policy), first, last,
+            std::forward<F>(f), util::projection_identity());
+    }
+    /// \endcond
 }}}
 
 #endif

@@ -12,14 +12,14 @@
 
 #include <hpx/config.hpp>
 #include <hpx/exception.hpp>
-#include <hpx/runtime_fwd.hpp>
-#include <hpx/runtime/parcelset_fwd.hpp>
 #include <hpx/runtime/parcelset/parcel.hpp>
 #include <hpx/runtime/parcelset/parcel_buffer.hpp>
+#include <hpx/runtime/parcelset_fwd.hpp>
 #include <hpx/runtime/serialization/serialize.hpp>
+#include <hpx/runtime_fwd.hpp>
+#include <hpx/traits/is_chunk_allocator.hpp>
 #include <hpx/util/high_resolution_timer.hpp>
 #include <hpx/util/integer/endian.hpp>
-#include <hpx/traits/is_chunk_allocator.hpp>
 
 #include <boost/cstdint.hpp>
 
@@ -157,7 +157,7 @@ namespace hpx
                         ps[0].get_serialization_filter());
 
                     int archive_flags = archive_flags_;
-                    if (filter.get() != 0)
+                    if (filter.get() != nullptr)
                         archive_flags |= serialization::enable_compression;
 
                     // Get the chunk size from the allocator if it supports it
@@ -182,7 +182,7 @@ namespace hpx
 
                     {
                         // Serialize the data
-                        if (filter.get() != 0)
+                        if (filter.get() != nullptr)
                             filter->set_max_length(buffer.data_.capacity());
 
                         serialization::output_archive archive(

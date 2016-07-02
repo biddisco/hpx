@@ -81,7 +81,7 @@ namespace hpx { namespace lcos { namespace local { namespace detail
 
                 HPX_THROWS_IF(ec, null_thread_id,
                     "condition_variable::notify_one",
-                    "NULL thread id encountered");
+                    "null thread id encountered");
                 return false;
             }
 
@@ -130,7 +130,7 @@ namespace hpx { namespace lcos { namespace local { namespace detail
 
                     HPX_THROWS_IF(ec, null_thread_id,
                         "condition_variable::notify_all",
-                        "NULL thread id encountered");
+                        "null thread id encountered");
                     return;
                 }
 
@@ -175,7 +175,7 @@ namespace hpx { namespace lcos { namespace local { namespace detail
         std::unique_lock<mutex_type>&& lock,
         char const* description, error_code& ec)
     {
-        HPX_ASSERT(threads::get_self_ptr() != 0);
+        HPX_ASSERT(threads::get_self_ptr() != nullptr);
         HPX_ASSERT(lock.owns_lock());
 
         // enqueue the request and block this thread
@@ -200,7 +200,7 @@ namespace hpx { namespace lcos { namespace local { namespace detail
         util::steady_time_point const& abs_time,
         char const* description, error_code& ec)
     {
-        HPX_ASSERT(threads::get_self_ptr() != 0);
+        HPX_ASSERT(threads::get_self_ptr() != nullptr);
         HPX_ASSERT(lock.owns_lock());
 
         // enqueue the request and block this thread
@@ -245,7 +245,7 @@ namespace hpx { namespace lcos { namespace local { namespace detail
                 {
                     LERR_(fatal)
                         << "condition_variable::abort_all:"
-                        << " NULL thread id encountered";
+                        << " null thread id encountered";
                     continue;
                 }
 

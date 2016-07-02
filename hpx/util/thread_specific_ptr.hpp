@@ -62,12 +62,12 @@ namespace hpx { namespace util
 
         T& operator*() const
         {
-            HPX_ASSERT(0 != ptr_);
+            HPX_ASSERT(nullptr != ptr_);
             return *ptr_;
         }
 
         void reset(
-            T* new_value = 0
+            T* new_value = nullptr
             )
         {
             delete ptr_;
@@ -79,13 +79,13 @@ namespace hpx { namespace util
     };
 
     template <typename T, typename Tag>
-    HPX_NATIVE_TLS T* thread_specific_ptr<T, Tag>::ptr_ = 0;
+    HPX_NATIVE_TLS T* thread_specific_ptr<T, Tag>::ptr_ = nullptr;
 }}
 
 #else
 
-#include <pthread.h>
 #include <hpx/util/static.hpp>
+#include <pthread.h>
 
 namespace hpx { namespace util
 {
@@ -96,7 +96,7 @@ namespace hpx { namespace util
             thread_specific_ptr_key()
             {
                 //pthread_once(&key_once, &thread_specific_ptr_key::make_key);
-                pthread_key_create(&key, NULL);
+                pthread_key_create(&key, nullptr);
             }
 
             pthread_key_t key;
@@ -132,23 +132,23 @@ namespace hpx { namespace util
 
         T& operator*() const
         {
-            T* ptr = 0;
+            T* ptr = nullptr;
 
             ptr = reinterpret_cast<T *>(
                 pthread_getspecific(thread_specific_ptr<T, Tag>::get_key()));
-            HPX_ASSERT(0 != ptr);
+            HPX_ASSERT(nullptr != ptr);
             return *ptr;
         }
 
         void reset(
-            T* new_value = 0
+            T* new_value = nullptr
             )
         {
-            T* ptr = 0;
+            T* ptr = nullptr;
 
             ptr = reinterpret_cast<T *>(
                 pthread_getspecific(thread_specific_ptr<T, Tag>::get_key()));
-            if (0 != ptr)
+            if (nullptr != ptr)
                 delete ptr;
 
             ptr = new_value;
@@ -188,7 +188,7 @@ namespace hpx { namespace util
         }
 
         void reset(
-            T* new_value = 0
+            T* new_value = nullptr
             )
         {
             ptr_.reset(new_value);

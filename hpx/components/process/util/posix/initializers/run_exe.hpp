@@ -13,8 +13,8 @@
 #include <hpx/config.hpp>
 
 #if !defined(HPX_WINDOWS)
-#include <hpx/runtime/serialization/string.hpp>
 #include <hpx/components/process/util/posix/initializers/initializer_base.hpp>
+#include <hpx/runtime/serialization/string.hpp>
 
 #include <boost/filesystem.hpp>
 #include <boost/shared_array.hpp>
@@ -30,14 +30,14 @@ class run_exe_ : public initializer_base
 public:
     run_exe_()
     {
-        cmd_line_[0] = cmd_line_[1] = 0;
+        cmd_line_[0] = cmd_line_[1] = nullptr;
     }
 
     explicit run_exe_(const std::string &s)
       : s_(s)
     {
         cmd_line_[0] = const_cast<char*>(s_.c_str());
-        cmd_line_[1] = 0;
+        cmd_line_[1] = nullptr;
     }
 
     template <class PosixExecutor>
@@ -63,7 +63,7 @@ private:
         ar & s_;
 
         cmd_line_[0] = const_cast<char*>(s_.c_str());
-        cmd_line_[1] = 0;
+        cmd_line_[1] = nullptr;
     }
 
     HPX_SERIALIZATION_SPLIT_MEMBER()

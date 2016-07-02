@@ -8,14 +8,15 @@
 #define HPX_LCOS_LOCAL_DATAFLOW_HPP
 
 #include <hpx/config.hpp>
-#include <hpx/lcos/future.hpp>
 #include <hpx/lcos/dataflow.hpp>
+#include <hpx/lcos/future.hpp>
 #include <hpx/runtime/launch_policy.hpp>
 #include <hpx/runtime/threads/thread_executor.hpp>
 #include <hpx/traits/acquire_future.hpp>
+#include <hpx/traits/future_access.hpp>
 #include <hpx/traits/is_action.hpp>
-#include <hpx/traits/is_launch_policy.hpp>
 #include <hpx/traits/is_executor.hpp>
+#include <hpx/traits/is_launch_policy.hpp>
 #include <hpx/util/tuple.hpp>
 
 #include <boost/intrusive_ptr.hpp>
@@ -153,7 +154,7 @@ namespace hpx { namespace lcos { namespace detail
     struct dataflow_dispatch<Executor,
         typename std::enable_if<traits::is_executor<Executor>::value>::type>
     {
-        template <typename F, typename ...Ts>
+        template <typename Executor_, typename F, typename ...Ts>
         HPX_FORCEINLINE static
         typename detail::dataflow_frame<
             Executor
@@ -162,7 +163,7 @@ namespace hpx { namespace lcos { namespace detail
                 typename traits::acquire_future<Ts>::type...
             >
         >::type
-        call(Executor& exec, F && f, Ts &&... ts)
+        call(Executor_ && exec, F && f, Ts &&... ts)
         {
             typedef
                 detail::dataflow_frame<
@@ -175,7 +176,7 @@ namespace hpx { namespace lcos { namespace detail
                 frame_type;
 
             boost::intrusive_ptr<frame_type> p(new frame_type(
-                    exec
+                    std::forward<Executor_>(exec)
                   , std::forward<F>(f)
                   , util::forward_as_tuple(
                         traits::acquire_future_disp()(std::forward<Ts>(ts))...

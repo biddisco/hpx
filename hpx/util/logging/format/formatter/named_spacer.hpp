@@ -105,7 +105,7 @@ namespace detail {
 
         template<class msg_type> void write(msg_type & msg) const {
             // see type of convert
-            write_with_convert( msg, 0 );
+            write_with_convert( msg, nullptr );
         }
 
     private:
@@ -176,7 +176,7 @@ namespace detail {
                     remaining = remaining.substr(idx + 1);
                     // find end of formatter name
                     idx = remaining.find('%');
-                    format_base_type * fmt = 0;
+                    format_base_type * fmt = nullptr;
                     if ( idx != string_type::npos) {
                         string_type name = remaining.substr(0, idx);
                         remaining = remaining.substr(idx + 1);
@@ -187,7 +187,8 @@ namespace detail {
                 }
                 else {
                     // last part
-                    info->write_steps.push_back( write_step( unescape(remaining), 0) );
+                    info->write_steps.push_back(
+                        write_step( unescape(remaining), nullptr) );
                     remaining.clear();
                 }
             }
