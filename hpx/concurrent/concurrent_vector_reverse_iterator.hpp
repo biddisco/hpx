@@ -50,7 +50,7 @@ namespace hpx
         ///
         /// @author S Downie
         //------------------------------------------------------------------------
-        template <typename TType> class concurrent_vector_reverse_iterator
+        template <typename TType> class vector_reverse_iterator
         {
         public:
 
@@ -67,7 +67,7 @@ namespace hpx
             /// @param Data structure to iterate over
             /// @param Mutex used to protect the underlying iterable
             //------------------------------------------------------------------------
-            concurrent_vector_reverse_iterator(std::vector<std::pair<TType, bool>>* in_iterable, recursive_mutex* in_iterableMutex)
+            vector_reverse_iterator(std::vector<std::pair<TType, bool>>* in_iterable, recursive_mutex* in_iterableMutex)
             : m_iterable(in_iterable), m_iterableMutex(in_iterableMutex)
             {
                 m_iterableIndex = find_previous_occupied_index(m_iterable->size());
@@ -79,7 +79,7 @@ namespace hpx
             ///
             /// @param iterator to copy
             //--------------------------------------------------------------------
-            concurrent_vector_reverse_iterator(const concurrent_vector_reverse_iterator& in_toCopy)
+            vector_reverse_iterator(const vector_reverse_iterator& in_toCopy)
             : m_iterableIndex(in_toCopy.m_iterableIndex), m_iterable(in_toCopy.m_iterable), m_iterableMutex(in_toCopy.m_iterableMutex)
             {
             }
@@ -92,7 +92,7 @@ namespace hpx
             ///
             /// @return This as a copy
             //--------------------------------------------------------------------
-            concurrent_vector_reverse_iterator& operator=(const concurrent_vector_reverse_iterator& in_toCopy)
+            vector_reverse_iterator& operator=(const vector_reverse_iterator& in_toCopy)
             {
                 m_iterableIndex = in_toCopy.m_iterableIndex;
                 m_iterable = in_toCopy.m_iterable;
@@ -107,7 +107,7 @@ namespace hpx
             ///
             /// @param iterator to move
             //--------------------------------------------------------------------
-            concurrent_vector_reverse_iterator(concurrent_vector_reverse_iterator&& in_toMove)
+            vector_reverse_iterator(vector_reverse_iterator&& in_toMove)
             : m_iterableIndex(in_toMove.m_iterableIndex), m_iterable(in_toMove.m_iterable), m_iterableMutex(in_toMove.m_iterableMutex)
             {
                 in_toMove.m_iterableIndex = 0;
@@ -123,7 +123,7 @@ namespace hpx
             ///
             /// @return This having taken ownership of the given iterator
             //--------------------------------------------------------------------
-            concurrent_vector_reverse_iterator& operator=(concurrent_vector_reverse_iterator&& in_toMove)
+            vector_reverse_iterator& operator=(vector_reverse_iterator&& in_toMove)
             {
                 m_iterableIndex = in_toMove.m_iterableIndex;
                 in_toMove.m_iterableIndex = 0;
@@ -141,7 +141,7 @@ namespace hpx
             ///
             /// @return Updated iterator
             //------------------------------------------------------------------------
-            concurrent_vector_reverse_iterator& operator++()
+            vector_reverse_iterator& operator++()
             {
                 m_iterableIndex = find_previous_occupied_index(m_iterableIndex);
                 return *this;
@@ -156,7 +156,7 @@ namespace hpx
             ///
             /// @return Updated iterator
             //------------------------------------------------------------------------
-            concurrent_vector_reverse_iterator& operator+=(difference_type in_stride)
+            vector_reverse_iterator& operator+=(difference_type in_stride)
             {
                 m_iterableIndex = find_previous_occupied_index(m_iterableIndex - (in_stride - 1));
                 return *this;
@@ -171,10 +171,10 @@ namespace hpx
             ///
             /// @return New iterator
             //------------------------------------------------------------------------
-            concurrent_vector_reverse_iterator operator+(difference_type in_stride)
+            vector_reverse_iterator operator+(difference_type in_stride)
             {
                 auto iterableIndex = find_previous_occupied_index(m_iterableIndex - (in_stride - 1));
-                return concurrent_vector_reverse_iterator(m_iterable, m_iterableMutex, iterableIndex);
+                return vector_reverse_iterator(m_iterable, m_iterableMutex, iterableIndex);
             }
             //------------------------------------------------------------------------
             /// @author S Downie
@@ -223,7 +223,7 @@ namespace hpx
             ///
             /// @return Whether the iterators are considered equal
             //------------------------------------------------------------------------
-            bool operator==(const concurrent_vector_reverse_iterator& in_toCompare) const
+            bool operator==(const vector_reverse_iterator& in_toCompare) const
             {
                 return m_iterableIndex == in_toCompare.m_iterableIndex;
             }
@@ -234,7 +234,7 @@ namespace hpx
             ///
             /// @return Whether the iterators are considered unequal
             //------------------------------------------------------------------------
-            bool operator!=(const concurrent_vector_reverse_iterator& in_toCompare) const
+            bool operator!=(const vector_reverse_iterator& in_toCompare) const
             {
                 return m_iterableIndex != in_toCompare.m_iterableIndex;
             }
@@ -245,7 +245,7 @@ namespace hpx
             ///
             /// @return Whether this iterator points to an element after the given iterator
             //------------------------------------------------------------------------
-            bool operator>(const concurrent_vector_reverse_iterator& in_toCompare) const
+            bool operator>(const vector_reverse_iterator& in_toCompare) const
             {
                 return m_iterableIndex > in_toCompare.m_iterableIndex;
             }
@@ -256,7 +256,7 @@ namespace hpx
             ///
             /// @return Whether this iterator points to an element after or the same as the given iterator
             //------------------------------------------------------------------------
-            bool operator>=(const concurrent_vector_reverse_iterator& in_toCompare) const
+            bool operator>=(const vector_reverse_iterator& in_toCompare) const
             {
                 return m_iterableIndex >= in_toCompare.m_iterableIndex;
             }
@@ -267,7 +267,7 @@ namespace hpx
             ///
             /// @return Whether this iterator points to an element before the given iterator
             //------------------------------------------------------------------------
-            bool operator<(const concurrent_vector_reverse_iterator& in_toCompare) const
+            bool operator<(const vector_reverse_iterator& in_toCompare) const
             {
                 return m_iterableIndex < in_toCompare.m_iterableIndex;
             }
@@ -278,7 +278,7 @@ namespace hpx
             ///
             /// @return Whether this iterator points to an element before or the same as the given iterator
             //------------------------------------------------------------------------
-            bool operator<=(const concurrent_vector_reverse_iterator& in_toCompare) const
+            bool operator<=(const vector_reverse_iterator& in_toCompare) const
             {
                 return m_iterableIndex <= in_toCompare.m_iterableIndex;
             }
@@ -305,7 +305,7 @@ namespace hpx
             /// @param Mutex used to protect the underlying iterable
             /// @param Initial index
             //------------------------------------------------------------------------
-            concurrent_vector_reverse_iterator(std::vector<std::pair<TType, bool>>* in_iterable, recursive_mutex* in_iterableMutex, difference_type in_initialIndex)
+            vector_reverse_iterator(std::vector<std::pair<TType, bool>>* in_iterable, recursive_mutex* in_iterableMutex, difference_type in_initialIndex)
             : m_iterable(in_iterable), m_iterableMutex(in_iterableMutex), m_iterableIndex(in_initialIndex)
             {
 

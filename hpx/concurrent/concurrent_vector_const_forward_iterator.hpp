@@ -51,7 +51,7 @@ namespace hpx
         ///
         /// @author S Downie
         //------------------------------------------------------------------------
-        template <typename TType> class concurrent_vector_const_forward_iterator
+        template <typename TType> class vector_const_forward_iterator
         {
         public:
 
@@ -68,7 +68,7 @@ namespace hpx
             /// @param Data structure to iterate over
             /// @param Mutex used to protect the underlying iterable
             //------------------------------------------------------------------------
-            concurrent_vector_const_forward_iterator(const std::vector<std::pair<TType, bool>>* in_iterable, recursive_mutex* in_iterableMutex)
+            vector_const_forward_iterator(const std::vector<std::pair<TType, bool>>* in_iterable, recursive_mutex* in_iterableMutex)
             : m_iterable(in_iterable), m_iterableMutex(in_iterableMutex)
             {
                 m_iterableIndex = find_next_occupied_index(0);
@@ -80,7 +80,7 @@ namespace hpx
             ///
             /// @param iterator to copy
             //--------------------------------------------------------------------
-            concurrent_vector_const_forward_iterator(const concurrent_vector_const_forward_iterator& in_toCopy)
+            vector_const_forward_iterator(const vector_const_forward_iterator& in_toCopy)
             : m_iterableIndex(in_toCopy.m_iterableIndex), m_iterable(in_toCopy.m_iterable), m_iterableMutex(in_toCopy.m_iterableMutex)
             {
             }
@@ -93,7 +93,7 @@ namespace hpx
             ///
             /// @return This as a copy
             //--------------------------------------------------------------------
-            concurrent_vector_const_forward_iterator& operator=(const concurrent_vector_const_forward_iterator& in_toCopy)
+            vector_const_forward_iterator& operator=(const vector_const_forward_iterator& in_toCopy)
             {
                 m_iterableIndex = in_toCopy.m_iterableIndex;
                 m_iterable = in_toCopy.m_iterable;
@@ -108,7 +108,7 @@ namespace hpx
             ///
             /// @param iterator to move
             //--------------------------------------------------------------------
-            concurrent_vector_const_forward_iterator(concurrent_vector_const_forward_iterator&& in_toMove)
+            vector_const_forward_iterator(vector_const_forward_iterator&& in_toMove)
             : m_iterableIndex(in_toMove.m_iterableIndex), m_iterable(in_toMove.m_iterable), m_iterableMutex(in_toMove.m_iterableMutex)
             {
                 in_toMove.m_iterableIndex = 0;
@@ -124,7 +124,7 @@ namespace hpx
             ///
             /// @return This having taken ownership of the given iterator
             //--------------------------------------------------------------------
-            concurrent_vector_const_forward_iterator& operator=(concurrent_vector_const_forward_iterator&& in_toMove)
+            vector_const_forward_iterator& operator=(vector_const_forward_iterator&& in_toMove)
             {
                 m_iterableIndex = in_toMove.m_iterableIndex;
                 in_toMove.m_iterableIndex = 0;
@@ -142,7 +142,7 @@ namespace hpx
             ///
             /// @return Updated iterator
             //------------------------------------------------------------------------
-            concurrent_vector_const_forward_iterator& operator++()
+            vector_const_forward_iterator& operator++()
             {
                 m_iterableIndex = find_next_occupied_index(m_iterableIndex + 1);
                 return *this;
@@ -157,7 +157,7 @@ namespace hpx
             ///
             /// @return Updated iterator
             //------------------------------------------------------------------------
-            concurrent_vector_const_forward_iterator& operator+=(difference_type in_stride)
+            vector_const_forward_iterator& operator+=(difference_type in_stride)
             {
                 m_iterableIndex = find_next_occupied_index(m_iterableIndex + in_stride);
                 return *this;
@@ -172,10 +172,10 @@ namespace hpx
             ///
             /// @return New iterator
             //------------------------------------------------------------------------
-            concurrent_vector_const_forward_iterator operator+(difference_type in_stride)
+            vector_const_forward_iterator operator+(difference_type in_stride)
             {
                 auto iterableIndex = find_next_occupied_index(m_iterableIndex + in_stride);
-                return concurrent_vector_const_forward_iterator(m_iterable, m_iterableMutex, iterableIndex);
+                return vector_const_forward_iterator(m_iterable, m_iterableMutex, iterableIndex);
             }
             //------------------------------------------------------------------------
             /// @author S Downie
@@ -204,7 +204,7 @@ namespace hpx
             ///
             /// @return Whether the iterators are considered equal
             //------------------------------------------------------------------------
-            bool operator==(const concurrent_vector_const_forward_iterator& in_toCompare) const
+            bool operator==(const vector_const_forward_iterator& in_toCompare) const
             {
                 return m_iterableIndex == in_toCompare.m_iterableIndex;
             }
@@ -215,7 +215,7 @@ namespace hpx
             ///
             /// @return Whether the iterators are considered unequal
             //------------------------------------------------------------------------
-            bool operator!=(const concurrent_vector_const_forward_iterator& in_toCompare) const
+            bool operator!=(const vector_const_forward_iterator& in_toCompare) const
             {
                 return m_iterableIndex != in_toCompare.m_iterableIndex;
             }
@@ -226,7 +226,7 @@ namespace hpx
             ///
             /// @return Whether this iterator points to an element after the given iterator
             //------------------------------------------------------------------------
-            bool operator>(const concurrent_vector_const_forward_iterator& in_toCompare) const
+            bool operator>(const vector_const_forward_iterator& in_toCompare) const
             {
                 return m_iterableIndex > in_toCompare.m_iterableIndex;
             }
@@ -237,7 +237,7 @@ namespace hpx
             ///
             /// @return Whether this iterator points to an element after or the same as the given iterator
             //------------------------------------------------------------------------
-            bool operator>=(const concurrent_vector_const_forward_iterator& in_toCompare) const
+            bool operator>=(const vector_const_forward_iterator& in_toCompare) const
             {
                 return m_iterableIndex >= in_toCompare.m_iterableIndex;
             }
@@ -248,7 +248,7 @@ namespace hpx
             ///
             /// @return Whether this iterator points to an element before the given iterator
             //------------------------------------------------------------------------
-            bool operator<(const concurrent_vector_const_forward_iterator& in_toCompare) const
+            bool operator<(const vector_const_forward_iterator& in_toCompare) const
             {
                 return m_iterableIndex < in_toCompare.m_iterableIndex;
             }
@@ -259,7 +259,7 @@ namespace hpx
             ///
             /// @return Whether this iterator points to an element before or the same as the given iterator
             //------------------------------------------------------------------------
-            bool operator<=(const concurrent_vector_const_forward_iterator& in_toCompare) const
+            bool operator<=(const vector_const_forward_iterator& in_toCompare) const
             {
                 return m_iterableIndex <= in_toCompare.m_iterableIndex;
             }
@@ -286,7 +286,7 @@ namespace hpx
             /// @param Mutex used to protect the underlying iterable
             /// @param Initial index
             //------------------------------------------------------------------------
-            concurrent_vector_const_forward_iterator(const std::vector<std::pair<TType, bool>>* in_iterable, recursive_mutex* in_iterableMutex, difference_type in_initialIndex)
+            vector_const_forward_iterator(const std::vector<std::pair<TType, bool>>* in_iterable, recursive_mutex* in_iterableMutex, difference_type in_initialIndex)
             : m_iterable(in_iterable), m_iterableMutex(in_iterableMutex), m_iterableIndex(in_initialIndex)
             {
 

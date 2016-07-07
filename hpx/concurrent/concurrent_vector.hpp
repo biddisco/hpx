@@ -42,10 +42,10 @@
 #include <atomic>
 #include <vector>
 
-#include "concurrent_vector_const_forward_iterator.hpp"
-#include "concurrent_vector_const_reverse_iterator.hpp"
-#include "concurrent_vector_forward_iterator.hpp"
-#include "concurrent_vector_reverse_iterator.hpp"
+#include "vector_const_forward_iterator.hpp"
+#include "vector_const_reverse_iterator.hpp"
+#include "vector_forward_iterator.hpp"
+#include "vector_reverse_iterator.hpp"
 
 namespace hpx
 {
@@ -65,23 +65,23 @@ namespace hpx
         ///
         /// @author S Downie
         //------------------------------------------------------------------------
-        template <typename TType> class concurrent_vector
+        template <typename TType> class vector
         {
         public:
 
             using size_type = std::size_t;
             using difference_type = std::ptrdiff_t;
-            using iterator = concurrent_vector_forward_iterator<TType>;
-            using const_iterator = concurrent_vector_const_forward_iterator<TType>;
-            using reverse_iterator = concurrent_vector_reverse_iterator<TType>;
-            using const_reverse_iterator = concurrent_vector_const_reverse_iterator<TType>;
+            using iterator = vector_forward_iterator<TType>;
+            using const_iterator = vector_const_forward_iterator<TType>;
+            using reverse_iterator = vector_reverse_iterator<TType>;
+            using const_reverse_iterator = vector_const_reverse_iterator<TType>;
 
             //--------------------------------------------------------------------
             /// Constructor default
             ///
             /// @author S Downie
             //--------------------------------------------------------------------
-            concurrent_vector();
+            vector();
             //--------------------------------------------------------------------
             /// Construct from initialiser list
             ///
@@ -89,7 +89,7 @@ namespace hpx
             ///
             /// @param Initialiser list
             //--------------------------------------------------------------------
-            concurrent_vector(std::initializer_list<TType>&& in_initialObjects);
+            vector(std::initializer_list<TType>&& in_initialObjects);
             //--------------------------------------------------------------------
             /// Copy constructor that creates this as a copy of the given vector
             ///
@@ -97,7 +97,7 @@ namespace hpx
             ///
             /// @param Vector to copy
             //--------------------------------------------------------------------
-            concurrent_vector(const concurrent_vector& in_toCopy);
+            vector(const vector& in_toCopy);
             //--------------------------------------------------------------------
             /// Copy assignment that creates this as a copy of the given vector
             ///
@@ -107,7 +107,7 @@ namespace hpx
             ///
             /// @return This as a copy
             //--------------------------------------------------------------------
-            concurrent_vector& operator=(const concurrent_vector& in_toCopy);
+            vector& operator=(const vector& in_toCopy);
             //--------------------------------------------------------------------
             /// Move constructor that transfers ownership from the given vector
             ///
@@ -115,7 +115,7 @@ namespace hpx
             ///
             /// @param Vector to move
             //--------------------------------------------------------------------
-            concurrent_vector(concurrent_vector&& in_toMove);
+            vector(vector&& in_toMove);
             //--------------------------------------------------------------------
             /// Move assignment that transfers ownership from the given vector
             ///
@@ -125,7 +125,7 @@ namespace hpx
             ///
             /// @return This having taken ownership of the given vector
             //--------------------------------------------------------------------
-            concurrent_vector& operator=(concurrent_vector&& in_toMove);
+            vector& operator=(vector&& in_toMove);
             //--------------------------------------------------------------------
             /// Push the object onto the back of the array. Unlike STL this does
             /// not invalidate any iterators
@@ -355,13 +355,13 @@ namespace hpx
 
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> concurrent_vector<TType>::concurrent_vector()
+        template <typename TType> vector<TType>::vector()
         : m_size(0), m_lock(m_mutex, std::defer_lock)
         {
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> concurrent_vector<TType>::concurrent_vector(std::initializer_list<TType>&& in_initialObjects)
+        template <typename TType> vector<TType>::vector(std::initializer_list<TType>&& in_initialObjects)
         : m_lock(m_mutex, std::defer_lock), m_size(0)
         {
             m_size = in_initialObjects.size();
@@ -374,21 +374,21 @@ namespace hpx
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> concurrent_vector<TType>::concurrent_vector(const concurrent_vector& in_toCopy)
+        template <typename TType> vector<TType>::vector(const vector& in_toCopy)
         {
             m_size = in_toCopy.m_size.load();
             m_container = in_toCopy.m_container;
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> concurrent_vector<TType>& concurrent_vector<TType>::operator=(const concurrent_vector<TType>& in_toCopy)
+        template <typename TType> vector<TType>& vector<TType>::operator=(const vector<TType>& in_toCopy)
         {
             m_size = in_toCopy.m_size.load();
             m_container = in_toCopy.m_container;
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> concurrent_vector<TType>::concurrent_vector(concurrent_vector&& in_toMove)
+        template <typename TType> vector<TType>::vector(vector&& in_toMove)
         {
             m_size = in_toMove.m_size.load();
             in_toMove.m_size = 0;
@@ -396,7 +396,7 @@ namespace hpx
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> concurrent_vector<TType>& concurrent_vector<TType>::operator=(concurrent_vector<TType>&& in_toMove)
+        template <typename TType> vector<TType>& vector<TType>::operator=(vector<TType>&& in_toMove)
         {
             m_size = in_toMove.m_size.load();
             in_toMove.m_size = 0;
@@ -404,7 +404,7 @@ namespace hpx
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> void concurrent_vector<TType>::push_back(TType&& in_object)
+        template <typename TType> void vector<TType>::push_back(TType&& in_object)
         {
             std::unique_lock<recursive_mutex> scopedLock(m_mutex);
             m_container.push_back(std::make_pair(std::forward<TType>(in_object), false));
@@ -412,7 +412,7 @@ namespace hpx
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> void concurrent_vector<TType>::push_back(const TType& in_object)
+        template <typename TType> void vector<TType>::push_back(const TType& in_object)
         {
             std::unique_lock<recursive_mutex> scopedLock(m_mutex);
             m_container.push_back(std::make_pair(in_object, false));
@@ -420,31 +420,31 @@ namespace hpx
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> TType& concurrent_vector<TType>::front()
+        template <typename TType> TType& vector<TType>::front()
         {
             return at(0);
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> const TType& concurrent_vector<TType>::front() const
+        template <typename TType> const TType& vector<TType>::front() const
         {
             return at(0);
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> TType& concurrent_vector<TType>::back()
+        template <typename TType> TType& vector<TType>::back()
         {
             return at(size()-1);
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> const TType& concurrent_vector<TType>::back() const
+        template <typename TType> const TType& vector<TType>::back() const
         {
             return at(size()-1);
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> TType& concurrent_vector<TType>::at(size_type in_index)
+        template <typename TType> TType& vector<TType>::at(size_type in_index)
         {
             std::unique_lock<recursive_mutex> scopedLock(m_mutex);
             if(m_requiresGC == false)
@@ -473,7 +473,7 @@ namespace hpx
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> const TType& concurrent_vector<TType>::at(size_type in_index) const
+        template <typename TType> const TType& vector<TType>::at(size_type in_index) const
         {
             std::unique_lock<recursive_mutex> scopedLock(m_mutex);
             if(m_requiresGC == false)
@@ -502,7 +502,7 @@ namespace hpx
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> void concurrent_vector<TType>::lock()
+        template <typename TType> void vector<TType>::lock()
         {
             std::unique_lock<recursive_mutex> scopedLock(m_mutex);
 
@@ -516,7 +516,7 @@ namespace hpx
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> void concurrent_vector<TType>::unlock()
+        template <typename TType> void vector<TType>::unlock()
         {
             std::unique_lock<recursive_mutex> scopedLock(m_mutex);
 
@@ -531,104 +531,104 @@ namespace hpx
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> typename concurrent_vector<TType>::size_type concurrent_vector<TType>::size() const
+        template <typename TType> typename vector<TType>::size_type vector<TType>::size() const
         {
             return m_size;
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> bool concurrent_vector<TType>::empty() const
+        template <typename TType> bool vector<TType>::empty() const
         {
             return m_size == 0;
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> typename concurrent_vector<TType>::iterator concurrent_vector<TType>::begin()
+        template <typename TType> typename vector<TType>::iterator vector<TType>::begin()
         {
             return iterator(&m_container, &m_mutex);
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> typename concurrent_vector<TType>::iterator concurrent_vector<TType>::end()
+        template <typename TType> typename vector<TType>::iterator vector<TType>::end()
         {
             return iterator(&m_container, &m_mutex) + size();
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> typename concurrent_vector<TType>::const_iterator concurrent_vector<TType>::begin() const
+        template <typename TType> typename vector<TType>::const_iterator vector<TType>::begin() const
         {
             return const_iterator(&m_container, const_cast<recursive_mutex*>(&m_mutex));
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> typename concurrent_vector<TType>::const_iterator concurrent_vector<TType>::end() const
+        template <typename TType> typename vector<TType>::const_iterator vector<TType>::end() const
         {
             return const_iterator(&m_container, const_cast<recursive_mutex*>(&m_mutex)) + size();
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> typename concurrent_vector<TType>::const_iterator concurrent_vector<TType>::cbegin() const
+        template <typename TType> typename vector<TType>::const_iterator vector<TType>::cbegin() const
         {
             return const_iterator(&m_container, const_cast<recursive_mutex*>(&m_mutex));
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> typename concurrent_vector<TType>::const_iterator concurrent_vector<TType>::cend() const
+        template <typename TType> typename vector<TType>::const_iterator vector<TType>::cend() const
         {
             return const_iterator(&m_container, const_cast<recursive_mutex*>(&m_mutex)) + size();
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> typename concurrent_vector<TType>::reverse_iterator concurrent_vector<TType>::rbegin()
+        template <typename TType> typename vector<TType>::reverse_iterator vector<TType>::rbegin()
         {
             return reverse_iterator(&m_container, &m_mutex);
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> typename concurrent_vector<TType>::reverse_iterator concurrent_vector<TType>::rend()
+        template <typename TType> typename vector<TType>::reverse_iterator vector<TType>::rend()
         {
             return reverse_iterator(&m_container, &m_mutex) + size();
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> typename concurrent_vector<TType>::const_reverse_iterator concurrent_vector<TType>::rbegin() const
+        template <typename TType> typename vector<TType>::const_reverse_iterator vector<TType>::rbegin() const
         {
             return const_reverse_iterator(&m_container, const_cast<recursive_mutex*>(&m_mutex));
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> typename concurrent_vector<TType>::const_reverse_iterator concurrent_vector<TType>::rend() const
+        template <typename TType> typename vector<TType>::const_reverse_iterator vector<TType>::rend() const
         {
             return const_reverse_iterator(&m_container, const_cast<recursive_mutex*>(&m_mutex)) + size();
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> typename concurrent_vector<TType>::const_reverse_iterator concurrent_vector<TType>::crbegin() const
+        template <typename TType> typename vector<TType>::const_reverse_iterator vector<TType>::crbegin() const
         {
             return const_reverse_iterator(&m_container, const_cast<recursive_mutex*>(&m_mutex));
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> typename concurrent_vector<TType>::const_reverse_iterator concurrent_vector<TType>::crend() const
+        template <typename TType> typename vector<TType>::const_reverse_iterator vector<TType>::crend() const
         {
             return const_reverse_iterator(&m_container, const_cast<recursive_mutex*>(&m_mutex)) + size();
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> TType& concurrent_vector<TType>::operator[](size_type in_index)
+        template <typename TType> TType& vector<TType>::operator[](size_type in_index)
         {
             return at(in_index);
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> const TType& concurrent_vector<TType>::operator[](size_type in_index) const
+        template <typename TType> const TType& vector<TType>::operator[](size_type in_index) const
         {
             return at(in_index);
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-		        template <typename TType> concurrent_vector_forward_iterator<TType>
-		        concurrent_vector<TType>::erase(const concurrent_vector_forward_iterator<TType>& in_itErase)
+		        template <typename TType> vector_forward_iterator<TType>
+		        vector<TType>::erase(const vector_forward_iterator<TType>& in_itErase)
         {
             std::unique_lock<recursive_mutex> scopedLock(m_mutex);
             if(m_isLocked == false)
@@ -650,7 +650,7 @@ namespace hpx
         //--------------------------------------------------------------------
 		/// This uses the
         //--------------------------------------------------------------------
-		template <typename TType> concurrent_vector_reverse_iterator<TType> concurrent_vector<TType>::erase(const concurrent_vector_reverse_iterator<TType>& in_itErase)
+		template <typename TType> vector_reverse_iterator<TType> vector<TType>::erase(const vector_reverse_iterator<TType>& in_itErase)
         {
             std::unique_lock<recursive_mutex> scopedLock(m_mutex);
             if(m_isLocked == false)
@@ -671,7 +671,7 @@ namespace hpx
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> void concurrent_vector<TType>::clear()
+        template <typename TType> void vector<TType>::clear()
         {
             std::unique_lock<recursive_mutex> scopedLock(m_mutex);
             if(m_isLocked == false)
@@ -693,7 +693,7 @@ namespace hpx
         }
         //--------------------------------------------------------------------
         //--------------------------------------------------------------------
-        template <typename TType> void concurrent_vector<TType>::garbage_collect()
+        template <typename TType> void vector<TType>::garbage_collect()
         {
             for(auto it = m_container.begin(); it != m_container.end(); )
             {

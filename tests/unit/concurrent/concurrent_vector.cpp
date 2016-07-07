@@ -3,7 +3,7 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include "../../../hpx/concurrent/concurrent_vector.hpp"
+#include "../../../hpx/concurrent/vector.hpp"
 
 #include <hpx/hpx_init.hpp>
 #include <hpx/hpx.hpp>
@@ -19,7 +19,7 @@
 void unordered_vector_test1()
 {
     // Create an unordered_map of three strings (that map to strings)
-    hpx::concurrent::concurrent_vector<int> u;
+    hpx::concurrent::vector<int> u;
 
     for (int i=0; i<10000; ++i) {
         u.push_back(i);
