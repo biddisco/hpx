@@ -1,9 +1,11 @@
 //  Copyright (c) 2016 John Biddiscombe
-//  Copyright (c) 2012 Scott Downie, Tag Games Limited
+//  Copyright (c) 2012-2015 Scott Downie, Tag Games Limited
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+//  This file is relicensed under the terms of the boost license with the permission
+//  of Tag Games Limited from the original source, previously licensed as follows:
 //
 //  concurrent_vector_reverse_iterator.h
 //  Chilli Source
