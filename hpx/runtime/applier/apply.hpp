@@ -21,6 +21,7 @@
 #include <hpx/runtime/naming/name.hpp>
 #include <hpx/runtime/parcelset/parcel.hpp>
 #include <hpx/runtime/parcelset/parcelhandler.hpp>
+#include <hpx/runtime/applier/set_event_action_traits.hpp>
 #include <hpx/traits/component_type_is_compatible.hpp>
 #include <hpx/traits/extract_action.hpp>
 #include <hpx/traits/is_action.hpp>
@@ -68,20 +69,9 @@ namespace hpx
         put_parcel(naming::id_type const& id, naming::address&& addr,
             threads::thread_priority priority, Ts&&... vs)
         {
-            typedef
-                typename hpx::traits::extract_action<Action>::type
-                action_type;
-            action_type act;
-
-            parcelset::parcelhandler& ph =
-                hpx::applier::get_applier().get_parcel_handler();
-
-            parcelset::parcel p(id, complement_addr<action_type>(addr),
-                act, priority, std::forward<Ts>(vs)...);
-
-            ph.put_parcel(std::move(p));
-
-            return false;     // destinations are remote
+            return hpx::traits::action_put_parcel<Action>::call(
+                id, std::forward<naming::address>(addr),
+                priority, std::forward<Ts>(vs)...);
         }
 
         template <typename Action, typename Continuation, typename ...Ts>
