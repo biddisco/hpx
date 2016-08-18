@@ -24,12 +24,12 @@ HPX_REGISTER_PARTITIONED_VECTOR(int);
         std::cout \
         << std::setw(60) << a << std::setw(40) <<  b \
         << std::setw(10) << c << std::setw(6)  << " " << #d \
-        << " " << e << " " << f << " " << g << "\n";
+        << " " << e << " " << f << " " << g << " ";
 #define msg9(a,b,c,d,e,f,g,h,i) \
         std::cout \
         << std::setw(60) << a << std::setw(40) <<  b \
         << std::setw(10) << c << std::setw(6)  << " " << #d \
-        << " " << e << " " << f << " " << g << " " << h << " " << i << "\n";
+        << " " << e << " " << f << " " << g << " " << h << " " << i << " ";
 
 ///////////////////////////////////////////////////////////////////////////////
 template <typename T>
@@ -55,14 +55,22 @@ void inclusive_scan_algo_tests_with_policy(std::size_t size,
 {
     msg7(typeid(ExPolicy).name(), typeid(DistPolicy).name(), typeid(T).name(),
         regular, size, dist_policy.get_num_partitions(), dist_policy.get_localities().size());
+    hpx::util::high_resolution_timer t1;
+
     hpx::partitioned_vector<T> c(size, dist_policy);
     iota_vector(c, T(1));
 
     std::vector<T> d(c.size());
     T val(0);
 
+    double e1 = t1.elapsed();
+    t1.restart();
+
     hpx::parallel::inclusive_scan(policy,
         c.begin(), c.end(), d.begin(), val, opt<T>());
+
+    double e2 = t1.elapsed();
+    t1.restart();
 
     // verify values
     std::vector<T> e(c.size());
@@ -73,6 +81,9 @@ void inclusive_scan_algo_tests_with_policy(std::size_t size,
         e.begin(), e.end(), f.begin(), val, opt<T>());
 
     HPX_TEST(std::equal(d.begin(), d.end(), f.begin()));
+
+    double e3 = t1.elapsed();
+    std::cout << std::setprecision(4) << "\t" << e1 << " " << e2 << " " << e3 << "\n";
 }
 
 template <typename T, typename DistPolicy, typename ExPolicy>
@@ -84,14 +95,22 @@ void inclusive_scan_algo_tests_segmented_out_with_policy(
         segmented, size,
         in_dist_policy.get_num_partitions(), in_dist_policy.get_localities().size(),
         out_dist_policy.get_num_partitions(), out_dist_policy.get_localities().size());
+    hpx::util::high_resolution_timer t1;
+
     hpx::partitioned_vector<T> c(size, in_dist_policy);
     iota_vector(c, T(1));
 
     hpx::partitioned_vector<T> d(c.size(), out_dist_policy);
     T val(0);
 
+    double e1 = t1.elapsed();
+    t1.restart();
+
     hpx::parallel::inclusive_scan(policy,
         c.begin(), c.end(), d.begin(), val, opt<T>());
+
+    double e2 = t1.elapsed();
+    t1.restart();
 
     // verify values
     std::vector<T> e(c.size());
@@ -102,6 +121,9 @@ void inclusive_scan_algo_tests_segmented_out_with_policy(
         e.begin(), e.end(), f.begin(), val, opt<T>());
 
     HPX_TEST(std::equal(d.begin(), d.end(), f.begin()));
+
+    double e3 = t1.elapsed();
+    std::cout << std::setprecision(4) << "\t" << e1 << " " << e2 << " " << e3 << "\n";
 }
 
 template <typename T, typename DistPolicy, typename ExPolicy>
@@ -111,13 +133,21 @@ void inclusive_scan_algo_tests_inplace_with_policy(
     msg7(typeid(ExPolicy).name(), typeid(DistPolicy).name(), typeid(T).name(),
         inplace, size,
         dist_policy.get_num_partitions(), dist_policy.get_localities().size());
+    hpx::util::high_resolution_timer t1;
+
     hpx::partitioned_vector<T> c(size, dist_policy);
     iota_vector(c, T(1));
 
     T val(0);
 
+    double e1 = t1.elapsed();
+    t1.restart();
+
     hpx::parallel::inclusive_scan(policy,
         c.begin(), c.end(), c.begin(), val, opt<T>());
+
+    double e2 = t1.elapsed();
+    t1.restart();
 
     // verify values
     std::vector<T> e(c.size());
@@ -128,6 +158,9 @@ void inclusive_scan_algo_tests_inplace_with_policy(
         e.begin(), e.end(), f.begin(), val, opt<T>());
 
     HPX_TEST(std::equal(c.begin(), c.end(), f.begin()));
+
+    double e3 = t1.elapsed();
+    std::cout << std::setprecision(4) << "\t" << e1 << " " << e2 << " " << e3 << "\n";
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -139,16 +172,24 @@ void inclusive_scan_algo_tests_with_policy_async(std::size_t size,
     msg7(typeid(ExPolicy).name(), typeid(DistPolicy).name(), typeid(T).name(),
         async, size,
         dist_policy.get_num_partitions(), dist_policy.get_localities().size());
+    hpx::util::high_resolution_timer t1;
+
     hpx::partitioned_vector<T> c(size, dist_policy);
     iota_vector(c, T(1));
 
     std::vector<T> d(c.size());
     T val(0);
 
+    double e1 = t1.elapsed();
+    t1.restart();
+
     auto res =
         hpx::parallel::inclusive_scan(policy,
         c.begin(), c.end(), d.begin(), val, opt<T>());
     res.get();
+
+    double e2 = t1.elapsed();
+    t1.restart();
 
     // verify values
     std::vector<T> e(c.size());
@@ -159,6 +200,9 @@ void inclusive_scan_algo_tests_with_policy_async(std::size_t size,
         e.begin(), e.end(), f.begin(), val, opt<T>());
 
     HPX_TEST(std::equal(d.begin(), d.end(), f.begin()));
+
+    double e3 = t1.elapsed();
+    std::cout << std::setprecision(4) << "\t" << e1 << " " << e2 << " " << e3 << "\n";
 }
 
 template <typename T, typename DistPolicy, typename ExPolicy>
@@ -170,16 +214,24 @@ void inclusive_scan_algo_tests_segmented_out_with_policy_async(
         async_segmented, size,
         in_dist_policy.get_num_partitions(), in_dist_policy.get_localities().size(),
         out_dist_policy.get_num_partitions(), out_dist_policy.get_localities().size());
+    hpx::util::high_resolution_timer t1;
+
     hpx::partitioned_vector<T> c(size, in_dist_policy);
     iota_vector(c, T(1));
 
     hpx::partitioned_vector<T> d(c.size(), out_dist_policy);
     T val(0);
 
+    double e1 = t1.elapsed();
+    t1.restart();
+
     auto res =
         hpx::parallel::inclusive_scan(policy,
         c.begin(), c.end(), d.begin(), val, opt<T>());
     res.get();
+
+    double e2 = t1.elapsed();
+    t1.restart();
 
     // verify values
     std::vector<T> e(c.size());
@@ -190,6 +242,9 @@ void inclusive_scan_algo_tests_segmented_out_with_policy_async(
         e.begin(), e.end(), f.begin(), val, opt<T>());
 
     HPX_TEST(std::equal(d.begin(), d.end(), f.begin()));
+
+    double e3 = t1.elapsed();
+    std::cout << std::setprecision(4) << "\t" << e1 << " " << e2 << " " << e3 << "\n";
 }
 
 template <typename T, typename DistPolicy, typename ExPolicy>
@@ -199,15 +254,23 @@ void inclusive_scan_algo_tests_inplace_with_policy_async(
     msg7(typeid(ExPolicy).name(), typeid(DistPolicy).name(), typeid(T).name(),
         async_inplace, size,
         dist_policy.get_num_partitions(), dist_policy.get_localities().size());
+    hpx::util::high_resolution_timer t1;
+
     hpx::partitioned_vector<T> c(size, dist_policy);
     iota_vector(c, T(1));
 
     T val(0);
 
+    double e1 = t1.elapsed();
+    t1.restart();
+
     auto res =
         hpx::parallel::inclusive_scan(policy,
         c.begin(), c.end(), c.begin(), val, opt<T>());
     auto r = res.get();
+
+    double e2 = t1.elapsed();
+    t1.restart();
 
     // verify values
     std::vector<T> e(c.size());
@@ -218,6 +281,9 @@ void inclusive_scan_algo_tests_inplace_with_policy_async(
         e.begin(), e.end(), f.begin(), val, opt<T>());
 
     HPX_TEST(std::equal(c.begin(), c.end(), f.begin()));
+
+    double e3 = t1.elapsed();
+    std::cout << std::setprecision(4) << "\t" << e1 << " " << e2 << " " << e3 << "\n";
 }
 
 
