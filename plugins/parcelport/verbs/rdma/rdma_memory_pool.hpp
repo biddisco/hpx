@@ -375,7 +375,7 @@ namespace verbs
                 << decnumber(temp_regions));
             return region;
         }
-/*
+
         //----------------------------------------------------------------------------
         // allocate a region, returning a memory block address
         // this is compatible with STL like allocators but should be avoided
@@ -408,7 +408,7 @@ namespace verbs
         // used to map the internal memory address to the region that
         // holds the registration information
         std::unordered_map<const void *, rdma_memory_region*> pointer_map_;
-*/
+
         // protection domain that memory is registered with
         rdma_protection_domain_ptr protection_domain_;
 
