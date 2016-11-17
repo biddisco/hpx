@@ -29,7 +29,7 @@ namespace hpx { namespace parcelset { namespace policies
         virtual ~message_handler() {}
         virtual void put_parcel(
             parcelset::locality const& dest, parcel p,
-            write_handler_type f) = 0;
+            write_handler_type f, bool priority) = 0;
         virtual bool flush(flush_mode mode, bool stop_buffering = false) = 0;
     };
 }}}

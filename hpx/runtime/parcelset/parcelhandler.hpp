@@ -192,7 +192,7 @@ namespace hpx { namespace parcelset
         ///                 where \a err is the status code of the operation and
         ///                       \a size is the number of successfully
         ///                              transferred bytes.
-        void put_parcel(parcel p, write_handler_type f);
+        void put_parcel(parcel p, write_handler_type f, bool priority);
 
         /// This put_parcel() function overload is asynchronous, but no
         /// callback functor is provided by the user.
@@ -203,12 +203,12 @@ namespace hpx { namespace parcelset
         ///                 parcel \a p will be modified in place, as it will
         ///                 get set the resolved destination address and parcel
         ///                 id (if not already set).
-        HPX_FORCEINLINE void put_parcel(parcel p)
+        HPX_FORCEINLINE void put_parcel(parcel p, bool priority)
         {
             using util::placeholders::_1;
             using util::placeholders::_2;
             put_parcel(std::move(p), util::bind(
-                &parcelhandler::invoke_write_handler, this, _1, _2));
+                &parcelhandler::invoke_write_handler, this, _1, _2), priority);
         }
 
         /// A parcel is submitted for transport at the source locality site to

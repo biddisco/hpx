@@ -87,7 +87,7 @@ namespace hpx { namespace agas { namespace server
         else
         {
             // destination is remote
-            rt.get_parcel_handler().put_parcel(std::move(p));
+            rt.get_parcel_handler().put_parcel(std::move(p), false);
         }
 
         if (rt.get_state() < state_pre_shutdown)

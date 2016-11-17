@@ -18,6 +18,8 @@
 #include <hpx/util/ini.hpp>
 #include <hpx/util/unused.hpp>
 #include <hpx/util/void_guard.hpp>
+#include <hpx/traits/action_put_parcel.hpp>
+#include <hpx/traits/is_base_lco_with_value.hpp>
 
 #include <boost/exception_ptr.hpp>
 
@@ -280,5 +282,86 @@ HPX_REGISTER_BASE_LCO_WITH_VALUE_DECLARATION(std::uint64_t, uint64_t)
 HPX_REGISTER_BASE_LCO_WITH_VALUE_DECLARATION(bool, bool)
 HPX_REGISTER_BASE_LCO_WITH_VALUE_DECLARATION(hpx::util::section, hpx_section)
 HPX_REGISTER_BASE_LCO_WITH_VALUE_DECLARATION(std::string, std_string)
+
+namespace hpx { namespace traits
+{
+    template <typename Result, typename RemoteResult>
+    struct is_base_lco_with_value<hpx::lcos::base_lco_with_value<Result, RemoteResult>>
+        : std::true_type {};
+
+    ///////////////////////////////////////////////////////////////////////////
+    // Customization for action put parcel : set_value_action
+    template<typename Action>
+    struct action_put_parcel<Action,
+        typename std::enable_if<is_base_lco_with_value<typename Action::component_type>::value>::type>
+    {
+        template <typename ...Ts>
+        static inline bool
+        call(naming::id_type const& id, naming::address&& addr,
+            threads::thread_priority priority, Ts&&... vs)
+        {
+            typedef
+                typename hpx::traits::extract_action<Action>::type
+                action_type;
+            action_type act;
+            parcelset::put_priority_parcel(id, detail::complement_addr<action_type>(addr),
+                act, priority, std::forward<Ts>(vs)...);
+
+            return false;     // destinations are remote
+        }
+
+        template <typename Continuation, typename ...Ts>
+        static inline bool
+        call_cont(naming::id_type const& id, naming::address&& addr,
+            threads::thread_priority priority,
+            Continuation && cont, Ts&&... vs)
+        {
+            std::terminate();
+            return false;     // destinations are remote
+        }
+
+        template <typename ...Ts>
+        static inline bool
+        call_cb(naming::id_type const& id, naming::address&& addr,
+            threads::thread_priority priority,
+            hpx::parcelset::write_handler_type const& cb, Ts&&... vs)
+        {
+            std::terminate();
+            return false;     // destinations are remote
+        }
+
+        template <typename ...Ts>
+        static inline bool
+        call_cb(naming::id_type const& id, naming::address&& addr,
+            threads::thread_priority priority,
+            parcelset::policies::message_handler::write_handler_type && cb, Ts&&... vs)
+        {
+            std::terminate();
+            return false;     // destinations are remote
+        }
+
+        template <typename Continuation, typename Handler, typename ...Ts>
+        static inline bool
+        call_cont_cb(naming::id_type const& id,
+            naming::address&& addr, threads::thread_priority priority,
+            Continuation && cont,
+            Handler const & cb, Ts&&... vs)
+        {
+            std::terminate();
+            return false;     // destinations are remote
+        }
+
+        template <typename Continuation, typename Handler, typename ...Ts>
+        static inline bool
+        call_cont_cb(naming::id_type const& id,
+            naming::address&& addr, threads::thread_priority priority,
+            Continuation && cont,
+            Handler &&cb, Ts&&... vs)
+        {
+            std::terminate();
+            return false;     // destinations are remote
+        }
+    };
+}}
 
 #endif /*HPX_LCOS_BASE_LCO_WITH_VALUE_HPP*/

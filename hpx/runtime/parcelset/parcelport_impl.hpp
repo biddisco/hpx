@@ -215,12 +215,13 @@ namespace hpx { namespace parcelset
             parcelport_impl& this_;
             locality dest_;
             write_handler_type f_;
+             bool priority_;
 
             void operator()(parcel&& p)
             {
                 if (connection_handler_traits<ConnectionHandler>::
                     send_immediate_parcels::value &&
-                    this_.can_send_immediate_impl<ConnectionHandler>()
+                    this_.can_send_immediate_impl<ConnectionHandler>(priority_)
                     )
                 {
                     this_.send_parcel_immediate(dest_, std::move(p), std::move(f_));
@@ -260,13 +261,13 @@ namespace hpx { namespace parcelset
             }
         };
 
-        void put_parcel(locality const & dest, parcel p, write_handler_type f)
+        void put_parcel(locality const & dest, parcel p, write_handler_type f, bool priority)
         {
             HPX_ASSERT(dest.type() == type());
 
             std::make_shared<detail::parcel_await>(
                 std::move(p), archive_flags_,
-                parcel_await_handler{*this, dest, std::move(f)})->apply();
+                parcel_await_handler{*this, dest, std::move(f), priority})->apply();
         }
 
         void put_parcels(locality const& dest, std::vector<parcel> parcels,
@@ -434,6 +435,7 @@ namespace hpx { namespace parcelset
                   , util::placeholders::_1
                   , util::placeholders::_2
                 )
+              , false
             );
         }
 
@@ -480,9 +482,9 @@ namespace hpx { namespace parcelset
             >::send_immediate_parcels::value,
             bool
         >::type
-        can_send_immediate_impl()
+        can_send_immediate_impl(bool priority)
         {
-            return connection_handler().can_send_immediate();
+            return connection_handler().can_send_immediate(priority);
         }
 
         template <typename ConnectionHandler_>
@@ -492,7 +494,7 @@ namespace hpx { namespace parcelset
             >::send_immediate_parcels::value,
             bool
         >::type
-        can_send_immediate_impl()
+        can_send_immediate_impl(bool priority)
         {
             return false;
         }

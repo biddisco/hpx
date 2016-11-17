@@ -128,7 +128,7 @@ namespace hpx { namespace parcelset
         ///                   std::size_t bytes_written);
         /// \endcode
         virtual void put_parcel(locality const & dest, parcel p,
-            write_handler_type f) = 0;
+            write_handler_type f, bool priority) = 0;
 
         /// Queues a list of parcels for transmission to another locality
         ///

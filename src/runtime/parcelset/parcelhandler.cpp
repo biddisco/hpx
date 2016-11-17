@@ -90,6 +90,7 @@ namespace hpx { namespace parcelset
             {
                 promise.set_value();
             }
+	  , false
         );  // schedule parcel send
         sent_future.get(); // wait for the parcel to be sent
     }
@@ -404,7 +405,7 @@ namespace hpx { namespace parcelset
         }
     }
 
-    void parcelhandler::put_parcel(parcel p, write_handler_type f)
+    void parcelhandler::put_parcel(parcel p, write_handler_type f, bool priority)
     {
         HPX_ASSERT(resolver_);
 
@@ -424,12 +425,12 @@ namespace hpx { namespace parcelset
             {
                 // reschedule request as an HPX thread to avoid hangs
                 void (parcelhandler::*put_parcel_ptr) (
-                        parcel p, write_handler_type f
+                        parcel p, write_handler_type f, bool pr
                     ) = &parcelhandler::put_parcel;
 
                 threads::register_thread_nullary(
                     util::deferred_call(put_parcel_ptr, this,
-                        std::move(p), std::move(f)),
+                        std::move(p), std::move(f), priority),
                     "parcelhandler::put_parcel", threads::pending, true,
                     threads::thread_priority_boost, std::size_t(-1),
                     threads::thread_stacksize_medium);
@@ -474,12 +475,12 @@ namespace hpx { namespace parcelset
                     p.get_message_handler(this, dest.second);
 
                 if (mh) {
-                    mh->put_parcel(dest.second, std::move(p), std::move(wrapped_f));
+                    mh->put_parcel(dest.second, std::move(p), std::move(wrapped_f), priority);
                     return;
                 }
             }
 
-            dest.first->put_parcel(dest.second, std::move(p), std::move(wrapped_f));
+            dest.first->put_parcel(dest.second, std::move(p), std::move(wrapped_f), priority);
             return;
         }
 
@@ -598,7 +599,7 @@ namespace hpx { namespace parcelset
                         this, dest.second);
 
                     if (mh) {
-                        mh->put_parcel(dest.second, std::move(p), std::move(f));
+                        mh->put_parcel(dest.second, std::move(p), std::move(f), false);
                         continue;
                     }
                 }

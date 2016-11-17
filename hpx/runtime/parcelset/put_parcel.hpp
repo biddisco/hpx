@@ -156,7 +156,17 @@ namespace hpx { namespace parcelset {
             {
                 parcelset::parcelhandler& ph =
                     hpx::get_runtime().get_parcel_handler();
-                ph.put_parcel(std::move(p));
+                ph.put_parcel(std::move(p), false);
+            }
+        };
+
+        struct put_priority_parcel_handler
+        {
+            void operator()(parcel&& p) const
+            {
+                parcelset::parcelhandler& ph =
+                    hpx::get_runtime().get_parcel_handler();
+                ph.put_parcel(std::move(p), true);
             }
         };
 
@@ -173,7 +183,7 @@ namespace hpx { namespace parcelset {
             {
                 parcelset::parcelhandler& ph =
                     hpx::get_runtime().get_parcel_handler();
-                ph.put_parcel(std::move(p), std::move(cb_));
+                ph.put_parcel(std::move(p), std::move(cb_), false);
             }
 
             typename hpx::util::decay<Callback>::type cb_;
@@ -185,6 +195,14 @@ namespace hpx { namespace parcelset {
         naming::id_type const& dest, naming::address&& addr, Args&&... args)
     {
         detail::put_parcel_impl(detail::put_parcel_handler(),
+            dest, std::move(addr), std::forward<Args>(args)...);
+    }
+
+    template <typename... Args>
+    void put_priority_parcel(
+        naming::id_type const& dest, naming::address&& addr, Args&&... args)
+    {
+        detail::put_parcel_impl(detail::put_priority_parcel_handler(),
             dest, std::move(addr), std::forward<Args>(args)...);
     }
 
