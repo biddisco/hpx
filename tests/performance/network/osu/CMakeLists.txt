@@ -18,7 +18,7 @@ foreach(benchmark ${benchmarks})
   source_group("Source Files" FILES ${sources})
 
   # add example executable
-  add_hpx_executable(${benchmark}
+  add_hpx_executable(hpx_${benchmark}
                      SOURCES ${sources}
                      ${${benchmark}_FLAGS}
                      COMPONENT_DEPENDENCIES iostreams
@@ -35,7 +35,7 @@ foreach(benchmark ${benchmarks})
 
   # add dependencies to pseudo-target
   add_hpx_pseudo_dependencies(tests.performance.network.osu_perf.${benchmark}
-                              ${benchmark}_exe)
+                              hpx_${benchmark}_exe)
 endforeach()
 
 

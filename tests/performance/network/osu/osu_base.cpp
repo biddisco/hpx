@@ -7,8 +7,10 @@
 // Bidirectional network bandwidth test
 
 #include <hpx/hpx_init.hpp>
+#include <hpx/hpx.hpp>
 
 #include <cstddef>
+#include <iostream>
 
 void print_header();
 void run_benchmark(boost::program_options::variables_map & vm);
@@ -16,8 +18,15 @@ void run_benchmark(boost::program_options::variables_map & vm);
 ///////////////////////////////////////////////////////////////////////////////
 int hpx_main(boost::program_options::variables_map & vm)
 {
-    print_header();
-    run_benchmark(vm);
+    hpx::id_type here = hpx::find_here();
+    uint64_t     rank = hpx::naming::get_locality_id_from_id(here);
+
+    std::cout <<"Here on rank " << rank << std::endl;
+    if (rank==0) {
+        print_header();
+    }
+    std::cout <<"Here " << rank << std::endl;
+     run_benchmark(vm);
     return hpx::finalize();
 }
 
@@ -40,5 +49,10 @@ int main(int argc, char* argv[])
          boost::program_options::value<std::size_t>()->default_value((1<<22)),
          "Maximum size of message to send");
 
-    return hpx::init(desc, argc, argv);
+    // Initialize and run HPX, this test requires to run hpx_main on all localities
+    std::vector<std::string> const cfg = {
+        "hpx.run_hpx_main!=1"
+    };
+
+    return hpx::init(desc, argc, argv, cfg);
 }
