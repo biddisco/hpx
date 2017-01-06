@@ -208,8 +208,11 @@ endif()
 
   if(target_EXPORT AND NOT target_EXCLUDE_FROM_ALL)
     hpx_export_targets(${target})
-    set(install_export EXPORT HPXTargets)
+    set(install_export EXPORT "${${PROJECT_NAME}_EXPORT_NAME}")
   endif()
+
+message("install_export is set to ${${PROJECT_NAME}_EXPORT_NAME} and pnen is ")
+
 
   if(target_INSTALL AND NOT target_EXCLUDE_FROM_ALL)
     install(TARGETS ${target}

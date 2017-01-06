@@ -3,7 +3,9 @@
 # Distributed under the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-set(HPX_EXPORT_TARGETS "" CACHE INTERNAL "" FORCE)
+#if (NOT ${PROJECT_NAME}_IS_SUBPROJECT)
+  set(HPX_EXPORT_TARGETS "" CACHE INTERNAL "" FORCE)
+#endif()
 
 macro(hpx_export_targets)
   foreach(target ${ARGN})
