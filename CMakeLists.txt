@@ -57,6 +57,8 @@ set(HPX_LIBRARY_VERSION "${HPX_VERSION}")
 set(HPX_SOVERSION ${HPX_MAJOR_VERSION})
 set(HPX_PACKAGE_NAME HPX)
 
+message("install_export is set to ${${PROJECT_NAME}_EXPORT_NAME} and pnen is ")
+
 if(MSVC)
   set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 endif()
@@ -111,6 +113,11 @@ if("${HPX_PLATFORM_UC}" STREQUAL "ANDROID")
   unset(HPX_SOVERSION)
 endif()
 ################################################################################
+
+################################################################################
+# Do all our CXX feature test checks.
+#
+include(FeatureTests)
 
 ################################################################################
 # Set our build options cache variables which are customizable by users

@@ -13,7 +13,9 @@ write_basic_package_version_file(
   COMPATIBILITY AnyNewerVersion
 )
 
-export(TARGETS ${HPX_EXPORT_TARGETS}
+export(EXPORT ${${PROJECT_NAME}_EXPORT_NAME}
+    # ${HPX_EXPORT_TARGETS}
+#    ${${PROJECT_NAME}_EXPORT_NAME}
   FILE "${CMAKE_CURRENT_BINARY_DIR}/lib/cmake/${HPX_PACKAGE_NAME}/HPXTargets.cmake"
 #  NAMESPACE hpx::
 )
@@ -169,7 +171,7 @@ configure_file(cmake/templates/HPXMacros.cmake.in
   ESCAPE_QUOTES @ONLY)
 
 install(
-  EXPORT HPXTargets
+  EXPORT ${${PROJECT_NAME}_EXPORT_NAME}
   FILE HPXTargets.cmake
 #  NAMESPACE hpx::
   DESTINATION ${LIB}/cmake/${HPX_PACKAGE_NAME}
