@@ -7,7 +7,7 @@
 #include <hpx/hpx.hpp>
 #include <hpx/include/actions.hpp>
 #include <hpx/components/iostreams/standard_streams.hpp>
-#include <hpx/lcos/local/detail/sliding_semaphore.hpp>
+#include <hpx/lcos/local/barrier.hpp>
 
 #include <boost/assert.hpp>
 #include <boost/atomic.hpp>

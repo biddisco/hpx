@@ -115,9 +115,24 @@ endif()
 ################################################################################
 
 ################################################################################
-# Do all our CXX feature test checks.
+# Do all our CXX feature test checks - before loading any other modules
+# that might change flags etc.
 #
 include(FeatureTests)
+
+################################################################################
+# check for miscellaneous things
+################################################################################
+
+hpx_check_for_mm_prefetch(
+  DEFINITIONS HPX_HAVE_MM_PREFETCH)
+
+################################################################################
+# Check for misc system headers
+################################################################################
+
+hpx_check_for_unistd_h(
+  DEFINITIONS HPX_HAVE_UNISTD_H)
 
 ################################################################################
 # Set our build options cache variables which are customizable by users
@@ -992,27 +1007,6 @@ if(HPX_WITH_CUDA AND HPX_WITH_CUDA_CLANG)
   hpx_library_dir(${CUDA_TOOLKIT_ROOT_DIR}/lib64)
   link_directories(${CUDA_TOOLKIT_ROOT_DIR}/lib64)
 endif()
-
-################################################################################
-# C++ feature tests
-################################################################################
-
-include(HPX_PerformCxxFeatureTests)
-hpx_perform_cxx_feature_tests()
-
-################################################################################
-# check for miscellaneous things
-################################################################################
-
-hpx_check_for_mm_prefetch(
-  DEFINITIONS HPX_HAVE_MM_PREFETCH)
-
-################################################################################
-# Check for misc system headers
-################################################################################
-
-hpx_check_for_unistd_h(
-  DEFINITIONS HPX_HAVE_UNISTD_H)
 
 if(NOT WIN32)
   ##############################################################################

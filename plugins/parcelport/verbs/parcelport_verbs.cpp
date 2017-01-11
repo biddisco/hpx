@@ -58,10 +58,10 @@
 
 // --------------------------------------------------------------------
 #include <plugins/parcelport/verbs/unordered_map.hpp>
+#include <plugins/parcelport/verbs/header.hpp>
 #include <plugins/parcelport/verbs/sender_connection.hpp>
 #include <plugins/parcelport/verbs/connection_handler.hpp>
 #include <plugins/parcelport/verbs/locality.hpp>
-#include <plugins/parcelport/verbs/header.hpp>
 #include <plugins/parcelport/verbs/pinned_memory_vector.hpp>
 #include <plugins/parcelport/verbs/performance_counter.hpp>
 //
@@ -210,11 +210,10 @@ namespace verbs
         // @TODO, clean up the allocators, buffers, chunk_pool etc so that there is a
         // more consistent reuse of classes/types.
         // The use of pointer allocators etc is a dreadful hack and needs reworking
-        typedef header<HPX_PARCELPORT_VERBS_MESSAGE_HEADER_SIZE>   header_type;
 
         typedef rdma_memory_pool                                   memory_pool_type;
         typedef std::shared_ptr<memory_pool_type>                  memory_pool_ptr_type;
-        typedef pinned_memory_vector<char>                         rcv_data_type;
+        typedef snd_data_type                                      rcv_data_type;
         typedef parcel_buffer<rcv_data_type>                       snd_buffer_type;
         typedef parcel_buffer<rcv_data_type, std::vector<char>>    rcv_buffer_type;
 
@@ -583,7 +582,6 @@ namespace verbs
 #endif
                 else {
 #if HPX_PARCELPORT_VERBS_IMM_UNSUPPORTED
-                    lock.unlock();
                     handle_tag_send_completion(wr_id);
                     return;
 #else
@@ -1548,15 +1546,19 @@ namespace verbs
         //
         postprocess_handler_ = std::forward<ParcelPostprocess>(parcel_postprocess);
         //
-        if (!parcelport_->async_write(std::move(handler), this, buffer_)) {
+        if (!parcelport_->async_write(std::move(handler), this, buffer_)) {}
+        error_code ec;
+        postprocess_handler_(ec, there_, shared_from_this());
+
+/*
+
+         if (!parcelport_->async_write(std::move(handler), this, buffer_)) {
             // after send has done, setup a fresh buffer for next time
             LOG_DEBUG_MSG("Wiping buffer 1");
 
             snd_data_type pinned_vector(chunk_pool_);
             snd_buffer_type buffer(std::move(pinned_vector), chunk_pool_);
             buffer_ = std::move(buffer);
-            error_code ec;
-            postprocess_handler_(ec, there_, shared_from_this());
         }
         else {
             // after send has done, setup a fresh buffer for next time
@@ -1567,6 +1569,7 @@ namespace verbs
             error_code ec;
             postprocess_handler_(ec, there_, shared_from_this());
         }
+*/
         LOG_DEBUG_MSG("Leaving sender_connection::async_write");
     }
 
