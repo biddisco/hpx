@@ -836,8 +836,8 @@ namespace verbs
             memset(&qpAttributes, 0, sizeof qpAttributes);
             qpAttributes.cap.max_send_wr  = maxWorkRequests;
             qpAttributes.cap.max_recv_wr  = maxWorkRequests;
-            qpAttributes.cap.max_send_sge = 3; // 6;
-            qpAttributes.cap.max_recv_sge = 3; // 6;
+            qpAttributes.cap.max_send_sge = 6; // 6;
+            qpAttributes.cap.max_recv_sge = 6; // 6;
             qpAttributes.qp_context       = this;    // Save this pointer
             qpAttributes.sq_sig_all       = signalSendQueue;
             qpAttributes.qp_type          = IBV_QPT_RC;

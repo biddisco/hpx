@@ -25,7 +25,7 @@ namespace verbs
     // it is used by the verbs parcelport to pass an rdma memory chunk with received
     // data into the decode parcel buffer routines.
     // it cannot be resized or changed once created and does not delete wrapped memory
-    template<class T, class Allocator = rdma_memory_pool>
+    template<class T, int Offset, class Allocator = rdma_memory_pool>
     class pinned_memory_vector
     {
     public:
@@ -39,10 +39,12 @@ namespace verbs
         typedef Allocator allocator_type;
 
         typedef std::function<void(void)> deleter_callback;
-        T *m_array_;
-        int m_size_;
-        deleter_callback m_cb_;
-        allocator_type *m_alloc_;
+
+        // internal vars
+        T                   *m_array_;
+        std::size_t          m_size_;
+        deleter_callback     m_cb_;
+        allocator_type      *m_alloc_;
         verbs_memory_region *m_region_;
 
         // construct with a memory pool pointer
@@ -69,7 +71,7 @@ namespace verbs
         }
 
         // move constructor,
-        pinned_memory_vector(pinned_memory_vector<T> && other) :
+        pinned_memory_vector(pinned_memory_vector<T,Offset> && other) :
             m_array_(other.m_array_), m_size_(other.m_size_),
             m_cb_(other.m_cb_), m_alloc_(std::move(other.m_alloc_)),
             m_region_(other.m_region_)
@@ -206,7 +208,7 @@ namespace verbs
         }
 
     private:
-        pinned_memory_vector(pinned_memory_vector<T> const & other);
+        pinned_memory_vector(pinned_memory_vector<T,Offset> const & other);
 
     };
 }}}}

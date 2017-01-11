@@ -80,6 +80,7 @@ int rdma_controller::startup()
 
     // Find the address of the Infiniband link device.
     verbs_device linkDevice(device_, interface_);
+    std::cout << linkDevice.get_device_info(true) << std::endl;
 
     LOG_DEVEL_MSG(
         "created InfiniBand device for " << linkDevice.get_device_name()
