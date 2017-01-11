@@ -32,7 +32,6 @@
 #include <hpx/util/safe_lexical_cast.hpp>
 
 #include <boost/atomic.hpp>
-#include <boost/archive/basic_archive.hpp>
 #include <boost/exception_ptr.hpp>
 
 #include <cstddef>
