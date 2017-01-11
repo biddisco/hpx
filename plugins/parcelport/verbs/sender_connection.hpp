@@ -16,6 +16,7 @@
 //
 #include <plugins/parcelport/verbs/rdma/verbs_endpoint.hpp>
 #include <plugins/parcelport/verbs/pinned_memory_vector.hpp>
+#include <plugins/parcelport/verbs/header.hpp>
 
 namespace hpx {
 namespace parcelset {
@@ -25,10 +26,13 @@ namespace verbs
     struct sender_connection;
     struct parcelport;
 
-    typedef rdma_memory_pool                                memory_pool_type;
-    typedef std::shared_ptr<memory_pool_type>               memory_pool_ptr_type;
-    typedef pinned_memory_vector<char>                      snd_data_type;
-    typedef parcel_buffer<snd_data_type>                    snd_buffer_type;
+    typedef header<HPX_PARCELPORT_VERBS_MESSAGE_HEADER_SIZE> header_type;
+    static constexpr unsigned int header_size = header_type::header_block_size;
+    //
+    typedef rdma_memory_pool                                 memory_pool_type;
+    typedef std::shared_ptr<memory_pool_type>                memory_pool_ptr_type;
+    typedef pinned_memory_vector<char, header_size>          snd_data_type;
+    typedef parcel_buffer<snd_data_type>                     snd_buffer_type;
 
     struct sender_connection
       : parcelset::parcelport_connection<
