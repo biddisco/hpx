@@ -9,7 +9,8 @@
 set(parcelport_plugins
   verbs
   mpi
-  tcp)
+  tcp
+  ucx)
 
 set(HPX_STATIC_PARCELPORT_PLUGINS "" CACHE INTERNAL "" FORCE)
 set(HPX_STATIC_PARCELPORT_PLUGINS_SOURCES "" CACHE INTERNAL "" FORCE)
@@ -85,8 +86,9 @@ foreach(type ${parcelport_plugins})
 endforeach()
 
 macro(add_static_parcelports)
-  add_parcelport_tcp_module()
   add_parcelport_mpi_module()
+  add_parcelport_tcp_module()
+  add_parcelport_ucx_module()
   add_parcelport_verbs_module()
 endmacro()
 
