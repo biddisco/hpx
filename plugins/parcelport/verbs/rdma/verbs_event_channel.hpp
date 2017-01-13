@@ -159,7 +159,9 @@ namespace verbs
                     << rdma_error::error_string(err));
                 return -1;
             }
-            uint32_t qpnum = (cm_event->id->qp) ? cm_event->id->qp->qp_num : 0;
+            LOG_EXCLUSIVE(
+                uint32_t qpnum = (cm_event->id->qp) ? cm_event->id->qp->qp_num : 0;
+            );
             LOG_DEVEL_MSG("got " << rdma_event_str(cm_event->event)
                 << " on event channel " << hexnumber(channel->fd)
                 << ": on qp " << decnumber(qpnum));

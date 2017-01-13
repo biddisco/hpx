@@ -37,7 +37,8 @@
 #define RDMA_POOL_MAX_MEDIUM_CHUNKS 64
 #define RDMA_POOL_MAX_LARGE_CHUNKS  32
 
-#define RDMA_POOL_USE_LOCKFREE_STACK 1
+#define RDMA_POOL_USE_LOCKFREE_STACK 0
+#define RDMA_POOL_MEMORY_CHECK 1
 
 // if the HPX configuration has set a different value, use it
 #if defined(HPX_PARCELPORT_VERBS_MEMORY_CHUNK_SIZE)
