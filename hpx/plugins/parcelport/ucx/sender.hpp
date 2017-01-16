@@ -77,11 +77,32 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
         ~sender()
         {
-            if (am_ep_ != nullptr)
-                uct_ep_destroy(am_ep_);
+            ucs_status_t status;
 
+            if (am_ep_ != nullptr)
+            {
+                if (receive_handle_ != 0)
+                {
+                    status = uct_ep_am_short(
+                        am_ep_, close_message, receive_handle_, nullptr, 0);
+                    HPX_ASSERT(status == UCS_OK);
+                }
+//                 status = UCS_INPROGRESS;
+//                 while (status == UCS_INPROGRESS)
+//                 {
+//                     status = uct_ep_flush(am_ep_, 0, NULL);
+//                 }
+                uct_ep_destroy(am_ep_);
+            }
             if (rma_ep_ != nullptr)
+            {
+//                 status = UCS_INPROGRESS;
+//                 while (status == UCS_INPROGRESS)
+//                 {
+//                     status = uct_ep_flush(rma_ep_, 0, NULL);
+//                 }
                 uct_ep_destroy(rma_ep_);
+            }
         }
 
         parcelset::locality const& destination() const
@@ -167,6 +188,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
             }
             if (status != UCS_OK)
             {
+                std::cerr << ucs_status_string(status) << '\n';
                 throw std::runtime_error(
                     "sender AM endpoint could not send AM");
             }
@@ -224,6 +246,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
                 am_ep_, read_message, receive_handle_, &payload, sizeof(std::uint64_t));
             if (status != UCS_OK)
             {
+                std::cerr << ucs_status_string(status) << '\n';
                 throw std::runtime_error(
                     "sender AM endpoint could not send AM for header");
             }

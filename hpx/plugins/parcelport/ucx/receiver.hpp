@@ -55,7 +55,9 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
             status = uct_rkey_unpack(packed_key, &remote_header_);
             if (status != UCS_OK)
             {
-                throw std::runtime_error("receiver failed to unpack remote key");
+                std::string error = "receiver::receiver ";
+                error += ucs_status_string(status);
+                throw std::runtime_error(error);
             }
             header_iov_.buffer = header_.data_;
             header_iov_.memh = header_.uct_mem_;
@@ -65,10 +67,26 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
         ~receiver()
         {
+            ucs_status_t status;
+
             if (am_ep_ != nullptr)
+            {
+//                 status = UCS_INPROGRESS;
+//                 while (status == UCS_INPROGRESS)
+//                 {
+//                     status = uct_ep_flush(am_ep_, 0, NULL);
+//                 }
                 uct_ep_destroy(am_ep_);
+            }
             if (rma_ep_ != nullptr)
+            {
+//                 status = UCS_INPROGRESS;
+//                 while (status == UCS_INPROGRESS)
+//                 {
+//                     status = uct_ep_flush(rma_ep_, 0, NULL);
+//                 }
                 uct_ep_destroy(rma_ep_);
+            }
 
             uct_rkey_release(&remote_header_);
         }
@@ -90,8 +108,9 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
             if (status != UCS_OK)
             {
-                throw std::runtime_error(
-                    "receiver AM endpoint connection could not be established");
+                std::string error = "receiver::connect, create AM endpoint ";
+                error += ucs_status_string(status);
+                throw std::runtime_error(error);
             }
 
             status = uct_ep_create_connected(
@@ -99,8 +118,9 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
             if (status != UCS_OK)
             {
-                throw std::runtime_error(
-                    "receiver RMA endpoint connection could not be established");
+                std::string error = "receiver::connect, connect RMA endpoint ";
+                error += ucs_status_string(status);
+                throw std::runtime_error(error);
             }
         }
 
@@ -121,23 +141,26 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
             if (status != UCS_OK)
             {
-                throw std::runtime_error(
-                    "receiver AM endpoint connection could not be established");
+                std::string error = "receiver::connect, create AM endpoint ";
+                error += ucs_status_string(status);
+                throw std::runtime_error(error);
             }
 
             // Establish the connection to our RMA endpoint...
             status = uct_ep_create(rma_iface, &rma_ep_);
             if (status != UCS_OK)
             {
-                throw std::runtime_error(
-                    "receiver RMA endpoint connection could not be created");
+                std::string error = "receiver::connect, create RMA endpoint ";
+                error += ucs_status_string(status);
+                throw std::runtime_error(error);
             }
 
             status = uct_ep_connect_to_ep(rma_ep_, rma_dev_addr, rma_ep_addr);
             if (status != UCS_OK)
             {
-                throw std::runtime_error(
-                    "receiver RMA endpoint connection could not be established");
+                std::string error = "receiver::connect, connect RMA endpoint ";
+                error += ucs_status_string(status);
+                throw std::runtime_error(error);
             }
 
 //             std::cout << this << " receiver connection EP established ...\n";
@@ -177,8 +200,9 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
             }
             if (status != UCS_OK)
             {
-                throw std::runtime_error(
-                    "sender AM endpoint could not send AM");
+                std::string error = "receiver::send_connect_ack: ";
+                error += ucs_status_string(status);
+                throw std::runtime_error(error);
             }
 //             std::cout << "connecting done...\n";
             return true;
@@ -202,8 +226,9 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
             if (status != UCS_OK)
             {
-                throw std::runtime_error(
-                    "sender could not dispatch RMA get operation");
+                std::string error = "receiver::read: ";
+                error += ucs_status_string(status);
+                throw std::runtime_error(error);
             }
         }
 
@@ -245,7 +270,9 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
                     UCT_MD_MEM_FLAG_NONBLOCK, &uct_mem_);
             if (status != UCS_OK)
             {
-                throw std::runtime_error("sender failing to register memory");
+                std::string error = "receiver::read_data register data: ";
+                error += ucs_status_string(status);
+                throw std::runtime_error(error);
             }
 
             data_iov_.length = buffer_.data_.size();
@@ -272,8 +299,9 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
             if (status != UCS_OK)
             {
-                throw std::runtime_error(
-                    "sender could not dispatch RMA get operation");
+                std::string error = "receiver::read_data get_zcopy: ";
+                error += ucs_status_string(status);
+                throw std::runtime_error(error);
             }
         }
 
@@ -292,8 +320,9 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
                 am_ep_, read_ack_message, sender_handle_, nullptr, 0);
             if (status != UCS_OK)
             {
-                throw std::runtime_error(
-                    "sender AM endpoint could not send AM");
+                std::string error = "receiver::read_done: ";
+                error += ucs_status_string(status);
+                throw std::runtime_error(error);
             }
         }
 

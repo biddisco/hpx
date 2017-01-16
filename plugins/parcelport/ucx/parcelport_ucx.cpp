@@ -36,6 +36,7 @@ extern "C" {
 #include <string>
 #include <type_traits>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace hpx { namespace parcelset
 {
@@ -276,7 +277,7 @@ namespace hpx { namespace parcelset
                 }
 
                 // Initialize our UCX worker
-                status = uct_worker_create(&context_, UCS_THREAD_MODE_SINGLE, &worker_);
+                status = uct_worker_create(&context_, UCS_THREAD_MODE_MULTI, &worker_);
                 if (status != UCS_OK)
                 {
                     throw std::runtime_error(
@@ -390,6 +391,11 @@ namespace hpx { namespace parcelset
 
             ~parcelport()
             {
+                for (receiver_type *rcv: receivers_)
+                {
+                    delete rcv;
+                }
+
                 if (rma_iface_ != nullptr)
                 {
                     if (rma_iface_ == am_iface_)
@@ -444,17 +450,16 @@ namespace hpx { namespace parcelset
                     res = std::make_shared<sender>(there, am_iface_, nullptr, pd_, pd_attr_.rkey_packed_size);
                 }
 
-
                 for (std::size_t k = 0; !res->connect(here_, rma_iface_attr_.ep_addr_len); ++k)
                 {
-                    background_work(std::size_t(1));
+                    background_work(std::size_t(-1));
                     hpx::util::detail::yield_k(k, "ucx::parcelport::create_connection");
                 }
 //                 std::cout << "sender connection initiated\n";
 
                 for (std::size_t k = 0; res->receive_handle_ == 0; ++k)
                 {
-                    background_work(std::size_t(1));
+                    background_work(std::size_t(-1));
                     hpx::util::detail::yield_k(k, "ucx::parcelport::create_connection");
                 }
 
@@ -487,7 +492,7 @@ namespace hpx { namespace parcelset
 //                 std::unique_lock<mutex_type> lk(worker_mtx_, std::try_to_lock);
 //                 if (lk)
                     uct_worker_progress(worker_);
-                return true;
+                return false;
             }
 
         private:
@@ -507,6 +512,9 @@ namespace hpx { namespace parcelset
             uct_iface_h am_iface_;
             uct_ep_h am_ep_;
             uct_iface_attr_t am_iface_attr_;
+
+            mutex_type receivers_mtx_;
+            std::unordered_set<receiver_type *> receivers_;
 
             mutex_type header_completions_mtx_;
             std::unordered_map<uct_completion_t *, receiver_type *> header_completions_;
@@ -575,8 +583,7 @@ namespace hpx { namespace parcelset
 
                 payload += sizeof(std::uint64_t);
 
-//                 std::unique_ptr<receiver_type> rcv(new receiver_type(
-                receiver_type* rcv(new receiver_type(
+                std::unique_ptr<receiver_type> rcv(new receiver_type(
                     pp->pd_,
                     sender_handle,
                     pp->pd_attr_.rkey_packed_size,
@@ -622,10 +629,14 @@ namespace hpx { namespace parcelset
                     !rcv->send_connect_ack(connects_to_ep, pp->rma_iface_attr_.ep_addr_len);
                     ++k)
                 {
-                    pp->background_work(std::size_t(1));
-                    hpx::util::detail::yield_k(k, "ucx::parcelport::send_connect_ack");
+//                     pp->background_work(std::size_t(1));
+//                     hpx::util::detail::yield_k(k, "ucx::parcelport::send_connect_ack");
                 }
 
+                {
+                    std::lock_guard<mutex_type> lk(pp->receivers_mtx_);
+                    pp->receivers_.insert(rcv.release());
+                }
 //                 std::cout << "receiver connection established\n";
 
                 return UCS_OK;
@@ -778,7 +789,6 @@ namespace hpx { namespace parcelset
                     auto res = pp->header_completions_.insert(new_comp);
                     HPX_ASSERT(res.second);
                     header_read_completion = res.first->first;
-
                 }
 
                 rcv->read(header_length, header_read_completion);
@@ -818,11 +828,19 @@ namespace hpx { namespace parcelset
 
                 HPX_ASSERT(length == sizeof(receiver_type *));
 
-                receiver_type *recv = nullptr;
+                receiver_type *recv_raw = nullptr;
 
-                std::memcpy(&recv, data, sizeof(receiver_type *));
+                std::memcpy(&recv_raw, data, sizeof(receiver_type *));
+                std::unique_ptr<receiver_type> recv(recv_raw);
 
                 HPX_ASSERT(recv);
+
+                {
+                    std::lock_guard<mutex_type> lk(pp->receivers_mtx_);
+                    auto it = pp->receivers_.find(recv.get());
+                    HPX_ASSERT(it != pp->receivers_.end());
+                    pp->receivers_.erase(it);
+                }
 
                 return UCS_OK;
             }
