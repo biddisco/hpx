@@ -163,7 +163,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
             return am_addr_;
         }
 
-    private:
+    //private:
         friend bool operator==(locality const & lhs, locality const & rhs)
         {
             return

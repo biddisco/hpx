@@ -36,6 +36,7 @@ extern "C" {
 #include <memory>
 #include <string>
 #include <type_traits>
+#include <map>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -52,7 +53,7 @@ namespace hpx { namespace parcelset
         typedef policies::ucx::sender connection_type;
         typedef std::false_type send_early_parcel;
         typedef std::true_type do_background_work;
-        typedef std::false_type send_immediate_parcels;
+        typedef std::true_type send_immediate_parcels;
 
         static const char *type()
         {
@@ -178,7 +179,30 @@ namespace hpx { namespace parcelset
             std::shared_ptr<sender> create_connection(
                 parcelset::locality const& there, error_code& ec)
             {
-//                 std::cout << here_ << " create sender connection\n";
+                std::cout << here_ << " create sender connection\n";
+/*
+                //
+                std::lock_guard<mutex_type> lock(sender_connection_mtx_);
+                auto it = sender_connections_.find(there);
+                if (it!=sender_connections_.end()) {
+                    return it->second;
+                }
+
+                hpx::future<std::shared_ptr<sender>> sender_future =
+                    connect_to_remote(there);
+
+                std::shared_ptr<sender> res = sender_future.get();
+                sender_connections_.insert(
+                    std::make_pair(there, res));
+                //
+                return res;
+            }
+
+            hpx::future<std::shared_ptr<sender>> connect_to_remote(
+                parcelset::locality const& there)
+            {
+                //
+*/
                 std::shared_ptr<sender> res;
                 if (context_.rma_iface_attr_.cap.flags & UCT_IFACE_FLAG_CONNECT_TO_EP)
                 {
@@ -191,9 +215,15 @@ namespace hpx { namespace parcelset
 
                 for (std::size_t k = 0; !res->connect(here_, context_.rma_iface_attr_.ep_addr_len); ++k)
                 {
+                    std::cout << "Doing background work for connection " << std::endl;
                     context_.progress();
                     hpx::util::detail::yield_k(k, "ucx::parcelport::create_connection");
                 }
+
+                std::cout << "After background work for connection OK!" << std::endl;
+                this_->sender_connections_.insert(std::make_pair(there,res));
+
+                std::cout << "sender connection initiated\n";
 
                 for (std::size_t k = 0; res->receive_handle_ == 0; ++k)
                 {
@@ -201,8 +231,9 @@ namespace hpx { namespace parcelset
                     hpx::util::detail::yield_k(k, "ucx::parcelport::create_connection");
                 }
 
+                 std::cout << "sender connection established\n";
 
-                return res;
+                return hpx::make_ready_future(res);
             }
 
             parcelset::locality agas_locality(
@@ -219,7 +250,7 @@ namespace hpx { namespace parcelset
 
             bool can_send_immediate()
             {
-                return false;
+                return true;
             }
 
             bool background_work(std::size_t num_thread)
@@ -238,6 +269,8 @@ namespace hpx { namespace parcelset
 
             std::unordered_set<receiver_type *> receivers_;
 
+            mutex_type sender_connection_mtx_;
+            std::map<const parcelset::locality, std::shared_ptr<sender>> sender_connections_;
             // The message called for connect_message. Called by the sender. It creates
             // the receiver object, which will eventually issue the rdma messages.
             // Aruments:
@@ -295,7 +328,7 @@ namespace hpx { namespace parcelset
                 uct_iface_addr_t *am_iface_addr
                     = reinterpret_cast<uct_iface_addr_t *>(payload + idx);
 
-//                 std::cout << pp->here_ << " " << std::hex << sender_handle << " " << remote_address << " <-- connect\n";
+                 std::cout << pp->here_ << " " << std::hex << sender_handle << " " << remote_address << " <-- connect\n";
 
                 payload += sizeof(std::uint64_t);
 
@@ -372,7 +405,7 @@ namespace hpx { namespace parcelset
                 std::memcpy(&receive_handle, payload, sizeof(std::uint64_t));
                 std::memcpy(&snd, payload + sizeof(std::uint64_t), sizeof(std::uint64_t));
 
-//                 std::cout << pp->here_ << " connection acknowledged! " << snd << " " << length << "\n";
+                 std::cout << pp->here_ << " connection acknowledged! " << snd << " " << length << "\n";
 
 
                 bool connects_to_ep = pp->context_.rma_iface_attr_.cap.flags & UCT_IFACE_FLAG_CONNECT_TO_EP;

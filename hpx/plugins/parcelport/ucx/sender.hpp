@@ -172,7 +172,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
             HPX_ASSERT(rkey_offset + rkey.second + sizeof(std::uint64_t) == payload.size());
 
-//             std::cout << "sender remote address " << header_.data_ << '\n';
+            std::cout << "sender remote address " << header_.data_ << '\n';
 
             sender *this_ = this;
             std::uint64_t header = 0;
@@ -192,6 +192,12 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
             return true;
         }
+
+        bool can_send_immediate()
+        {
+            return true;
+        }
+
 
         template <typename Handler, typename ParcelPostprocess>
         void async_write(Handler && handler, ParcelPostprocess && parcel_postprocess)
