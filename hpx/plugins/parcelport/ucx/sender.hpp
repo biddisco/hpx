@@ -195,7 +195,8 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
         bool can_send_immediate()
         {
-            return true;
+            std::cout << "sender can send imm" << std::endl;
+            return false;
         }
 
 

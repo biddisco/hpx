@@ -221,7 +221,7 @@ namespace hpx { namespace parcelset
                 }
 
                 std::cout << "After background work for connection OK!" << std::endl;
-                this_->sender_connections_.insert(std::make_pair(there,res));
+//                this_->sender_connections_.insert(std::make_pair(there,res));
 
                 std::cout << "sender connection initiated\n";
 
@@ -233,7 +233,8 @@ namespace hpx { namespace parcelset
 
                  std::cout << "sender connection established\n";
 
-                return hpx::make_ready_future(res);
+//                return hpx::make_ready_future(res);
+                return res;
             }
 
             parcelset::locality agas_locality(
@@ -250,7 +251,8 @@ namespace hpx { namespace parcelset
 
             bool can_send_immediate()
             {
-                return true;
+                std::cout << "pp_ucx can send imm" << std::endl;
+                return false;
             }
 
             bool background_work(std::size_t num_thread)
