@@ -16,6 +16,7 @@
 #include <hpx/plugins/parcelport/ucx/active_messages.hpp>
 #include <hpx/plugins/parcelport/ucx/locality.hpp>
 #include <hpx/plugins/parcelport/ucx/header.hpp>
+#include <hpx/plugins/parcelport/ucx/ucx_context.hpp>
 
 #define NVALGRIND
 
@@ -35,25 +36,22 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
         // @FIXME: make header size configurable
         sender(
             parcelset::locality const& there,
-            uct_iface_h am_iface,
-            uct_iface_h rma_iface,
-            uct_md_h pd,
-            std::size_t rpack_length)
+            ucx_context& context,
+            bool rma_connect_to_ep)
           : there_(there)
-          , am_iface_(am_iface)
+          , context_(context)
           , am_ep_(nullptr)
           , rma_ep_(nullptr)
-          , pd_(pd)
-          , header_(pd, 512, rpack_length)
-          , rkey_(rpack_length)
+          , header_(context.pd_, 512, context_.pd_attr_.rkey_packed_size)
+          , rkey_(context_.pd_attr_.rkey_packed_size)
           , receive_handle_(0)
-          , rma_connect_to_ep_(rma_iface != nullptr)
+          , rma_connect_to_ep_(rma_connect_to_ep)
         {
 //             std::cout << "sending to: " << there_ << '\n';
             locality &lt = there_.get<locality>();
             ucs_status_t status;
             status = uct_ep_create_connected(
-                am_iface_, lt.am_addr().device_addr(), lt.am_addr().iface_addr(), &am_ep_);
+                context_.am_iface_, lt.am_addr().device_addr(), lt.am_addr().iface_addr(), &am_ep_);
 
             if (status != UCS_OK)
             {
@@ -63,7 +61,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
             if (rma_connect_to_ep_)
             {
-                status = uct_ep_create(rma_iface, &rma_ep_);
+                status = uct_ep_create(context_.rma_iface_, &rma_ep_);
 
                 if (status != UCS_OK)
                 {
@@ -81,12 +79,12 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
             if (am_ep_ != nullptr)
             {
-                if (receive_handle_ != 0)
-                {
-                    status = uct_ep_am_short(
-                        am_ep_, close_message, receive_handle_, nullptr, 0);
-                    HPX_ASSERT(status == UCS_OK);
-                }
+//                 if (receive_handle_ != 0)
+//                 {
+//                     status = uct_ep_am_short(
+//                         am_ep_, close_message, receive_handle_, nullptr, 0);
+//                     HPX_ASSERT(status == UCS_OK);
+//                 }
 //                 status = UCS_INPROGRESS;
 //                 while (status == UCS_INPROGRESS)
 //                 {
@@ -148,7 +146,6 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
             // connection...
             else
             {
-//                 std::cout << "need EP connection...\n";
                 am_iface_offset = rma_device_addr_len + rma_ep_addr_len;
                 size += am_iface_offset;
                 payload.resize(size);
@@ -222,7 +219,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
             {
                 // @TODO: memory registration cache...
                 status =
-                    uct_md_mem_reg(pd_, buffer_.data_.data(), buffer_.data_.size(),
+                    uct_md_mem_reg(context_.pd_, buffer_.data_.data(), buffer_.data_.size(),
                         UCT_MD_MEM_FLAG_NONBLOCK, &uct_mem_);
                 if (status != UCS_OK)
                 {
@@ -234,7 +231,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
                 std::memcpy(message, &data_ptr, sizeof(std::uint64_t));
 
                 message += sizeof(std::uint64_t);
-                uct_md_mkey_pack(pd_, uct_mem_, rkey_.data());
+                uct_md_mkey_pack(context_.pd_, uct_mem_, rkey_.data());
                 std::memcpy(message, rkey_.data(), rkey_.size());
             }
 
@@ -242,8 +239,13 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
             // Notify the receiver that the message is ready to be read
             std::uint64_t payload = header_.length();
-            status = uct_ep_am_short(
-                am_ep_, read_message, receive_handle_, &payload, sizeof(std::uint64_t));
+            status = UCS_ERR_NO_RESOURCE;
+            while (status == UCS_ERR_NO_RESOURCE)
+            {
+                status = uct_ep_am_short(
+                    am_ep_, read_message, receive_handle_, &payload, sizeof(std::uint64_t));
+                context_.progress();
+            }
             if (status != UCS_OK)
             {
                 std::cerr << ucs_status_string(status) << '\n';
@@ -264,16 +266,18 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
             if (uct_mem_ != nullptr)
             {
-                uct_md_mem_dereg(pd_, uct_mem_);
+                uct_md_mem_dereg(context_.pd_, uct_mem_);
                 uct_mem_ = nullptr;
             }
 
             buffer_.clear();
-            postprocess_handler_(ec, there_, this_);
 
             // This is needed to keep ourselv alive long enough...
             std::shared_ptr<sender> res;
             std::swap(this_, res);
+
+            postprocess_handler_(ec, there_, res);
+
             return res;
         }
 
@@ -281,10 +285,9 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
         std::shared_ptr<sender> this_;
 
         parcelset::locality there_;
-        uct_iface_h am_iface_;
+        ucx_context &context_;
         uct_ep_h am_ep_;
         uct_ep_h rma_ep_;
-        uct_md_h pd_;
 
         header header_;
         std::vector<char> rkey_;

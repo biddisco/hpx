@@ -29,7 +29,7 @@ if(HPX_WITH_PARCELPORT_UCX)
       STATIC
       SOURCES
         "${PROJECT_SOURCE_DIR}/plugins/parcelport/ucx/parcelport_ucx.cpp"
-        "${PROJECT_SOURCE_DIR}/plugins/parcelport/ucx/active_messages.cpp"
+        "${PROJECT_SOURCE_DIR}/plugins/parcelport/ucx/ucx_context.cpp"
       HEADERS
         "${PROJECT_SOURCE_DIR}/hpx/plugins/parcelport/ucx/sender.hpp"
         "${PROJECT_SOURCE_DIR}/hpx/plugins/parcelport/ucx/locality.hpp"
