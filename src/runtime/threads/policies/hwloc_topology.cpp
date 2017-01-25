@@ -368,17 +368,26 @@ namespace hpx { namespace threads
         // setting thread affinities is not supported by OSX
         hwloc_cpuset_t cpuset = hwloc_bitmap_alloc();
 
-        int const pu_depth =
-            hwloc_get_type_or_below_depth(topo, HWLOC_OBJ_PU);
         for (std::size_t i = 0; i < mask_size(mask); ++i)
         {
             if (test(mask, i))
             {
-                hwloc_obj_t const pu_obj =
-                    hwloc_get_obj_by_depth(topo, pu_depth, i);
-                HPX_ASSERT(i == detail::get_index(pu_obj));
-                hwloc_bitmap_set(cpuset,
-                    static_cast<unsigned int>(pu_obj->os_index));
+                int const pu_depth =
+                    hwloc_get_type_or_below_depth(topo, HWLOC_OBJ_PU);
+                for (unsigned int j = 0; std::size_t(j) != num_of_pus_; ++j)
+                {
+                    hwloc_obj_t const pu_obj =
+                        hwloc_get_obj_by_depth(topo, pu_depth, j);
+                    unsigned idx =
+                        static_cast<unsigned>(detail::get_index(pu_obj));
+
+                    if(idx == i)
+                    {
+                        hwloc_bitmap_set(cpuset,
+                            static_cast<unsigned int>(pu_obj->os_index));
+                        break;
+                    }
+                }
             }
         }
 
@@ -481,7 +490,6 @@ namespace hpx { namespace threads
                 std::unique_lock<hpx::util::spinlock> lk(topo_mtx);
                 obj = hwloc_get_obj_by_type(topo, HWLOC_OBJ_PU,
                     static_cast<unsigned>(num_pu));
-                HPX_ASSERT(num_pu == detail::get_index(obj));
             }
 
             while (obj)
@@ -628,7 +636,6 @@ namespace hpx { namespace threads
 
         if (socket_obj)
         {
-            HPX_ASSERT(num_socket == detail::get_index(socket_obj));
             std::size_t pu_count = 0;
             return extract_node_count(socket_obj, HWLOC_OBJ_PU, pu_count);
         }
@@ -644,13 +651,18 @@ namespace hpx { namespace threads
 
         {
             std::unique_lock<hpx::util::spinlock> lk(topo_mtx);
-            node_obj = hwloc_get_obj_by_type(topo,
-                HWLOC_OBJ_NODE, static_cast<unsigned>(numa_node));
+            int const numa_depth =
+                hwloc_get_type_or_below_depth(topo, HWLOC_OBJ_NODE);
+            for (unsigned int i = 0; i != get_number_of_numa_nodes(); ++i) //-V104
+            {
+                node_obj = hwloc_get_obj_by_depth(topo, numa_depth, i);
+                if (node_obj->os_index == numa_node)
+                    break;
+            }
         }
 
         if (node_obj)
         {
-            HPX_ASSERT(numa_node == detail::get_index(node_obj));
             std::size_t pu_count = 0;
             return extract_node_count(node_obj, HWLOC_OBJ_PU, pu_count);
         }
@@ -672,7 +684,6 @@ namespace hpx { namespace threads
 
         if (core_obj)
         {
-            HPX_ASSERT(core == detail::get_index(core_obj));
             std::size_t pu_count = 0;
             return extract_node_count(core_obj, HWLOC_OBJ_PU, pu_count);
         }
@@ -694,7 +705,6 @@ namespace hpx { namespace threads
 
         if (socket_obj)
         {
-            HPX_ASSERT(num_socket == detail::get_index(socket_obj));
             std::size_t pu_count = 0;
             return extract_node_count(socket_obj, HWLOC_OBJ_CORE, pu_count);
         }
@@ -709,13 +719,18 @@ namespace hpx { namespace threads
         hwloc_obj_t node_obj = nullptr;
         {
             std::unique_lock<hpx::util::spinlock> lk(topo_mtx);
-            node_obj = hwloc_get_obj_by_type(topo,
-                HWLOC_OBJ_NODE, static_cast<unsigned>(numa_node));
+            int const numa_depth =
+                hwloc_get_type_or_below_depth(topo, HWLOC_OBJ_NODE);
+            for (unsigned int i = 0; i != get_number_of_numa_nodes(); ++i) //-V104
+            {
+                node_obj = hwloc_get_obj_by_depth(topo, numa_depth, i);
+                if (node_obj->os_index == numa_node)
+                    break;
+            }
         }
 
         if (node_obj)
         {
-            HPX_ASSERT(numa_node == detail::get_index(node_obj));
             std::size_t pu_count = 0;
             return extract_node_count(node_obj, HWLOC_OBJ_CORE, pu_count);
         }
@@ -838,13 +853,18 @@ namespace hpx { namespace threads
         hwloc_obj_t socket_obj = nullptr;
         {
             std::unique_lock<hpx::util::spinlock> lk(topo_mtx);
-            socket_obj = hwloc_get_obj_by_type(topo, HWLOC_OBJ_SOCKET, num_socket);
+            int const socket_depth =
+                hwloc_get_type_or_below_depth(topo, HWLOC_OBJ_SOCKET);
+            for (unsigned int i = 0; i != get_number_of_sockets(); ++i) //-V104
+            {
+                socket_obj = hwloc_get_obj_by_depth(topo, socket_depth, i);
+                if (socket_obj->os_index == num_socket)
+                    break;
+            }
         }
 
         if (socket_obj)
         {
-            HPX_ASSERT(num_socket == detail::get_index(socket_obj));
-
             mask_type socket_affinity_mask = mask_type();
             resize(socket_affinity_mask, get_number_of_pus());
 
@@ -869,12 +889,18 @@ namespace hpx { namespace threads
         hwloc_obj_t numa_node_obj = nullptr;
         {
             std::unique_lock<hpx::util::spinlock> lk(topo_mtx);
-            numa_node_obj = hwloc_get_obj_by_type(topo, HWLOC_OBJ_NODE, numa_node);
+            int const numa_depth =
+                hwloc_get_type_or_below_depth(topo, HWLOC_OBJ_NODE);
+            for (unsigned int i = 0; i != get_number_of_numa_nodes(); ++i) //-V104
+            {
+                numa_node_obj = hwloc_get_obj_by_depth(topo, numa_depth, i);
+                if (numa_node_obj->os_index == numa_node)
+                    break;
+            }
         }
 
         if (numa_node_obj)
         {
-            HPX_ASSERT(numa_node == detail::get_index(numa_node_obj));
             mask_type node_affinity_mask = mask_type();
             resize(node_affinity_mask, get_number_of_pus());
 
@@ -904,7 +930,6 @@ namespace hpx { namespace threads
 
         if (core_obj)
         {
-            HPX_ASSERT(num_core == detail::get_index(core_obj));
             mask_type core_affinity_mask = mask_type();
             resize(core_affinity_mask, get_number_of_pus());
 
@@ -940,7 +965,6 @@ namespace hpx { namespace threads
             return get_core_affinity_mask(num_thread, false);
         }
 
-        HPX_ASSERT(num_pu == detail::get_index(obj));
         mask_type mask = mask_type();
         resize(mask, get_number_of_pus());
 
@@ -977,8 +1001,6 @@ namespace hpx { namespace threads
         if (!obj)
             return empty_mask;//get_core_affinity_mask(num_thread, false);
 
-        HPX_ASSERT(num_core == detail::get_index(obj));
-
         num_pu %= obj->arity; //-V101 //-V104
 
         mask_type mask = mask_type();
@@ -1000,6 +1022,15 @@ namespace hpx { namespace threads
             if (num_of_pus > 0)
             {
                 num_of_pus_ = static_cast<std::size_t>(num_of_pus);
+                pu_numbers_.resize(num_of_pus_);
+                for(std::size_t i = 0; i < num_of_pus_; ++i)
+                {
+                    hwloc_obj_t obj;
+                    obj = hwloc_get_obj_by_type(topo, HWLOC_OBJ_PU,
+                        static_cast<unsigned>(i));
+                    if(!obj) pu_numbers_[i] = i;
+                    else     pu_numbers_[i] = std::size_t(detail::get_index(obj));
+                }
             }
         }
     }
