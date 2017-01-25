@@ -17,6 +17,7 @@
 #include <hpx/plugins/parcelport/ucx/sender.hpp>
 #include <hpx/plugins/parcelport/ucx/receiver.hpp>
 #include <hpx/plugins/parcelport/ucx/locality.hpp>
+#include <hpx/plugins/parcelport/ucx/ucx_context.hpp>
 
 #include <hpx/util/runtime_configuration.hpp>
 #include <hpx/util/safe_lexical_cast.hpp>
@@ -87,306 +88,67 @@ namespace hpx { namespace parcelset
 
             static parcelport *this_;
 
-            bool find_ifaces(util::runtime_configuration const& ini)
-            {
-                std::string domain = ini.get_entry("hpx.parcel.ucx.domain", "");
-
-                ucs_status_t status;
-                uct_md_resource_desc_t *md_resources = nullptr;
-                uct_tl_resource_desc_t *tl_resources = nullptr;
-                uct_iface_h iface = nullptr;
-                unsigned num_md_resources = 0;
-
-                status = uct_query_md_resources(&md_resources, &num_md_resources);
-                if (status != UCS_OK)
-                {
-                    throw std::runtime_error(
-                        "Querying of UCX protected domain resources failed.");
-                }
-
-                rma_iface_ = nullptr;
-                am_iface_ = nullptr;
-
-                try
-                {
-                    // Iterate through the protection domains and find the one
-                    // matching the name in the config...
-                    for (unsigned i = 0; i != num_md_resources; ++i)
-                    {
-                        if (domain != md_resources[i].md_name)
-                            continue;
-
-                        uct_md_config_t *md_config = nullptr;
-                        pd_ = nullptr;
-
-                        status = uct_md_config_read(
-                            md_resources[i].md_name, NULL, NULL, &md_config);
-                        if (status != UCS_OK)
-                        {
-                            throw std::runtime_error(
-                                "Reading PD config failed.");
-                        }
-
-                        status = uct_md_open(md_resources[i].md_name, md_config, &pd_);
-                        uct_config_release(md_config);
-                        if (status != UCS_OK)
-                        {
-                            pd_ = nullptr;
-                            throw std::runtime_error(
-                                "Opening PD failed.");
-                        }
-
-                        unsigned num_tl_resources = 0;
-                        status = uct_md_query_tl_resources(
-                            pd_, &tl_resources, &num_tl_resources);
-                        if (status != UCS_OK)
-                        {
-                            throw std::runtime_error(
-                                "Error querying Transport resources");
-                        }
-
-                        // Iterate over the available transports.
-                        for (unsigned j = 0; j != num_tl_resources; ++j)
-                        {
-                            uct_iface_config_t *iface_config;
-                            uct_iface_params_t iface_params;
-                            iface_params.tl_name = tl_resources[j].tl_name;
-                            iface_params.dev_name = tl_resources[j].dev_name;
-                            iface_params.stats_root = nullptr;
-                            iface_params.rx_headroom = 0;
-                            // @TODO: set proper mask here.
-                            UCS_CPU_ZERO(&iface_params.cpu_mask);
-
-                            // Read transport specific interface configuration
-                            status = uct_iface_config_read(
-                                iface_params.tl_name, NULL, NULL, &iface_config);
-                            if (status != UCS_OK)
-                            {
-                                throw std::runtime_error(
-                                    "Error reading interface config");
-                            }
-
-                            // Open Communication Interface
-                            status = uct_iface_open(
-                                pd_, worker_, &iface_params, iface_config, &iface);
-                            uct_config_release(iface_config);
-                            if (status != UCS_OK)
-                            {
-                                iface = nullptr;
-                                throw std::runtime_error(
-                                    "Error opening interface");
-                            }
-
-                            // Reading interface attributes...
-                            uct_iface_attr_t iface_attr;
-                            status = uct_iface_query(iface, &iface_attr);
-                            if (status != UCS_OK)
-                            {
-                                throw std::runtime_error(
-                                    "Error reading interface attributes");
-                            }
-
-                            // allow for multiple interfaces to be open
-                            // only some might support all we need. On Aries,
-                            // we need to have two, one for doing AM, one for
-                            // RDMA...
-                            //
-                            // We need:
-                            //  - Active message short support to signal new RDMA gets
-                            //  - We need to be able to do zero copy gets to
-                            //    retrieve our arguments
-                            //  - We need to be able to connect to an iface directly
-                            //    as point-to-point endpoints would require OOB
-                            //    communication
-
-                            // Check if the interface is suitable for AM
-                            if (am_iface_ == nullptr &&
-                                (iface_attr.cap.flags & UCT_IFACE_FLAG_AM_SHORT) &&
-                                (iface_attr.cap.flags & UCT_IFACE_FLAG_CONNECT_TO_IFACE))
-                            {
-//                                 std::cout << "found AM transport: " << iface_params.dev_name << ":" << iface_params.tl_name << '\n';
-                                am_iface_ = iface;
-                                std::memcpy(&am_iface_attr_, &iface_attr, sizeof(iface_attr));
-                            }
-
-                            // Check if the interface is suitable for RDMA
-                            if (rma_iface_ == nullptr &&
-                                (iface_attr.cap.flags & UCT_IFACE_FLAG_GET_ZCOPY))
-                            {
-//                                 std::cout << "found RDMA transport: " << iface_params.dev_name << ":" << iface_params.tl_name << '\n';
-                                rma_iface_ = iface;
-                                std::memcpy(&rma_iface_attr_, &iface_attr, sizeof(iface_attr));
-                            }
-                            if (rma_iface_ && am_iface_) break;
-
-                            if (!rma_iface_ && !am_iface_)
-                                uct_iface_close(iface);
-                            iface = nullptr;
-                        }
-
-                        uct_release_tl_resource_list(tl_resources);
-                        tl_resources = nullptr;
-
-                        if (rma_iface_ && am_iface_) break;
-                    }
-                }
-                catch(...)
-                {
-
-                    if (tl_resources != nullptr)
-                    {
-                        uct_release_tl_resource_list(tl_resources);
-                    }
-
-                    if(iface != nullptr)
-                    {
-                        uct_iface_close(iface);
-                    }
-
-                    if (pd_ != nullptr)
-                    {
-                        uct_md_close(pd_);
-                        pd_ = nullptr;
-                    }
-
-                    uct_release_md_resource_list(md_resources);
-
-                    throw;
-                }
-
-                uct_release_md_resource_list(md_resources);
-
-                return rma_iface_ && am_iface_;
-            }
-
         public:
             parcelport(util::runtime_configuration const& ini,
                 util::function_nonser<void(std::size_t, char const*)> const& on_start,
                 util::function_nonser<void()> const& on_stop)
               : base_type(ini, here(), on_start, on_stop)
+              , context_(ini.get_entry("hpx.parcel.ucx.domain", ""), here_)
               , stopped_(false)
             {
                 ucs_status_t status;
-                // Initialize our UCX context
-                status = ucs_async_context_init(&context_, UCS_ASYNC_MODE_THREAD);
+
+                // Install active message handler...
+                std::uint32_t am_flags = 0;
+//                     if (am_iface_attr_.cap.flags & UCT_IFACE_FLAG_AM_CB_ASYNC)
+                {
+                    am_flags = UCT_AM_CB_FLAG_ASYNC;
+                }
+//                     if (am_iface_attr_.cap.flags & UCT_IFACE_FLAG_AM_CB_SYNC)
+//                     {
+//                         am_flags = UCT_AM_CB_FLAG_SYNC;
+//                     }
+
+                status = uct_iface_set_am_handler(
+                    context_.am_iface_, connect_message, handle_connect, this, am_flags);
                 if (status != UCS_OK)
                 {
                     throw std::runtime_error(
-                        "ucx::parcelport::parcelport() initialization of async context failed.");
-                    return;
+                        "Could not set AM handler...");
                 }
-
-                // Initialize our UCX worker
-                status = uct_worker_create(&context_, UCS_THREAD_MODE_MULTI, &worker_);
+                status = uct_iface_set_am_handler(
+                    context_.am_iface_, connect_ack_message, handle_connect_ack, this, am_flags);
                 if (status != UCS_OK)
                 {
                     throw std::runtime_error(
-                        "ucx::parcelport::parcelport() initialization of worker failed.");
-                    return;
+                        "Could not set AM handler...");
                 }
 
-                // We need to find suitable network interfaces
-                if (find_ifaces(ini))
-                {
-                    HPX_ASSERT(pd_ != nullptr);
-                    HPX_ASSERT(rma_iface_ != nullptr);
-                    HPX_ASSERT(am_iface_ != nullptr);
-
-                    // get the PD related attributes, needed for memory
-                    // registration
-                    uct_md_query(pd_, &pd_attr_);
-
-                    locality &l = here_.get<locality>();
-
-                    // now get the addresses of the interfaces and set them to
-                    // the locality struct in order to be exchanged with other
-                    // localities through the bootstrap parcelport...
-
-                    l.rma_addr().set_iface_attr(rma_iface_attr_);
-                    uct_device_addr_t *rma_device_addr = l.rma_addr().device_addr();
-
-                    status = uct_iface_get_device_address(rma_iface_, rma_device_addr);
-                    HPX_ASSERT(status == UCS_OK);
-                    if (rma_iface_attr_.cap.flags & UCT_IFACE_FLAG_CONNECT_TO_IFACE)
-                    {
-                        HPX_ASSERT(l.rma_addr().iface_length_ != 0);
-                        uct_iface_addr_t *rma_iface_addr = l.rma_addr().iface_addr();
-                        status = uct_iface_get_address(rma_iface_, rma_iface_addr);
-                        HPX_ASSERT(status == UCS_OK);
-                    }
-
-                    l.am_addr().set_iface_attr(am_iface_attr_);
-                    uct_iface_addr_t *am_iface_addr = l.am_addr().iface_addr();
-                    uct_device_addr_t *am_device_addr = l.am_addr().device_addr();
-
-                    status = uct_iface_get_device_address(am_iface_, am_device_addr);
-                    HPX_ASSERT(status == UCS_OK);
-//                     HPX_ASSERT((am_iface_attr_.cap.flags & UCT_IFACE_FLAG_CONNECT_TO_IFACE) != 0)
-                    HPX_ASSERT(l.am_addr().iface_length_ != 0);
-                    status = uct_iface_get_address(am_iface_, am_iface_addr);
-                    HPX_ASSERT(status == UCS_OK);
-
-//                     std::cout << "locality: " << here_ << '\n';
-
-                    ucs_status_t status;
-
-                    // Install active message handler...
-                    std::uint32_t am_flags = 0;
-                    if (am_iface_attr_.cap.flags & UCT_IFACE_FLAG_AM_CB_ASYNC)
-                    {
-                        am_flags = UCT_AM_CB_FLAG_ASYNC;
-                    }
-                    if (am_iface_attr_.cap.flags & UCT_IFACE_FLAG_AM_CB_SYNC)
-                    {
-                        am_flags = UCT_AM_CB_FLAG_SYNC;
-                    }
-
-                    status = uct_iface_set_am_handler(
-                        am_iface_, connect_message, handle_connect, this, am_flags);
-                    if (status != UCS_OK)
-                    {
-                        throw std::runtime_error(
-                            "Could not set AM handler...");
-                    }
-                    status = uct_iface_set_am_handler(
-                        am_iface_, connect_ack_message, handle_connect_ack, this, am_flags);
-                    if (status != UCS_OK)
-                    {
-                        throw std::runtime_error(
-                            "Could not set AM handler...");
-                    }
-
-                    status = uct_iface_set_am_handler(
-                        am_iface_, read_message, handle_read, this, am_flags);
-                    if (status != UCS_OK)
-                    {
-                        throw std::runtime_error(
-                            "Could not set AM handler...");
-                    }
-
-                    status = uct_iface_set_am_handler(
-                        am_iface_, read_ack_message, handle_read_ack, this, am_flags);
-                    if (status != UCS_OK)
-                    {
-                        throw std::runtime_error(
-                            "Could not set AM handler...");
-                    }
-
-                    status = uct_iface_set_am_handler(
-                        am_iface_, close_message, handle_close, this, am_flags);
-                    if (status != UCS_OK)
-                    {
-                        throw std::runtime_error(
-                            "Could not set AM handler...");
-                    }
-
-                    this_ = this;
-                }
-                else
+                status = uct_iface_set_am_handler(
+                    context_.am_iface_, read_message, handle_read, this, am_flags);
+                if (status != UCS_OK)
                 {
                     throw std::runtime_error(
-                        "No suitable UCX interface could have been found...");
+                        "Could not set AM handler...");
                 }
+
+                status = uct_iface_set_am_handler(
+                    context_.am_iface_, read_ack_message, handle_read_ack, this, am_flags);
+                if (status != UCS_OK)
+                {
+                    throw std::runtime_error(
+                        "Could not set AM handler...");
+                }
+
+                status = uct_iface_set_am_handler(
+                    context_.am_iface_, close_message, handle_close, this, am_flags);
+                if (status != UCS_OK)
+                {
+                    throw std::runtime_error(
+                        "Could not set AM handler...");
+                }
+
+                this_ = this;
             }
 
             ~parcelport()
@@ -395,29 +157,6 @@ namespace hpx { namespace parcelset
                 {
                     delete rcv;
                 }
-
-                if (rma_iface_ != nullptr)
-                {
-                    if (rma_iface_ == am_iface_)
-                    {
-                        am_iface_ = nullptr;
-                    }
-                    uct_iface_close(rma_iface_);
-                }
-                std::memset(&rma_iface_attr_, 0, sizeof(rma_iface_attr_));
-                if (am_iface_ != nullptr)
-                {
-                    uct_iface_close(am_iface_);
-                }
-                std::memset(&am_iface_attr_, 0, sizeof(am_iface_attr_));
-
-                if (pd_ != nullptr)
-                {
-                    uct_md_close(pd_);
-                }
-
-                uct_worker_destroy(worker_);
-                ucs_async_context_cleanup(&context_);
             }
 
             bool do_run()
@@ -441,29 +180,27 @@ namespace hpx { namespace parcelset
             {
 //                 std::cout << here_ << " create sender connection\n";
                 std::shared_ptr<sender> res;
-                if (rma_iface_attr_.cap.flags & UCT_IFACE_FLAG_CONNECT_TO_EP)
+                if (context_.rma_iface_attr_.cap.flags & UCT_IFACE_FLAG_CONNECT_TO_EP)
                 {
-                    res = std::make_shared<sender>(there, am_iface_, rma_iface_, pd_, pd_attr_.rkey_packed_size);
+                    res = std::make_shared<sender>(there, context_, true);
                 }
                 else
                 {
-                    res = std::make_shared<sender>(there, am_iface_, nullptr, pd_, pd_attr_.rkey_packed_size);
+                    res = std::make_shared<sender>(there, context_, false);
                 }
 
-                for (std::size_t k = 0; !res->connect(here_, rma_iface_attr_.ep_addr_len); ++k)
+                for (std::size_t k = 0; !res->connect(here_, context_.rma_iface_attr_.ep_addr_len); ++k)
                 {
-                    background_work(std::size_t(-1));
+                    context_.progress();
                     hpx::util::detail::yield_k(k, "ucx::parcelport::create_connection");
                 }
-//                 std::cout << "sender connection initiated\n";
 
                 for (std::size_t k = 0; res->receive_handle_ == 0; ++k)
                 {
-                    background_work(std::size_t(-1));
+                    context_.progress();
                     hpx::util::detail::yield_k(k, "ucx::parcelport::create_connection");
                 }
 
-//                 std::cout << "sender connection established\n";
 
                 return res;
             }
@@ -491,36 +228,15 @@ namespace hpx { namespace parcelset
 
 //                 std::unique_lock<mutex_type> lk(worker_mtx_, std::try_to_lock);
 //                 if (lk)
-                    uct_worker_progress(worker_);
+                    context_.progress();
                 return false;
             }
 
         private:
+            ucx_context context_;
             boost::atomic<bool> stopped_;
 
-            mutex_type worker_mtx_;
-
-            ucs_async_context_t context_;
-            uct_worker_h worker_;
-
-            uct_md_h pd_;
-            uct_md_attr_t pd_attr_;
-
-            uct_iface_h rma_iface_;
-            uct_iface_attr_t rma_iface_attr_;
-
-            uct_iface_h am_iface_;
-            uct_ep_h am_ep_;
-            uct_iface_attr_t am_iface_attr_;
-
-            mutex_type receivers_mtx_;
             std::unordered_set<receiver_type *> receivers_;
-
-            mutex_type header_completions_mtx_;
-            std::unordered_map<uct_completion_t *, receiver_type *> header_completions_;
-
-            mutex_type data_completions_mtx_;
-            std::unordered_map<uct_completion_t *, receiver_type *> data_completions_;
 
             // The message called for connect_message. Called by the sender. It creates
             // the receiver object, which will eventually issue the rdma messages.
@@ -566,16 +282,16 @@ namespace hpx { namespace parcelset
                 std::memcpy(&remote_address, payload + idx, sizeof(std::uint64_t));
 
                 // get the remote key buffer
-                idx -= pp->pd_attr_.rkey_packed_size;
+                idx -= pp->context_.pd_attr_.rkey_packed_size;
                 void *rkey_buffer = reinterpret_cast<void *>(payload + idx);
 
                 // get the am iface address
-                idx -= pp->am_iface_attr_.device_addr_len;
+                idx -= pp->context_.am_iface_attr_.device_addr_len;
                 uct_device_addr_t *am_device_addr
                     = reinterpret_cast<uct_device_addr_t *>(payload + idx);
 
                 // get the am device address
-                idx -= pp->am_iface_attr_.iface_addr_len;
+                idx -= pp->context_.am_iface_attr_.iface_addr_len;
                 uct_iface_addr_t *am_iface_addr
                     = reinterpret_cast<uct_iface_addr_t *>(payload + idx);
 
@@ -584,28 +300,25 @@ namespace hpx { namespace parcelset
                 payload += sizeof(std::uint64_t);
 
                 std::unique_ptr<receiver_type> rcv(new receiver_type(
-                    pp->pd_,
+                    pp->context_,
                     sender_handle,
-                    pp->pd_attr_.rkey_packed_size,
                     remote_address,
                     rkey_buffer,
                     *pp
                 ));
 
-                bool connects_to_ep = pp->rma_iface_attr_.cap.flags & UCT_IFACE_FLAG_CONNECT_TO_EP;
+                bool connects_to_ep = pp->context_.rma_iface_attr_.cap.flags & UCT_IFACE_FLAG_CONNECT_TO_EP;
                 if (connects_to_ep)
                 {
                     uct_device_addr_t *remote_rma_dev_addr =
                         reinterpret_cast<uct_device_addr_t *>(payload);
                     uct_ep_addr_t *remote_rma_ep_addr =
                         reinterpret_cast<uct_ep_addr_t *>(
-                            payload + pp->rma_iface_attr_.device_addr_len);
+                            payload + pp->context_.rma_iface_attr_.device_addr_len);
 
                     rcv->connect(
-                        pp->am_iface_,
                         am_iface_addr,
                         am_device_addr,
-                        pp->rma_iface_,
                         remote_rma_dev_addr,
                         remote_rma_ep_addr);
                 }
@@ -615,28 +328,26 @@ namespace hpx { namespace parcelset
                         reinterpret_cast<uct_iface_addr_t *>(payload);
                     uct_device_addr_t *remote_rma_device_addr =
                         reinterpret_cast<uct_device_addr_t *>(
-                            payload + pp->rma_iface_attr_.iface_addr_len);
+                            payload + pp->context_.rma_iface_attr_.iface_addr_len);
                     rcv->connect(
-                        pp->am_iface_,
                         am_iface_addr,
                         am_device_addr,
-                        pp->rma_iface_,
                         remote_rma_iface_addr,
                         remote_rma_device_addr);
                 }
 
                 for (std::size_t k = 0;
-                    !rcv->send_connect_ack(connects_to_ep, pp->rma_iface_attr_.ep_addr_len);
+                    !rcv->send_connect_ack(connects_to_ep, pp->context_.rma_iface_attr_.ep_addr_len);
                     ++k)
                 {
-//                     pp->background_work(std::size_t(1));
-//                     hpx::util::detail::yield_k(k, "ucx::parcelport::send_connect_ack");
+                    pp->context_.progress();
+                    hpx::util::detail::yield_k(k, "ucx::parcelport::send_connect_ack");
                 }
 
-                {
-                    std::lock_guard<mutex_type> lk(pp->receivers_mtx_);
-                    pp->receivers_.insert(rcv.release());
-                }
+                rcv.release();
+//                 {
+//                     pp->receivers_.insert(rcv.release());
+//                 }
 //                 std::cout << "receiver connection established\n";
 
                 return UCS_OK;
@@ -664,10 +375,10 @@ namespace hpx { namespace parcelset
 //                 std::cout << pp->here_ << " connection acknowledged! " << snd << " " << length << "\n";
 
 
-                bool connects_to_ep = pp->rma_iface_attr_.cap.flags & UCT_IFACE_FLAG_CONNECT_TO_EP;
+                bool connects_to_ep = pp->context_.rma_iface_attr_.cap.flags & UCT_IFACE_FLAG_CONNECT_TO_EP;
                 if (connects_to_ep)
                 {
-                    HPX_ASSERT(length == sizeof(std::uint64_t) * 2 + pp->rma_iface_attr_.ep_addr_len);
+                    HPX_ASSERT(length == sizeof(std::uint64_t) * 2 + pp->context_.rma_iface_attr_.ep_addr_len);
                     uct_ep_addr_t *rma_ep_addr =
                         reinterpret_cast<uct_ep_addr_t *>(payload + 2 * sizeof(std::uint64_t));
                     locality const &lt = snd->there_.get<locality>();
@@ -687,71 +398,6 @@ namespace hpx { namespace parcelset
                 snd->receive_handle_ = receive_handle;
 
                 return UCS_OK;
-            }
-
-            static void handle_data_completion(uct_completion_t *self, ucs_status_t status)
-            {
-                receiver_type *rcv = nullptr;
-                {
-                    std::lock_guard<mutex_type> lk(this_->data_completions_mtx_);
-                    auto it = this_->data_completions_.find(self);
-
-                    rcv = it->second;
-
-                    this_->data_completions_.erase(it);
-
-                    delete self;
-                }
-
-                if (status != UCS_OK)
-                {
-                    throw std::runtime_error("Error receiving header....");
-                }
-
-                rcv->read_done();
-            }
-
-            static void handle_header_completion(uct_completion_t *self, ucs_status_t status)
-            {
-                receiver_type *rcv = nullptr;
-                {
-                    std::lock_guard<mutex_type> lk(this_->header_completions_mtx_);
-                    auto it = this_->header_completions_.find(self);
-
-                    rcv = it->second;
-
-                    this_->header_completions_.erase(it);
-
-                    delete self;
-                }
-
-                if (status != UCS_OK)
-                {
-                    throw std::runtime_error("Error receiving header....");
-                }
-
-                if (rcv->read_header_done())
-                {
-                    rcv->read_done();
-                }
-                else
-                {
-                    uct_completion_t *data_read_completion = nullptr;
-                    {
-                        std::lock_guard<mutex_type> lk(this_->data_completions_mtx_);
-
-                        std::pair<uct_completion_t *, receiver_type*> new_comp;
-                        new_comp.second = rcv;
-                        new_comp.first = new uct_completion_t;
-                        new_comp.first->count = 1;
-                        new_comp.first->func = handle_data_completion;
-                        auto res = this_->data_completions_.insert(new_comp);
-                        HPX_ASSERT(res.second);
-                        data_read_completion = res.first->first;
-                    }
-
-                    rcv->read_data(data_read_completion);
-                }
             }
 
             // The message called for header_message. Called by the sender. It will
@@ -777,23 +423,7 @@ namespace hpx { namespace parcelset
                 std::memcpy(&header_length, payload, sizeof(std::uint64_t));
 //                 std::cout << rcv << " reading...\n";
 
-                uct_completion_t *header_read_completion = nullptr;
-                {
-                    std::lock_guard<mutex_type> lk(pp->header_completions_mtx_);
-
-                    std::pair<uct_completion_t *, receiver_type*> new_comp;
-                    new_comp.second = rcv;
-                    new_comp.first = new uct_completion_t;
-                    new_comp.first->count = 1;
-                    new_comp.first->func = handle_header_completion;
-                    auto res = pp->header_completions_.insert(new_comp);
-                    HPX_ASSERT(res.second);
-                    header_read_completion = res.first->first;
-                }
-
-                rcv->read(header_length, header_read_completion);
-
-                pp->background_work(0);
+                rcv->read(header_length);
 
                 return UCS_OK;
             }
@@ -836,7 +466,6 @@ namespace hpx { namespace parcelset
                 HPX_ASSERT(recv);
 
                 {
-                    std::lock_guard<mutex_type> lk(pp->receivers_mtx_);
                     auto it = pp->receivers_.find(recv.get());
                     HPX_ASSERT(it != pp->receivers_.end());
                     pp->receivers_.erase(it);
