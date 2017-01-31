@@ -13,18 +13,19 @@
 //
 #include <utility>
 #include <vector>
+//
+//#define EXTRA_DEBUG
 #ifdef EXTRA_DEBUG
 # include <cstddef>
 # include <string>
 # include <iostream>
 #endif
 //
-#define HPX_REDUCE_BY_KEY_TEST_SIZE (1 << 18)
+#define HPX_REDUCE_BY_KEY_TEST_SIZE (1 << 6)
 //
 #include "sort_tests.hpp"
 //
-#define EXTRA_DEBUG
-//
+//#define EXTRA_DEBUG
 namespace debug {
     template<typename T>
     void output(const std::string &name, const std::vector<T> &v) {
@@ -81,14 +82,20 @@ void test_reduce_by_key1(ExPolicy && policy, Tkey, Tval, bool benchmark, const O
     keys.reserve(HPX_REDUCE_BY_KEY_TEST_SIZE);
 
     std::vector<Tval> check_values;
+    std::vector<Tkey> check_keys;
+
+    static int seed = 6061;
 
     // use the default random engine and an uniform distribution for values
-    boost::random::mt19937 eng(static_cast<unsigned int>(std::rand()));
+    boost::random::mt19937 eng(static_cast<unsigned int>(seed));
     boost::random::uniform_real_distribution<double> distr(rnd_min, rnd_max);
 
     // use the default random engine and an uniform distribution for keys
-    boost::random::mt19937 engk(static_cast<unsigned int>(std::rand()));
+    boost::random::mt19937 engk(static_cast<unsigned int>(seed));
     boost::random::uniform_real_distribution<double> distrk(0, 256);
+
+//    std::cout << "Seed is " << seed << "\n";
+    seed++;
 
     // generate test data
     int keysize = 0;
@@ -112,6 +119,8 @@ void test_reduce_by_key1(ExPolicy && policy, Tkey, Tval, bool benchmark, const O
             keysize++;
         }
         check_values.push_back(sum);
+        check_keys.push_back(key);
+//        std::cout << check_keys.size() << " key size\n";
     }
     o_values = values;
     o_keys = keys;
@@ -395,7 +404,8 @@ void test_reduce_by_key1()
             [](double a, double b) {return std::floor(a)==std::floor(b);}, //-V550
             [](double a) {return std::floor(a);}
             );
-    } while (t.elapsed() < 2);
+*/
+    } while (t.elapsed() < 200);
     //
     hpx::util::high_resolution_timer t3;
     do {
