@@ -16,6 +16,13 @@
 #include <hpx/parallel/algorithms/sort.hpp>
 #include <hpx/parallel/algorithms/prefix_scan.hpp>
 //
+#ifdef USE_HPX_COPY_IF
+# define custom_copy_if copy_if
+#else
+# include <hpx/parallel/algorithms/prefix_copy_if.hpp>
+# define custom_copy_if prefix_copy_if
+#endif
+//
 #include <hpx/parallel/util/zip_iterator.hpp>
 #include <hpx/util/transform_iterator.hpp>
 #include <hpx/util/tuple.hpp>
@@ -26,6 +33,7 @@
 #include <utility>
 #include <vector>
 //
+//#define EXTRA_DEBUG
 /// \cond NOINTERNAL
 #ifdef EXTRA_DEBUG
 # include <iostream>
@@ -175,13 +183,22 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
         std::pair<iKey, iVal> make_pair_result(ZIter zipiter, iKey key_start,
             iVal val_start)
         {
+#ifdef USE_HPX_COPY_IF
             // the iterator we want is 'second' part of tagged_pair type (from copy_if)
             auto t = zipiter.second.get_iterator_tuple();
             iKey key_end = hpx::util::get<0>(t);
             return std::make_pair(key_end,
                 std::next(val_start, std::distance(key_start, key_end)));
-        }
+#else
+          auto const &t = zipiter.get_iterator_tuple();
+          iKey key_end = hpx::util::get<0>(t);
+          return std::make_pair(key_end,
+            std::next(val_start, std::distance(key_start, key_end)));
 
+//          return std::make_pair(key_start, val_start);
+#endif
+        }
+/*
         // async version that returns future<pair> from future<zip_iterator<blah>>
         template<typename ZIter, typename iKey, typename iVal>
         hpx::future<std::pair<iKey, iVal> > make_pair_result(
@@ -198,7 +215,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
                         std::next(val_start, std::distance(key_start, key_end)));
                 });
         }
-
+*/
         // -------------------------------------------------------------------
         // when we are being run with an asynchronous policy, we do not want to
         // pass the policy directly to other algorithms we are using - as we
@@ -396,8 +413,9 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
                     RanIter, OutIter2, std::vector<reduce_key_series_states>::iterator
                 >::reference zip2_ref;
 
+#ifdef USE_HPX_COPY_IF
                 return make_pair_result(
-                    hpx::parallel::copy_if(sync_policy,
+                    hpx::parallel::custom_copy_if(sync_policy,
                         make_zip_iterator(key_first, values_output,
                             std::begin(key_state)),
                         make_zip_iterator(key_last, values_output + number_of_keys,
@@ -410,6 +428,20 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
                             return get<2>(it).end;
                         }),
                     keys_output, values_output);
+#else
+                return make_pair_result(
+                    hpx::parallel::prefix_copy_if_stencil(sync_policy,
+                        make_zip_iterator(key_first, values_output),
+                        make_zip_iterator(key_last, values_output + number_of_keys),
+                            std::begin(key_state),
+                        make_zip_iterator(keys_output, values_output),
+                        // copies to dest only when 'end' state is true
+                        [](reduce_key_series_states &state)
+                        {
+                            return state.end;
+                        }), 
+                    keys_output, values_output);
+#endif
             }
         }
 

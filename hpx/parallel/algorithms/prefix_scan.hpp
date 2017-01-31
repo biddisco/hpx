@@ -188,7 +188,7 @@ HPX_INLINE_NAMESPACE(v1)
 
             difference_type count = std::distance(first, last);
 
-            std::size_t cores = std::min((std::size_t)count,
+            std::size_t cores = (std::min)((std::size_t)count,
                 executor_information_traits<typename ExPolicy::executor_type>::
                 processing_units_count(policy.executor(), policy.parameters()));
 
@@ -199,7 +199,7 @@ HPX_INLINE_NAMESPACE(v1)
                 // we want 2^N chunks of data, so find a good N
                 while (cores >>= 1) ++log2N;
                 n_chunks = (1 << log2N);
-                chunk_size = std::max(1, int(count / n_chunks));
+                chunk_size = (std::max)(1, int(count / n_chunks));
                 while (n_chunks > 0 && chunk_size < sequential_scan_limit) {
                     chunk_size <<= 1;
                     n_chunks >>= 1;
@@ -398,7 +398,7 @@ HPX_INLINE_NAMESPACE(v1)
               // we want 2^N chunks of data, so find a good N
               while (cores >>= 1) ++log2N;
               n_chunks = (1 << log2N);
-              chunk_size = std::max(1, int(count / n_chunks));
+              chunk_size = (std::max)(1, int(count / n_chunks));
               while (n_chunks > 0 && chunk_size < sequential_scan_limit) {
                 chunk_size <<= 1;
                 n_chunks >>= 1;
