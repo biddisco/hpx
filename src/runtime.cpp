@@ -1213,6 +1213,20 @@ namespace hpx
         return rt->get_thread_manager().get_worker_thread_num();
     }
 
+    std::size_t get_worker_thread_num(error_code& ec)
+    {
+        runtime* rt = get_runtime_ptr();
+        if (nullptr == rt)
+        {
+            HPX_THROWS_IF(
+                ec, invalid_status,
+                "hpx::get_worker_thread_num",
+                "the runtime system has not been initialized yet");
+            return std::size_t(-1);
+        }
+        return rt->get_thread_manager().get_worker_thread_num();
+    }
+
     std::size_t get_num_worker_threads()
     {
         runtime* rt = get_runtime_ptr();
