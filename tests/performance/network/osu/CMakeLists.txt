@@ -3,6 +3,29 @@
 #
 # Distributed under the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+#------------------------------------------------------------------------------
+# OFED verbs stack
+#------------------------------------------------------------------------------
+find_package(IB_VERBS REQUIRED)
+
+#------------------------------------------------------------------------------
+# RDMA_CM
+#------------------------------------------------------------------------------
+find_package(RDMA_CM REQUIRED)
+
+
+  # add example executable
+  add_hpx_executable(osu_temp
+                     SOURCES osu_temp.cpp
+                     COMPONENT_DEPENDENCIES iostreams
+                     EXCLUDE_FROM_ALL
+                     FOLDER "Benchmarks/Network/${benchmark}")
+
+  # add example executable
+  add_executable(rc_pingpong rc_pingpong.c pingpong.c)
+    target_link_libraries(rc_pingpong
+            "${IB_VERBS_LIBRARIES}"
+    "${RDMA_CM_LIBRARIES}")
 
 set(benchmarks
     osu_bibw
