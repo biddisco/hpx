@@ -8,6 +8,7 @@
 #include <hpx/runtime/parcelset/locality.hpp>
 #include <hpx/plugins/parcelport/ucx/locality.hpp>
 #include <hpx/plugins/parcelport/ucx/ucx_error.hpp>
+#include <hpx/plugins/parcelport/ucx/rdma_logging.hpp>
 
 namespace hpx { namespace parcelset { namespace policies { namespace ucx
 {
@@ -19,8 +20,14 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
         uct_iface_h iface = nullptr;
         unsigned num_md_resources = 0;
 
+        LOG_DEBUG_MSG("Finding interfaces matching " << domain);
+
         status = uct_query_md_resources(&md_resources, &num_md_resources);
         HPX_PARCELPORT_UCX_THROW_IF(status, UCS_OK);
+
+        for (unsigned i = 0; i != num_md_resources; ++i) {
+            LOG_DEBUG_MSG("\tinterface " << decnumber(i) << md_resources[i].md_name);
+        }
 
         try
         {
@@ -30,6 +37,8 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
             {
                 if (domain != md_resources[i].md_name)
                     continue;
+
+                LOG_DEBUG_MSG("found interface matching " << md_resources[i].md_name);
 
                 uct_md_config_t *md_config = nullptr;
                 pd_ = nullptr;
@@ -75,6 +84,9 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
                     status = uct_iface_query(iface, &iface_attr);
                     HPX_PARCELPORT_UCX_THROW_IF(status, UCS_OK);
 
+                    LOG_DEBUG_MSG("Interface name " << iface_params.tl_name
+                        << "dev " << iface_params.dev_name);
+
                     // allow for multiple interfaces to be open
                     // only some might support all we need. On Aries,
                     // we need to have two, one for doing AM, one for
@@ -88,24 +100,62 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
                     //    as point-to-point endpoints would require OOB
                     //    communication
 
-                    // Check if the interface is suitable for AM
-                    if (am_iface_ == nullptr &&
+                    bool handles_AM =
                         (iface_attr.cap.flags & UCT_IFACE_FLAG_AM_SHORT) &&
-                        (iface_attr.cap.flags & UCT_IFACE_FLAG_CONNECT_TO_IFACE))
-                    {
-                        std::cout << "found AM transport: " << iface_params.dev_name << ":" << iface_params.tl_name << '\n';
+                        (iface_attr.cap.flags & UCT_IFACE_FLAG_CONNECT_TO_IFACE);
+                    bool handles_RDMA =
+                        (iface_attr.cap.flags & UCT_IFACE_FLAG_GET_ZCOPY);
+                    bool handles_BOTH = handles_AM && handles_RDMA;
+                    bool print_iface = false;
+
+                    if (handles_BOTH) {
+                        LOG_DEBUG_MSG("found RDMA+AM transport: "
+                            << iface_params.dev_name << ":"
+                            << iface_params.tl_name);
+                        print_iface = true;
                         am_iface_ = iface;
                         std::memcpy(&am_iface_attr_, &iface_attr, sizeof(iface_attr));
-                    }
-
-                    // Check if the interface is suitable for RDMA
-                    if (rma_iface_ == nullptr &&
-                        (iface_attr.cap.flags & UCT_IFACE_FLAG_GET_ZCOPY))
-                    {
-                        std::cout << "found RDMA transport: " << iface_params.dev_name << ":" << iface_params.tl_name << '\n';
                         rma_iface_ = iface;
                         std::memcpy(&rma_iface_attr_, &iface_attr, sizeof(iface_attr));
                     }
+                    else if (handles_AM && am_iface_ == nullptr) {
+                        LOG_DEBUG_MSG("found AM transport: "
+                            << iface_params.dev_name << ":"
+                            << iface_params.tl_name);
+                        print_iface = true;
+                        am_iface_ = iface;
+                        std::memcpy(&am_iface_attr_, &iface_attr, sizeof(iface_attr));
+                    }
+                    else if (handles_RDMA && rma_iface_ == nullptr) {
+                        LOG_DEBUG_MSG("found RDMA transport: "
+                            << iface_params.dev_name << ":"
+                            << iface_params.tl_name);
+                        rma_iface_ = iface;
+                        std::memcpy(&rma_iface_attr_, &iface_attr, sizeof(iface_attr));
+                    }
+                    if (print_iface) {
+                        LOG_DEBUG_MSG("Interface am  "
+                            << "max_short "     << hexnumber(iface_attr.cap.am.max_short)
+                            << "max_bcopy "     << hexnumber(iface_attr.cap.am.max_bcopy)
+                            << "min/max_zcopy " << hexuint64(iface_attr.cap.am.min_zcopy)
+                            << ", "             << hexuint64(iface_attr.cap.am.max_zcopy)
+                            << "hdr "           << hexnumber(iface_attr.cap.am.max_hdr)
+                            << "iov "           << decnumber(iface_attr.cap.am.max_iov));
+
+                        LOG_DEBUG_MSG("Interface put "
+                            << "max_short "     << hexnumber(iface_attr.cap.put.max_short)
+                            << "max_bcopy "     << hexnumber(iface_attr.cap.put.max_bcopy)
+                            << "min/max_zcopy " << hexuint64(iface_attr.cap.put.min_zcopy)
+                            << ", "             << hexuint64(iface_attr.cap.put.max_zcopy)
+                            << "iov "           << decnumber(iface_attr.cap.put.max_iov));
+
+                        LOG_DEBUG_MSG("Interface get "
+                            << "max_bcopy "     << hexnumber(iface_attr.cap.get.max_bcopy)
+                            << "min/max_zcopy " << hexuint64(iface_attr.cap.get.min_zcopy)
+                            << ", "             << hexuint64(iface_attr.cap.get.max_zcopy)
+                            << "iov "           << decnumber(iface_attr.cap.get.max_iov));
+                    }
+
                     if (rma_iface_ && am_iface_) break;
 
                     if (!rma_iface_ && !am_iface_)
@@ -121,6 +171,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
         }
         catch(...)
         {
+            LOG_ERROR_MSG("exception in interface check" );
 
             if (tl_resources != nullptr)
             {
@@ -148,7 +199,8 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
         return rma_iface_ && am_iface_;
     }
 
-    ucx_context::ucx_context(std::string const& domain, hpx::parcelset::locality& here)
+    ucx_context::ucx_context(std::string const& domain,
+        hpx::parcelset::locality& here, bool enabled)
       : pd_(nullptr),
         rma_iface_(nullptr),
         am_iface_(nullptr),
@@ -156,15 +208,18 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
         worker_(nullptr)
     {
         ucs_status_t status;
+        LOG_DEBUG_MSG("calling ucs_async_context_init");
         // Initialize our UCX context
         status = ucs_async_context_init(&context_, UCS_ASYNC_MODE_THREAD);
         HPX_PARCELPORT_UCX_THROW_IF(status, UCS_OK);
 
         // Initialize our UCX worker
+        LOG_DEBUG_MSG("calling uct_worker_create");
         status = uct_worker_create(&context_, UCS_THREAD_MODE_MULTI, &worker_);
         HPX_PARCELPORT_UCX_THROW_IF(status, UCS_OK);
 
         // We need to find suitable network interfaces
+        LOG_DEBUG_MSG("calling find_ifaces");
         if (find_ifaces(domain))
         {
             HPX_ASSERT(pd_ != nullptr);
@@ -206,7 +261,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
             status = uct_iface_get_address(am_iface_, am_iface_addr);
             HPX_PARCELPORT_UCX_THROW_IF(status, UCS_OK);
         }
-        else
+        else if (enabled)
         {
             throw std::runtime_error(
                 "No suitable UCX interface could have been found...");

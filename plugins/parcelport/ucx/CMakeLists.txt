@@ -6,6 +6,12 @@
 
 include(HPX_AddLibrary)
 
+  if (NOT Boost_USE_STATIC_LIBS)
+    hpx_add_config_define_namespace(
+        DEFINE    BOOST_LOG_DYN_LINK
+        NAMESPACE parcelport_verbs)
+  endif()
+
 ################################################################################
 # Decide whether to use the MPI based parcelport
 ################################################################################

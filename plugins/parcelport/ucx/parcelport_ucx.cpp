@@ -13,6 +13,7 @@
 #include <hpx/runtime/parcelset/locality.hpp>
 #include <hpx/runtime/parcelset/parcelport_impl.hpp>
 
+#include <hpx/plugins/parcelport/ucx/rdma_logging.hpp>
 #include <hpx/plugins/parcelport/ucx/active_messages.hpp>
 #include <hpx/plugins/parcelport/ucx/sender.hpp>
 #include <hpx/plugins/parcelport/ucx/receiver.hpp>
@@ -93,11 +94,16 @@ namespace hpx { namespace parcelset
                 util::function_nonser<void(std::size_t, char const*)> const& on_start,
                 util::function_nonser<void()> const& on_stop)
               : base_type(ini, here(), on_start, on_stop)
-              , context_(ini.get_entry("hpx.parcel.ucx.domain", ""), here_)
+              , enabled_(boost::lexical_cast<bool>
+                (ini.get_entry("hpx.parcel.ucx.enable", "0")))
+              , context_(ini.get_entry("hpx.parcel.ucx.domain", ""), here_, enabled_)
               , stopped_(false)
             {
-                ucs_status_t status;
+                if (!enabled_) {
+                    return;
+                }
 
+                ucs_status_t status;
                 // Install active message handler...
                 std::uint32_t am_flags = 0;
 //                     if (am_iface_attr_.cap.flags & UCT_IFACE_FLAG_AM_CB_ASYNC)
@@ -109,6 +115,7 @@ namespace hpx { namespace parcelset
 //                         am_flags = UCT_AM_CB_FLAG_SYNC;
 //                     }
 
+                LOG_DEBUG_MSG("Setting iface handlers");
                 status = uct_iface_set_am_handler(
                     context_.am_iface_, connect_message, handle_connect, this, am_flags);
                 if (status != UCS_OK)
@@ -178,14 +185,16 @@ namespace hpx { namespace parcelset
             std::shared_ptr<sender> create_connection(
                 parcelset::locality const& there, error_code& ec)
             {
-//                 std::cout << here_ << " create sender connection\n";
+                LOG_DEBUG_MSG("ucx, create sender connection");
                 std::shared_ptr<sender> res;
                 if (context_.rma_iface_attr_.cap.flags & UCT_IFACE_FLAG_CONNECT_TO_EP)
                 {
+                    LOG_DEBUG_MSG("Creating sender with UCT_IFACE_FLAG_CONNECT_TO_EP");
                     res = std::make_shared<sender>(there, context_, true);
                 }
                 else
                 {
+                    LOG_DEBUG_MSG("Creating sender without UCT_IFACE_FLAG_CONNECT_TO_EP");
                     res = std::make_shared<sender>(there, context_, false);
                 }
 
@@ -200,7 +209,6 @@ namespace hpx { namespace parcelset
                     context_.progress();
                     hpx::util::detail::yield_k(k, "ucx::parcelport::create_connection");
                 }
-
 
                 return res;
             }
@@ -233,6 +241,7 @@ namespace hpx { namespace parcelset
             }
 
         private:
+            bool        enabled_;
             ucx_context context_;
             boost::atomic<bool> stopped_;
 
@@ -261,13 +270,14 @@ namespace hpx { namespace parcelset
             //      sizeof(sender *) + iface_addr_length + device_addr_length + 1, if connect to iface
             static ucs_status_t handle_connect(void* arg, void* data, std::size_t length, void* desc)
             {
+                LOG_DEBUG_MSG("ucx, handle_connect");
                 parcelport *pp = reinterpret_cast<parcelport *>(arg);
 
                 // @FIXME: Why do we to have that offset here?
                 char *payload = reinterpret_cast<char *>(data);
 
                 // we start to peel of our data and start from the back which is
-                // common to both methos...
+                // common to both methods...
                 std::size_t idx = length;
 
                 // get the sender handle
@@ -362,6 +372,7 @@ namespace hpx { namespace parcelset
             //  - length: sizeof(receiver *)
             static ucs_status_t handle_connect_ack(void* arg, void* data, std::size_t length, void* desc)
             {
+                LOG_DEBUG_MSG("ucx, handle_connect_ack");
                 parcelport *pp = reinterpret_cast<parcelport *>(arg);
 
                 std::size_t receive_handle = 0;
@@ -412,6 +423,7 @@ namespace hpx { namespace parcelset
             //      sizeof(std::uint64_t) * 2
             static ucs_status_t handle_read(void* arg, void* data, std::size_t length, void* desc)
             {
+                LOG_DEBUG_MSG("ucx, handle_read");
                 parcelport *pp = reinterpret_cast<parcelport *>(arg);
 
                 char *payload = reinterpret_cast<char *>(data);
@@ -421,7 +433,7 @@ namespace hpx { namespace parcelset
 
                 std::uint64_t header_length = 0;
                 std::memcpy(&header_length, payload, sizeof(std::uint64_t));
-//                 std::cout << rcv << " reading...\n";
+                LOG_DEBUG_MSG("ucx, handle_read length " << decnumber(header_length));
 
                 rcv->read(header_length);
 
@@ -438,6 +450,7 @@ namespace hpx { namespace parcelset
             //  - length: sizeof(sender *)
             static ucs_status_t handle_read_ack(void* arg, void* data, std::size_t length, void* desc)
             {
+                LOG_DEBUG_MSG("ucx, handle_read_ack");
                 HPX_ASSERT(length == sizeof(std::uint64_t));
                 sender *snd = nullptr;
                 std::memcpy(&snd, data, sizeof(sender *));
@@ -454,6 +467,7 @@ namespace hpx { namespace parcelset
             //  - length: sizeof(receiver *)
             static ucs_status_t handle_close(void* arg, void* data, std::size_t length, void* desc)
             {
+                LOG_DEBUG_MSG("ucx, handle_close");
                 parcelport *pp = reinterpret_cast<parcelport *>(arg);
 
                 HPX_ASSERT(length == sizeof(receiver_type *));

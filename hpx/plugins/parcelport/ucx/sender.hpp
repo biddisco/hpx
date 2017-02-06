@@ -8,8 +8,9 @@
 
 #include <hpx/config.hpp>
 
-#if defined(HPX_HAVE_PARCELPORT_UCX)
+//#if defined(HPX_HAVE_PARCELPORT_UCX)
 
+#include <hpx/plugins/parcelport/ucx/rdma_logging.hpp>
 #include <hpx/runtime/parcelset/parcelport_connection.hpp>
 #include <hpx/runtime/parcelset/locality.hpp>
 
@@ -44,10 +45,11 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
           , rma_ep_(nullptr)
           , header_(context.pd_, 512, context_.pd_attr_.rkey_packed_size)
           , rkey_(context_.pd_attr_.rkey_packed_size)
+          , uct_mem_(nullptr)
           , receive_handle_(0)
           , rma_connect_to_ep_(rma_connect_to_ep)
         {
-//             std::cout << "sending to: " << there_ << '\n';
+            LOG_DEBUG_MSG("sending to: " << there_);;
             locality &lt = there_.get<locality>();
             ucs_status_t status;
             status = uct_ep_create_connected(
@@ -69,8 +71,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
                         "sender AM endpoint connection could not be established");
                 }
             }
-
-//             std::cout << "sender ... " << this << "\n";
+            LOG_DEBUG_MSG("created sender " << hexpointer(this));
         }
 
         ~sender()
@@ -114,6 +115,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
         bool connect(parcelset::locality const& here, std::size_t rma_ep_addr_len)
         {
+            LOG_DEBUG_MSG("connect ... ");
             ucs_status_t status;
             // @TODO: factor out payload creation to avoid recreation...
             locality const &lh = here.get<locality>();
@@ -172,7 +174,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
             HPX_ASSERT(rkey_offset + rkey.second + sizeof(std::uint64_t) == payload.size());
 
-//             std::cout << "sender remote address " << header_.data_ << '\n';
+            LOG_DEBUG_MSG("sender remote address " << header_.data_);
 
             sender *this_ = this;
             std::uint64_t header = 0;
@@ -196,6 +198,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
         template <typename Handler, typename ParcelPostprocess>
         void async_write(Handler && handler, ParcelPostprocess && parcel_postprocess)
         {
+            LOG_DEBUG_MSG("async_write ... ");
             uct_mem_ = nullptr;
             this_ = shared_from_this();
             HPX_ASSERT(receive_handle_ != 0);
@@ -235,7 +238,8 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
                 std::memcpy(message, rkey_.data(), rkey_.size());
             }
 
-//             std::cout << "sending " << header_.size() << " " << header_.length() << "\n";
+            LOG_DEBUG_MSG("sending header size " << decnumber(header_.size())
+                << ", length " << decnumber(header_.length()));
 
             // Notify the receiver that the message is ready to be read
             std::uint64_t payload = header_.length();
@@ -256,6 +260,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
         std::shared_ptr<sender> done()
         {
+            LOG_DEBUG_MSG("sender done()");
             HPX_ASSERT(handler_);
             HPX_ASSERT(postprocess_handler_);
 //             std::cout << this << " sending done!\n";
@@ -312,5 +317,5 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
     };
 }}}}
 
-#endif
+//#endif
 #endif
