@@ -32,7 +32,8 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
     public:
         typedef hpx::lcos::local::spinlock mutex_type;
 
-        ucx_context(std::string const& domain, hpx::parcelset::locality& here);
+        ucx_context(std::string const& domain,
+            hpx::parcelset::locality& here, bool enabled);
         ~ucx_context();
 
         std::unique_lock<mutex_type> lock()

@@ -10,6 +10,7 @@
 
 #if defined(HPX_HAVE_PARCELPORT_UCX)
 
+#include <hpx/plugins/parcelport/ucx/rdma_logging.hpp>
 #include <hpx/runtime/parcelset/decode_parcels.hpp>
 #include <hpx/runtime/parcelset/locality.hpp>
 
@@ -54,6 +55,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
           , remote_header_address_(remote_address)
           , pp_(pp)
         {
+            LOG_DEBUG_MSG("Creating receiver");
             ucs_status_t status;
 
             status = uct_rkey_unpack(packed_key, &remote_header_);
@@ -103,6 +105,8 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
             uct_device_addr_t *rma_device_addr
         )
         {
+            LOG_DEBUG_MSG("receiver connect iface");
+
             ucs_status_t status;
             // Establish the connection to our AM endpoint
             status = uct_ep_create_connected(
@@ -134,6 +138,8 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
             uct_ep_addr_t *rma_ep_addr
         )
         {
+            LOG_DEBUG_MSG("receiver connect ep");
+
             ucs_status_t status;
             // Establish the connection to our AM endpoint
             status = uct_ep_create_connected(
@@ -168,6 +174,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
         bool send_connect_ack(bool connects_to_ep, std::size_t ep_addr_length)
         {
+            LOG_DEBUG_MSG("receiver send_connect_ack");
             ucs_status_t status;
 
             receiver *this_ = this;
@@ -210,6 +217,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
         static void handle_header_completion(uct_completion_t *self, ucs_status_t status)
         {
+            LOG_DEBUG_MSG("receiver handle_header_completion");
             receiver* this_ = static_cast<receiver*>(self);
             HPX_PARCELPORT_UCX_THROW_IF(status, UCS_OK);
 
@@ -229,6 +237,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
         void read(std::uint64_t header_length)
         {
+            LOG_DEBUG_MSG("receiver read " << decnumber(header_length));
             ucs_status_t status;
 
             uct_mem_ = nullptr;
@@ -241,6 +250,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
             func = handle_header_completion;
             count = 1;
 
+            LOG_DEBUG_MSG("receiver read header uct_ep_get_zcopy " << decnumber(header_length));
             status = uct_ep_get_zcopy(
                 rma_ep_, &header_iov_, 1,
                 remote_header_address_, remote_header_.rkey, this);
@@ -257,6 +267,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
         bool read_header_done()
         {
+            LOG_DEBUG_MSG("receiver read_header_done");
             // This assumes, the header contains all data ...
             // @FIXME: implement non piggy backed data and zero copy chunks
 
@@ -286,6 +297,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
         static void handle_data_completion(uct_completion_t *self, ucs_status_t status)
         {
+            LOG_DEBUG_MSG("receiver handle_data_completion");
             receiver* this_ = static_cast<receiver*>(self);
             HPX_PARCELPORT_UCX_THROW_IF(status, UCS_OK);
 
@@ -299,7 +311,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
         void read_data()
         {
             ucs_status_t status;
-
+            LOG_DEBUG_MSG("Receiver read data register memory size : " << decnumber(buffer_.data_.size()));
             status =
                 uct_md_mem_reg(context_.pd_, buffer_.data_.data(), buffer_.data_.size(),
                     UCT_MD_MEM_FLAG_NONBLOCK, &uct_mem_);
@@ -329,6 +341,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
             count = 1;
             func = handle_data_completion;
 
+            LOG_DEBUG_MSG("Receiver read data uct_ep_get_zcopy : " << decnumber(buffer_.data_.size()));
             status = uct_ep_get_zcopy(
                 rma_ep_, &data_iov_, 1,
                 remote_data_address, remote_data.rkey, this);
@@ -345,6 +358,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
         bool read_done()
         {
+            LOG_DEBUG_MSG("receiver read_done");
             if (!buffer_.data_.empty())
             {
                 decode_parcels(pp_, std::move(buffer_), std::size_t(-1));

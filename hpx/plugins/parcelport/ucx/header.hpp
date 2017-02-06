@@ -8,7 +8,7 @@
 
 #include <hpx/config.hpp>
 
-#if defined(HPX_HAVE_PARCELPORT_UCX)
+//#if defined(HPX_HAVE_PARCELPORT_UCX)
 
 extern "C" {
 #include <ucs/type/status.h>
@@ -37,6 +37,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
           , rkey_(rpack_length)
         {
             // allocate data
+            LOG_DEBUG_MSG("Registering memory with size " << decnumber(max_size_));
             data_ = malloc(max_size_);
             // register it with our PD...
             ucs_status_t status = uct_md_mem_reg(pd_, data_, max_size_, UCT_MD_MEM_FLAG_NONBLOCK, &uct_mem_);
@@ -70,6 +71,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
             if (buffer.data_.size() <= (max_size_ - pos_piggy_back_data))
             {
+                LOG_DEBUG_MSG("Data is piggybacked");
                 data()[pos_piggy_back_flag] = 1;
                 std::memcpy(data() + pos_piggy_back_data, &buffer.data_[0],
                     buffer.data_.size());
@@ -77,6 +79,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
             }
             else
             {
+                LOG_DEBUG_MSG("Data is not piggybacked");
                 data()[pos_piggy_back_flag] = 0;
                 size_ = pos_piggy_back_data + sizeof(std::uint64_t) + rkey_.size();
             }
@@ -153,5 +156,5 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
     };
 }}}}
 
-#endif
+//#endif
 #endif
