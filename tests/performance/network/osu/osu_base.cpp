@@ -49,10 +49,5 @@ int main(int argc, char* argv[])
          boost::program_options::value<std::size_t>()->default_value((1<<22)),
          "Maximum size of message to send");
 
-    // Initialize and run HPX, this test requires to run hpx_main on all localities
-    std::vector<std::string> const cfg = {
-        "hpx.run_hpx_main!=1"
-    };
-
-    return hpx::init(desc, argc, argv, cfg);
+    return hpx::init(desc, argc, argv);
 }
