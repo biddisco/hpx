@@ -185,32 +185,37 @@ namespace hpx { namespace parcelset
             std::shared_ptr<sender> create_connection(
                 parcelset::locality const& there, error_code& ec)
             {
-                LOG_DEBUG_MSG("ucx, create sender connection");
-                std::shared_ptr<sender> res;
+                LOG_DEBUG_MSG("Create sender connection");
+                std::shared_ptr<sender> send;
                 if (context_.rma_iface_attr_.cap.flags & UCT_IFACE_FLAG_CONNECT_TO_EP)
                 {
                     LOG_DEBUG_MSG("Creating sender with UCT_IFACE_FLAG_CONNECT_TO_EP");
-                    res = std::make_shared<sender>(there, context_, true);
+                    send = std::make_shared<sender>(there, context_, true);
                 }
                 else
                 {
                     LOG_DEBUG_MSG("Creating sender without UCT_IFACE_FLAG_CONNECT_TO_EP");
-                    res = std::make_shared<sender>(there, context_, false);
+                    send = std::make_shared<sender>(there, context_, false);
                 }
 
-                for (std::size_t k = 0; !res->connect(here_, context_.rma_iface_attr_.ep_addr_len); ++k)
+                LOG_DEBUG_MSG("Calling sender->connect");
+                for (std::size_t k = 0; !send->connect(here_, context_.rma_iface_attr_.ep_addr_len); ++k)
                 {
+//                	std::lock_guard<mutex_type> l(progress_mutex);
                     context_.progress();
                     hpx::util::detail::yield_k(k, "ucx::parcelport::create_connection");
+                    LOG_DEBUG_MSG("waiting for connect progress/yield " << decnumber(k));
                 }
 
-                for (std::size_t k = 0; res->receive_handle_ == 0; ++k)
+                for (std::size_t k = 0; send->receive_handle_ == 0; ++k)
                 {
+//                	std::lock_guard<mutex_type> l(progress_mutex);
                     context_.progress();
                     hpx::util::detail::yield_k(k, "ucx::parcelport::create_connection");
+                    LOG_DEBUG_MSG("waiting for receive handle progress/yield " << decnumber(k));
                 }
 
-                return res;
+                return send;
             }
 
             parcelset::locality agas_locality(
@@ -234,16 +239,21 @@ namespace hpx { namespace parcelset
             {
                 if (stopped_) return false;
 
-//                 std::unique_lock<mutex_type> lk(worker_mtx_, std::try_to_lock);
-//                 if (lk)
+//                std::unique_lock<mutex_type> lk(progress_mutex, std::try_to_lock);
+//                if (lk) {
                     context_.progress();
+//                }
                 return false;
             }
 
+        public:
+            mutex_type progress_mutex;
         private:
             bool        enabled_;
             ucx_context context_;
             boost::atomic<bool> stopped_;
+
+
 
             std::unordered_set<receiver_type *> receivers_;
 
@@ -350,6 +360,7 @@ namespace hpx { namespace parcelset
                     !rcv->send_connect_ack(connects_to_ep, pp->context_.rma_iface_attr_.ep_addr_len);
                     ++k)
                 {
+//                	std::lock_guard<mutex_type> l(pp->progress_mutex);
                     pp->context_.progress();
                     hpx::util::detail::yield_k(k, "ucx::parcelport::send_connect_ack");
                 }
@@ -372,7 +383,7 @@ namespace hpx { namespace parcelset
             //  - length: sizeof(receiver *)
             static ucs_status_t handle_connect_ack(void* arg, void* data, std::size_t length, void* desc)
             {
-                LOG_DEBUG_MSG("ucx, handle_connect_ack");
+                LOG_DEBUG_MSG("handle_connect_ack");
                 parcelport *pp = reinterpret_cast<parcelport *>(arg);
 
                 std::size_t receive_handle = 0;
@@ -383,8 +394,8 @@ namespace hpx { namespace parcelset
                 std::memcpy(&receive_handle, payload, sizeof(std::uint64_t));
                 std::memcpy(&snd, payload + sizeof(std::uint64_t), sizeof(std::uint64_t));
 
-//                 std::cout << pp->here_ << " connection acknowledged! " << snd << " " << length << "\n";
-
+                LOG_DEBUG_MSG("handle_connect_ack " << pp->here_
+                    << " connection acknowledged! " << snd << " " << length);
 
                 bool connects_to_ep = pp->context_.rma_iface_attr_.cap.flags & UCT_IFACE_FLAG_CONNECT_TO_EP;
                 if (connects_to_ep)
@@ -406,6 +417,7 @@ namespace hpx { namespace parcelset
                     HPX_ASSERT(length == sizeof(std::uint64_t) * 2);
                 }
 
+                LOG_DEBUG_MSG("sender receive handle set");
                 snd->receive_handle_ = receive_handle;
 
                 return UCS_OK;
@@ -450,13 +462,11 @@ namespace hpx { namespace parcelset
             //  - length: sizeof(sender *)
             static ucs_status_t handle_read_ack(void* arg, void* data, std::size_t length, void* desc)
             {
-                LOG_DEBUG_MSG("ucx, handle_read_ack");
+                LOG_DEBUG_MSG("handle_read_ack");
                 HPX_ASSERT(length == sizeof(std::uint64_t));
                 sender *snd = nullptr;
                 std::memcpy(&snd, data, sizeof(sender *));
-
                 HPX_ASSERT(snd);
-
                 auto res = snd->done();
                 return UCS_OK;
             }
@@ -516,6 +526,29 @@ namespace hpx { namespace traits
 
         static void init(int *argc, char ***argv, util::command_line_handling &cfg)
         {
+            static int log_init = false;
+            if (!log_init) {
+    #if defined(HPX_PARCELPORT_VERBS_HAVE_LOGGING) || \
+        defined(HPX_PARCELPORT_VERBS_HAVE_DEV_MODE)
+                std::cout << "Initializing logging " << std::endl;
+                boost::log::add_console_log(
+                std::clog,
+                // This makes the sink to write log records that look like this:
+                // 1: <normal> A normal severity message
+                // 2: <error> An error severity message
+                boost::log::keywords::format =
+                    (
+                        boost::log::expressions::stream
+                        // << (boost::format("%05d") % expr::attr< unsigned int >("LineID"))
+                        << boost::log::expressions::attr< unsigned int >("LineID")
+                        << ": <" << boost::log::trivial::severity
+                        << "> " << boost::log::expressions::smessage
+                    )
+                );
+                boost::log::add_common_attributes();
+    #endif
+                log_init = true;
+            }
         }
 
         static char const* call()

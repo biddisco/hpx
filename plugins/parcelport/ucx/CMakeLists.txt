@@ -43,6 +43,12 @@ if(HPX_WITH_PARCELPORT_UCX)
         ${UCX_LIBRARIES}
       FOLDER "Core/Plugins/Parcelport/UCX")
   endmacro()
+
+    include_directories(${UCX_INCLUDE_DIRS})
+  add_executable(ucp_hello_world
+                     ucp_hello_world.c)
+    target_link_libraries(ucp_hello_world  ${UCX_LIBRARIES})
+
 else()
   macro(add_parcelport_ucx_module)
   endmacro()

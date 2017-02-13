@@ -49,7 +49,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
           , receive_handle_(0)
           , rma_connect_to_ep_(rma_connect_to_ep)
         {
-            LOG_DEBUG_MSG("sending to: " << there_);;
+            LOG_DEBUG_MSG("sending to: " << there_ << hexpointer(this));;
             locality &lt = there_.get<locality>();
             ucs_status_t status;
             status = uct_ep_create_connected(
@@ -115,7 +115,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
         bool connect(parcelset::locality const& here, std::size_t rma_ep_addr_len)
         {
-            LOG_DEBUG_MSG("connect ... ");
+            LOG_DEBUG_MSG("connect ... " << hexpointer(this));
             ucs_status_t status;
             // @TODO: factor out payload creation to avoid recreation...
             locality const &lh = here.get<locality>();
@@ -174,7 +174,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
             HPX_ASSERT(rkey_offset + rkey.second + sizeof(std::uint64_t) == payload.size());
 
-            LOG_DEBUG_MSG("sender remote address " << header_.data_);
+            LOG_DEBUG_MSG("sender remote address " << header_.data_ << hexpointer(this));
 
             sender *this_ = this;
             std::uint64_t header = 0;
@@ -198,7 +198,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
         template <typename Handler, typename ParcelPostprocess>
         void async_write(Handler && handler, ParcelPostprocess && parcel_postprocess)
         {
-            LOG_DEBUG_MSG("async_write ... ");
+            LOG_DEBUG_MSG("async_write ... " << hexpointer(this));
             uct_mem_ = nullptr;
             this_ = shared_from_this();
             HPX_ASSERT(receive_handle_ != 0);
@@ -206,8 +206,8 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
             HPX_ASSERT(buffer_.transmission_chunks_.empty());
 //             std::cout << std::hex << receive_handle_ << " <--- async_write\n";
 
-            handler_ = std::forward<Handler>(handler);
-            postprocess_handler_ = std::forward<ParcelPostprocess>(parcel_postprocess);
+            handler_ = std::move(handler);
+            postprocess_handler_ = std::move(parcel_postprocess);
             HPX_ASSERT(handler_);
             HPX_ASSERT(postprocess_handler_);
 
@@ -239,7 +239,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
             }
 
             LOG_DEBUG_MSG("sending header size " << decnumber(header_.size())
-                << ", length " << decnumber(header_.length()));
+                << ", length " << decnumber(header_.length()) << hexpointer(this));
 
             // Notify the receiver that the message is ready to be read
             std::uint64_t payload = header_.length();
@@ -260,29 +260,32 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
 
         std::shared_ptr<sender> done()
         {
-            LOG_DEBUG_MSG("sender done()");
+            LOG_DEBUG_MSG("sender done() getting ready for reuse " << hexpointer(this));
             HPX_ASSERT(handler_);
             HPX_ASSERT(postprocess_handler_);
-//             std::cout << this << " sending done!\n";
 
             // We are done and are able to call the handlers now
+            LOG_DEBUG_MSG("sender done() calling handler " << hexpointer(this));
             error_code ec;
             handler_(ec);
 
+            LOG_DEBUG_MSG("sender done() deregistering memory " << hexpointer(this));
             if (uct_mem_ != nullptr)
             {
                 uct_md_mem_dereg(context_.pd_, uct_mem_);
                 uct_mem_ = nullptr;
             }
 
+            LOG_DEBUG_MSG("sender done() clear buffer " << hexpointer(this));
             buffer_.clear();
 
-            // This is needed to keep ourselv alive long enough...
+            // This is needed to keep ourself alive long enough...
+            LOG_DEBUG_MSG("sender done() swapping pointers " << hexpointer(this));
             std::shared_ptr<sender> res;
             std::swap(this_, res);
 
+            LOG_DEBUG_MSG("sender postprocess_handler_ " << hexpointer(this));
             postprocess_handler_(ec, there_, res);
-
             return res;
         }
 

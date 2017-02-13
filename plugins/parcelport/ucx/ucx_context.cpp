@@ -130,6 +130,7 @@ namespace hpx { namespace parcelset { namespace policies { namespace ucx
                         LOG_DEBUG_MSG("found RDMA transport: "
                             << iface_params.dev_name << ":"
                             << iface_params.tl_name);
+                        print_iface = true;
                         rma_iface_ = iface;
                         std::memcpy(&rma_iface_attr_, &iface_attr, sizeof(iface_attr));
                     }
