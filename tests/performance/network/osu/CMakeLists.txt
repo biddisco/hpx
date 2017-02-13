@@ -6,14 +6,14 @@
 #------------------------------------------------------------------------------
 # OFED verbs stack
 #------------------------------------------------------------------------------
-find_package(IB_VERBS REQUIRED)
+find_package(IB_VERBS QUIET)
 
 #------------------------------------------------------------------------------
 # RDMA_CM
 #------------------------------------------------------------------------------
-find_package(RDMA_CM REQUIRED)
+find_package(RDMA_CM QUIET)
 
-
+if(IB_VERBS_FOUND)
   # add example executable
   add_hpx_executable(osu_temp
                      SOURCES osu_temp.cpp
@@ -26,6 +26,7 @@ find_package(RDMA_CM REQUIRED)
     target_link_libraries(rc_pingpong
             "${IB_VERBS_LIBRARIES}"
     "${RDMA_CM_LIBRARIES}")
+endif()
 
 set(benchmarks
     osu_bibw
