@@ -37,6 +37,7 @@ find_package(Boost
   regex
   system
   thread
+  log
   ${HPX_BOOST_LOG_LIBS}
   )
 

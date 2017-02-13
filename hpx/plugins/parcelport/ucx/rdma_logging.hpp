@@ -6,6 +6,9 @@
 #ifndef HPX_PARCELSET_POLICIES_VERBS_RDMA_LOGGING
 #define HPX_PARCELSET_POLICIES_VERBS_RDMA_LOGGING
 
+#define BOOST_LOG_DYN_LINK
+#define HPX_PARCELPORT_VERBS_HAVE_DEV_MODE
+
 #include <sstream>
 #include <iostream>
 #include <iomanip>
@@ -15,7 +18,7 @@
 #include <hpx/config.hpp>
 #include <hpx/runtime/threads/thread.hpp>
 //
-#include <hpx/config/parcelport_verbs_defines.hpp>
+//#include <hpx/config/parcelport_verbs_defines.hpp>
 //
 #include <boost/log/trivial.hpp>
 #include <boost/preprocessor.hpp>
