@@ -7,12 +7,11 @@
 # We explicitly disable ibverbs and ipc for now as they don't work currently
 
 set(parcelport_plugins
+  libfabric
   verbs
   mpi
   tcp
   ucx)
-
-add_subdirectory(libfabric)
 
 set(HPX_STATIC_PARCELPORT_PLUGINS "" CACHE INTERNAL "" FORCE)
 set(HPX_STATIC_PARCELPORT_PLUGINS_SOURCES "" CACHE INTERNAL "" FORCE)
@@ -92,12 +91,10 @@ macro(add_static_parcelports)
   add_parcelport_tcp_module()
   add_parcelport_ucx_module()
   add_parcelport_verbs_module()
+  add_parcelport_libfabric_module()
 endmacro()
 
 macro(add_parcelport_modules)
-  #add_parcelport_ibverbs_module()
-  #add_parcelport_ipc_module()
-
   hpx_debug("creating static_parcelports.hpp: " ${HPX_STATIC_PARCELPORT_PLUGINS})
 
   set(_parcelport_export)

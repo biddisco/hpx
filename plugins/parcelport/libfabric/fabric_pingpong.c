@@ -29,8 +29,6 @@
  * SOFTWARE.
  */
 
-#include <config.h>
-
 #include <time.h>
 #include <unistd.h>
 #include <arpa/inet.h>
@@ -58,6 +56,12 @@
 #include <rdma/fi_endpoint.h>
 #include <rdma/fi_eq.h>
 #include <rdma/fi_errno.h>
+
+#ifdef HPX_HAVE_PARCELPORT_VERBS
+# include "../libfabric/config-verbs.h"
+#else
+# include "../libfabric/config-gni.h"
+#endif
 
 #ifndef PP_FIVERSION
 #define PP_FIVERSION FI_VERSION(1, 4)
@@ -120,7 +124,7 @@ struct pp_opts {
     fprintf(stderr, "[%s] %s:%-4d: " fmt "\n", "error", __FILE__,          \
         __LINE__, ##__VA_ARGS__)
 
-int pp_debug;
+int pp_debug = 1;
 
 #define PP_DEBUG(fmt, ...)                                                     \
     do {                                                                   \
@@ -253,7 +257,7 @@ int size_to_count(int size)
 void pp_banner_fabric_info(struct ct_pingpong *ct)
 {
     PP_DEBUG(
-        "Running pingpong test with the %s endpoint trough a %s provider\n",
+        "Running pingpong test with the %s endpoint through a %s provider\n",
         fi_tostr(&ct->fi->ep_attr->type, FI_TYPE_EP_TYPE),
         ct->fi->fabric_attr->prov_name);
     PP_DEBUG(" * Fabric Attributes:\n");
@@ -295,6 +299,8 @@ void pp_banner_options(struct ct_pingpong *ct)
     else if (opts.options & PP_OPT_SIZE)
         snprintf(size_msg, 50, "selected size = %d",
              opts.transfer_size);
+    else
+        snprintf(size_msg, 50, "nasty bug");
 
     if (opts.options & PP_OPT_ITER)
         snprintf(iter_msg, 50, "selected iterations: %d",
@@ -493,6 +499,7 @@ int pp_ctrl_init(struct ct_pingpong *ct)
     if (ct->opts.dst_addr) {
         if (ct->opts.dst_port == 0)
             ct->opts.dst_port = default_ctrl;
+        usleep(1000000);
         ret = pp_ctrl_init_client(ct);
     } else {
         if (ct->opts.src_port == 0)
@@ -602,6 +609,7 @@ int pp_recv_name(struct ct_pingpong *ct)
         return ret;
 
     len = ntohl(len);
+    PP_DEBUG("Got a length of %d ", len);
 
     if (len > sizeof(ct->rem_name)) {
         PP_DEBUG("Address length exceeds address storage\n");
@@ -612,7 +620,24 @@ int pp_recv_name(struct ct_pingpong *ct)
     ret = pp_ctrl_recv(ct, ct->rem_name, len);
     if (ret < 0)
         return ret;
-    PP_DEBUG("Received name\n");
+    PP_DEBUG("Received name %s \n", ct->rem_name);
+    PP_DEBUG("Received name %d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d\n",
+    (int) ((uint8_t*) &ct->rem_name)[0],
+    (int) ((uint8_t*) &ct->rem_name)[1],
+    (int) ((uint8_t*) &ct->rem_name)[2],
+    (int) ((uint8_t*) &ct->rem_name)[3],
+    (int) ((uint8_t*) &ct->rem_name)[4],
+    (int) ((uint8_t*) &ct->rem_name)[5],
+    (int) ((uint8_t*) &ct->rem_name)[6],
+    (int) ((uint8_t*) &ct->rem_name)[7],
+    (int) ((uint8_t*) &ct->rem_name)[8],
+    (int) ((uint8_t*) &ct->rem_name)[9],
+    (int) ((uint8_t*) &ct->rem_name)[10],
+    (int) ((uint8_t*) &ct->rem_name)[11],
+    (int) ((uint8_t*) &ct->rem_name)[12],
+    (int) ((uint8_t*) &ct->rem_name)[13],
+    (int) ((uint8_t*) &ct->rem_name)[14],
+    (int) ((uint8_t*) &ct->rem_name)[15]);
 
     ct->hints->dest_addr = malloc(len);
     if (!ct->hints->dest_addr) {
@@ -2111,7 +2136,7 @@ static int run_pingpong_msg(struct ct_pingpong *ct)
 
     if (ret)
         return ret;
-
+printf("\nRunning MSG pinpong\n\n");
     ret = run_suite_pingpong(ct);
     if (ret)
         goto out;
