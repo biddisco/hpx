@@ -15,7 +15,7 @@
 
 // Includes
 #ifdef HPX_PARCELPORT_VERBS_HAVE_LOGGING
-#  include <plugins/parcelport/verbs/rdma/rdma_logging.hpp>
+#  include <plugins/parcelport/parcelport_logging.hpp>
 #else
 #  define LOG_DEBUG_MSG(x)
 #endif
