@@ -1367,6 +1367,7 @@ int pp_open_fabric_res(struct ct_pingpong *ct)
         return ret;
     }
 
+    PP_DEBUG("Creating domain");
     ret = fi_domain(ct->fabric, ct->fi, &(ct->domain), NULL);
     if (ret) {
         PP_PRINTERR("fi_domain", ret);
@@ -1434,7 +1435,7 @@ int pp_getinfo(struct ct_pingpong *ct, struct fi_info *hints,
 
     if (!hints->ep_attr->type)
         hints->ep_attr->type = FI_EP_DGRAM;
-
+    PP_DEBUG("Calling getinfo\n");
     ret = fi_getinfo(PP_FIVERSION, NULL, NULL, flags, hints, info);
     if (ret) {
         PP_PRINTERR("fi_getinfo", ret);
@@ -1609,6 +1610,7 @@ int pp_server_connect(struct ct_pingpong *ct)
         goto err;
     }
 
+    PP_DEBUG("Creating domain\n");
     ret = fi_domain(ct->fabric, ct->fi, &(ct->domain), NULL);
     if (ret) {
         PP_PRINTERR("fi_domain", ret);
@@ -1685,6 +1687,25 @@ int pp_client_connect(struct ct_pingpong *ct)
     ret = pp_init_ep(ct);
     if (ret)
         return ret;
+
+    PP_DEBUG("Calling fi_connect \n");
+    PP_DEBUG("using name %d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d:%d\n",
+    (int) ((uint8_t*) &ct->rem_name)[0],
+    (int) ((uint8_t*) &ct->rem_name)[1],
+    (int) ((uint8_t*) &ct->rem_name)[2],
+    (int) ((uint8_t*) &ct->rem_name)[3],
+    (int) ((uint8_t*) &ct->rem_name)[4],
+    (int) ((uint8_t*) &ct->rem_name)[5],
+    (int) ((uint8_t*) &ct->rem_name)[6],
+    (int) ((uint8_t*) &ct->rem_name)[7],
+    (int) ((uint8_t*) &ct->rem_name)[8],
+    (int) ((uint8_t*) &ct->rem_name)[9],
+    (int) ((uint8_t*) &ct->rem_name)[10],
+    (int) ((uint8_t*) &ct->rem_name)[11],
+    (int) ((uint8_t*) &ct->rem_name)[12],
+    (int) ((uint8_t*) &ct->rem_name)[13],
+    (int) ((uint8_t*) &ct->rem_name)[14],
+    (int) ((uint8_t*) &ct->rem_name)[15]);
 
     ret = fi_connect(ct->ep, ct->rem_name, NULL, 0);
     if (ret) {
