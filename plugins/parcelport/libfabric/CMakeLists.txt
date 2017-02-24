@@ -64,22 +64,41 @@ endif()
 #------------------------------------------------------------------------------
 # IB device selection
 #------------------------------------------------------------------------------
-hpx_option(HPX_PARCELPORT_LIBFABRIC_DEVICE STRING
-  "The device name of the iblibfabric capable network adapter (default: mlx5_0)"
-  "mlx5_0" CATEGORY "Parcelport" ADVANCED)
-
-hpx_option(HPX_PARCELPORT_LIBFABRIC_INTERFACE STRING
-  "The interface name of the iblibfabric capable network adapter (default: ib0)"
-  "ib0" CATEGORY "Parcelport" ADVANCED)
+hpx_option(HPX_PARCELPORT_LIBFABRIC_PROVIDER STRING
+  "The provider (verbs/gni/psm2)"
+  "verbs" CATEGORY "Parcelport" ADVANCED)
 
 hpx_add_config_define_namespace(
-    DEFINE HPX_PARCELPORT_LIBFABRIC_DEVICE
-    VALUE  "\"${HPX_PARCELPORT_LIBFABRIC_DEVICE}\""
+    DEFINE HPX_PARCELPORT_LIBFABRIC_PROVIDER
+    VALUE  "\"${HPX_PARCELPORT_LIBFABRIC_PROVIDER}\""
     NAMESPACE parcelport)
 
+if(HPX_PARCELPORT_LIBFABRIC_PROVIDER MATCHES "verbs")
+    hpx_add_config_define_namespace(
+        DEFINE HPX_PARCELPORT_LIBFABRIC_VERBS
+        NAMESPACE parcelport)
+elseif(HPX_PARCELPORT_LIBFABRIC_PROVIDER MATCHES "gni")
+    hpx_add_config_define_namespace(
+        DEFINE HPX_PARCELPORT_LIBFABRIC_GNI
+        NAMESPACE parcelport)
+endif()
+
+hpx_option(HPX_PARCELPORT_LIBFABRIC_DOMAIN STRING
+  "The libfabric domain (leave blank for default"
+  "" CATEGORY "Parcelport" ADVANCED)
+
 hpx_add_config_define_namespace(
-    DEFINE HPX_PARCELPORT_LIBFABRIC_INTERFACE
-    VALUE  "\"${HPX_PARCELPORT_LIBFABRIC_INTERFACE}\""
+    DEFINE HPX_PARCELPORT_LIBFABRIC_DOMAIN
+    VALUE  "\"${HPX_PARCELPORT_LIBFABRIC_DOMAIN}\""
+    NAMESPACE parcelport)
+
+hpx_option(HPX_PARCELPORT_LIBFABRIC_ENDPOINT STRING
+  "The libfabric endpoint type (leave blank for default"
+  "msg" CATEGORY "Parcelport" ADVANCED)
+
+hpx_add_config_define_namespace(
+    DEFINE HPX_PARCELPORT_LIBFABRIC_ENDPOINT
+    VALUE  "\"${HPX_PARCELPORT_LIBFABRIC_ENDPOINT}\""
     NAMESPACE parcelport)
 
 #------------------------------------------------------------------------------
