@@ -533,10 +533,10 @@ namespace hpx { namespace parcelset
             parcelport_impl &this_, locality &dest_, write_handler_type &&f_, parcel&& p)
         {
             error_code ec;
-            std::shared_ptr<connection> sender_connection =
-                this_.connection_handler().create_connection(dest_, ec);
+            connection *sender =
+                this_.connection_handler().get_connection(dest_, ec);
 
-            auto encoded_buffer = sender_connection->get_new_buffer();
+            auto encoded_buffer = sender->get_new_buffer();
             // encode the parcels
             std::size_t num_parcels = encode_parcels(this_, &p, 1,
                 encoded_buffer,
@@ -545,9 +545,9 @@ namespace hpx { namespace parcelset
 
             using hpx::util::placeholders::_1;
 
-            if (sender_connection->parcelport_->async_write(
+            if (sender->parcelport_->async_write(
                 std::move(util::bind(util::one_shot(f_), _1,  std::move(p))),
-                sender_connection.get(),
+                sender,
                 encoded_buffer))
             {
                 // we don't propagate errors for now
