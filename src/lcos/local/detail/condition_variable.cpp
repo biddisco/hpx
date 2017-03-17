@@ -76,16 +76,6 @@ namespace hpx { namespace lcos { namespace local { namespace detail
             queue_.front().id_ = threads::invalid_thread_id_repr;
             queue_.pop_front();
 
-            if (HPX_UNLIKELY(id == threads::invalid_thread_id_repr))
-            {
-                lock.unlock();
-
-                HPX_THROWS_IF(ec, null_thread_id,
-                    "condition_variable::notify_one",
-                    "null thread id encountered");
-                return false;
-            }
-
             bool not_empty = !queue_.empty();
             lock.unlock();
 

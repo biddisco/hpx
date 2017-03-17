@@ -107,13 +107,14 @@ namespace hpx { namespace parallel { namespace util
                         HPX_ASSERT(count_ > count);
 
                         hpx::shared_future<Result1> curr = workitems[1];
-                        workitems[1] = dataflow(hpx::launch::sync,
-                            f2, workitems[0], curr);
 
                         // FIXME: this should really work with executors...
                         finalitems.push_back(dataflow(hpx::launch::sync,
                             //policy.executor(),
                             f3, first_, count_ - count, workitems[0], curr));
+
+                        workitems[1] = dataflow(hpx::launch::sync,
+                            f2, workitems[0], curr);
                     }
 
                     std::size_t parts = workitems.size();
@@ -136,10 +137,10 @@ namespace hpx { namespace parallel { namespace util
                         auto curr = executor_traits::async_execute(
                             policy.executor(), f1, it, size).share();
 
-                        workitems.push_back(dataflow(p, f2, prev, curr));
-
-                        finalitems.push_back(dataflow(p, //olicy.executor(),
+                        finalitems.push_back(dataflow(p, //policy.executor(),
                             f3, it, size, prev, curr));
+
+                        workitems.push_back(dataflow(p, f2, prev, curr));
 
                         ++parts;
                     }
@@ -237,13 +238,13 @@ namespace hpx { namespace parallel { namespace util
                         HPX_ASSERT(count_ > count);
 
                         hpx::shared_future<Result1> curr = workitems[1];
-                        workitems[1] = dataflow(hpx::launch::sync,
-                            f2, workitems[0], curr);
-
                         // FIXME: this should really work with executors...
                         finalitems.push_back(dataflow(hpx::launch::sync,
                             //policy.executor(),
                             f3, first_, count_ - count, workitems[0], curr));
+
+                        workitems[1] = dataflow(hpx::launch::sync,
+                            f2, workitems[0], curr);
                     }
 
                     std::size_t parts = workitems.size();
@@ -266,10 +267,10 @@ namespace hpx { namespace parallel { namespace util
                         auto curr = executor_traits::async_execute(
                             policy.executor(), f1, it, size).share();
 
-                        workitems.push_back(dataflow(p, f2, prev, curr));
-
-                        finalitems.push_back(dataflow(p, //olicy.executor(),
+                        finalitems.push_back(dataflow(p, //policy.executor(),
                             f3, it, size, prev, curr));
+
+                        workitems.push_back(dataflow(p, f2, prev, curr));
 
                         ++parts;
                     }
