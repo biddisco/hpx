@@ -43,7 +43,7 @@ namespace hpx { namespace lcos
 {
     ///////////////////////////////////////////////////////////////////////////
     template <typename T>
-    hpx::future<T> broadcast_here(char const* basename,
+    hpx::future<T> broadcast_recv(char const* basename,
         std::size_t this_site = std::size_t(-1),
         std::size_t generation = std::size_t(-1))
     {
@@ -151,7 +151,7 @@ namespace hpx { namespace lcos
 
     ///////////////////////////////////////////////////////////////////////////
     template <typename T>
-    hpx::future<void> broadcast_there(char const* basename, T && t,
+    hpx::future<void> broadcast_send(char const* basename, T && t,
         std::size_t num_sites = std::size_t(-1),
         std::size_t generation = std::size_t(-1))
     {
