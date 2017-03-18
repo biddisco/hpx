@@ -20,14 +20,14 @@ hpx_add_config_define(HPX_HAVE_PARCELPORT_LIBFABRIC)
 #------------------------------------------------------------------------------
 # OFIWG libfabric stack
 #------------------------------------------------------------------------------
-find_package(Libfabric REQUIRED)
+#find_package(Libfabric REQUIRED)
+include(${CMAKE_CURRENT_SOURCE_DIR}/libfabric/CMakeLists.txt)
 
 #------------------------------------------------------------------------------
 # Logging
 #------------------------------------------------------------------------------
 hpx_option(HPX_PARCELPORT_LIBFABRIC_WITH_LOGGING BOOL
-  "Enable logging in the Verbs ParcelPort \
-   (default: OFF - Warning - severely impacts usability when enabled)"
+  "Enable logging in the Verbs ParcelPort (default: OFF - Warning - severely impacts usability when enabled)"
   OFF CATEGORY "Parcelport" ADVANCED)
 
 if (HPX_PARCELPORT_LIBFABRIC_WITH_LOGGING)
@@ -40,8 +40,7 @@ endif()
 # Development mode (extra logging and customizable tweaks)
 #------------------------------------------------------------------------------
 hpx_option(HPX_PARCELPORT_LIBFABRIC_WITH_DEV_MODE BOOL
-  "Enables some extra logging and debug features in the libfabric parcelport \
-   (default: OFF - Warning - severely impacts usability when enabled)"
+  "Enables some extra logging and debug features in the libfabric parcelport (default: OFF - Warning - severely impacts usability when enabled)"
   OFF CATEGORY "Parcelport" ADVANCED)
 
 if (HPX_PARCELPORT_LIBFABRIC_WITH_DEV_MODE)
@@ -149,8 +148,7 @@ hpx_add_config_define_namespace(
 # Custom Scheduler options
 #------------------------------------------------------------------------------
 hpx_option(HPX_PARCELPORT_LIBFABRIC_USE_CUSTOM_SCHEDULER BOOL
-  "Configure the parcelport to use a custom scheduler \
-   (default: OFF - Warning, experimental, may cause serious program errors)"
+  "Configure the parcelport to use a custom scheduler (default: OFF - Warning, experimental, may cause serious program errors)"
   OFF CATEGORY "Parcelport" ADVANCED)
 
 if (HPX_PARCELPORT_LIBFABRIC_USE_CUSTOM_SCHEDULER)
@@ -163,8 +161,7 @@ endif()
 # Lock checking
 #------------------------------------------------------------------------------
 hpx_option(HPX_PARCELPORT_LIBFABRIC_DEBUG_LOCKS BOOL
-  "Turn on extra log messages for lock/unlock \
-   (default: OFF - Warning, severely impacts performance when enabled)"
+  "Turn on extra log messages for lock/unlock (default: OFF - Warning, severely impacts performance when enabled)"
   OFF CATEGORY "Parcelport" ADVANCED)
 
 if (HPX_PARCELPORT_LIBFABRIC_DEBUG_LOCKS)
@@ -240,11 +237,29 @@ include(HPX_AddLibrary)
 
 # make these variables cache ones so that the macro definitions picks them up correctly
 set(_libfabric_libraries
-    "${LIBFABRIC_LIBRARIES}"
+    "${GNI_LIB}"
     CACHE STRING "" FORCE)
 
 set(_libfabric_include_dirs
     "${LIBFABRIC_INCLUDE_DIRS}"
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/hpxc
+    ${CMAKE_CURRENT_SOURCE_DIR}/libfabric
+    ${CMAKE_CURRENT_SOURCE_DIR}/libfabric/prov/gni
+    ${CMAKE_CURRENT_SOURCE_DIR}/libfabric/prov/gni/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/libfabric/include
+    ${GNI_INCLUDE}
+    CACHE STRING "" FORCE)
+
+set(_libfabric_C_srcs
+    ${libfabric_SRCS}
+    ${libfabric_util_SRCS}
+    ${libfabric_gni_SRCS}
+    CACHE STRING "" FORCE)
+
+set(_parcelport_CXX_srcs
+    ${PROJECT_SOURCE_DIR}/plugins/parcelport/libfabric/parcelport_libfabric.cpp
+    ${PROJECT_SOURCE_DIR}/plugins/parcelport/libfabric/hpxc/src/threads/thread.cpp
     CACHE STRING "" FORCE)
 
 macro(add_parcelport_libfabric_module)
@@ -252,20 +267,28 @@ macro(add_parcelport_libfabric_module)
 
   include_directories(${_libfabric_include_dirs})
 
+  set_source_files_properties(
+    ${_libfabric_C_srcs}
+    PROPERTIES COMPILE_FLAGS "-include \"hpxc/hpxc/pthread_compatibility.h\" -include \"libfabric/config.h\""
+               LANGUAGE C)
+
+  set_source_files_properties(
+    ${_parcelport_CXX_srcs}
+    PROPERTIES COMPILE_FLAGS "-include \"libfabric/config.h\""
+               LANGUAGE CXX)
+
   add_parcelport(libfabric
     STATIC
     SOURCES
-        "${PROJECT_SOURCE_DIR}/plugins/parcelport/libfabric/parcelport_libfabric.cpp"
-    # do we need to declare any of these headers?
-    HEADERS
+        ${_parcelport_CXX_srcs}
+        ${_libfabric_C_srcs}
     DEPENDENCIES
         ${_libfabric_libraries}
     FOLDER
       "Core/Plugins/Parcelport/libfabric")
 endmacro()
 
-include_directories(${LIBFABRIC_INCLUDE_DIRS})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+#include_directories(${LIBFABRIC_INCLUDE_DIRS})
 
 add_executable(fabric_pingpong
   fabric_pingpong.c
