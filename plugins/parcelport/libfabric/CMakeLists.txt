@@ -168,7 +168,7 @@ endif()
 # Lock checking
 #------------------------------------------------------------------------------
 hpx_option(HPX_PARCELPORT_LIBFABRIC_DEBUG_LOCKS BOOL
-  "Turn on extra log messages for lock/unlock  (default: OFF - Warning, severely impacts performance when enabled)"
+  "Turn on extra log messages for lock/unlock (default: OFF - Warning, severely impacts performance when enabled)"
   OFF CATEGORY "Parcelport" ADVANCED)
 
 if (HPX_PARCELPORT_LIBFABRIC_DEBUG_LOCKS)
