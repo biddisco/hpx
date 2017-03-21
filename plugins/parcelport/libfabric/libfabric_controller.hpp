@@ -18,6 +18,9 @@
 //
 #include <plugins/parcelport/parcelport_logging.hpp>
 #include <plugins/parcelport/libfabric/rdma_locks.hpp>
+#include <plugins/parcelport/libfabric/receiver.hpp>
+#include <plugins/parcelport/libfabric/sender.hpp>
+#include <plugins/parcelport/libfabric/rma_receiver.hpp>
 #include <plugins/parcelport/libfabric/locality.hpp>
 //
 #include <plugins/parcelport/unordered_map.hpp>
@@ -93,17 +96,8 @@ namespace libfabric
 
         // we will use just one event queue for all connections
         struct fid_eq     *event_queue_;
-        struct fid_cq     *txcq, *rxcq;
-        struct fid_av     *av;
-
-        struct fi_context tx_ctx, rx_ctx;
-        uint64_t remote_cq_data;
-
-        uint64_t tx_seq, rx_seq, tx_cq_cntr, rx_cq_cntr;
-
-        struct fi_av_attr av_attr;
-        struct fi_eq_attr eq_attr;
-        struct fi_cq_attr cq_attr;
+        struct fid_cq     *txcq_, *rxcq_;
+        struct fid_av     *av_;
 
         bool immediate_;
 
@@ -114,39 +108,25 @@ namespace libfabric
             std::string provider,
             std::string domain,
             std::string endpoint, int port=7910)
+          : fabric_info_(nullptr)
+          , fabric_(nullptr)
+          , fabric_domain_(nullptr)
+          , ep_passive_(nullptr)
+          , ep_active_(nullptr)
+          , ep_shared_rx_cxt_(nullptr)
+          , event_queue_(nullptr)
+            //
+          , txcq_(nullptr)
+          , rxcq_(nullptr)
+          , av_(nullptr)
+            //
+          , immediate_(false)
         {
             FUNC_START_DEBUG_MSG;
-            fabric_info_      = nullptr;
-            fabric_           = nullptr;
-            ep_passive_       = nullptr;
-            ep_active_        = nullptr;
-            event_queue_      = nullptr;
-            fabric_domain_    = nullptr;
-            ep_shared_rx_cxt_ = nullptr;
-            //
-            txcq  = nullptr;
-            rxcq  = nullptr;
-            av    = nullptr;
-            //
-            tx_ctx = {};
-            rx_ctx = {};
-            remote_cq_data = 0;
-            tx_seq = 0;
-            rx_seq = 0;
-            tx_cq_cntr = 0;
-            rx_cq_cntr = 0;
-
-            av_attr = {};
-            eq_attr = {};
-            cq_attr = {};
-            //
-            immediate_          = false;
-            preposted_receives_ = 0;
-            //
             open_fabric(provider, domain, endpoint);
 
             // Create a memory pool for pinned buffers
-            memory_pool_ = std::make_shared<rdma_memory_pool> (fabric_domain_);
+            memory_pool_.reset(new rdma_memory_pool(fabric_domain_));
 
             // setup a passive listener, or an active RDM endpoint
             here_ = create_local_endpoint();
@@ -161,7 +141,8 @@ namespace libfabric
         // clean up all resources
         ~libfabric_controller()
         {
-            memory_pool_->small_.decrement_used_count(preposted_receives_);
+            // Cleaning up receivers to avoid memory leak errors.
+            receivers_.clear();
 
             LOG_DEVEL_MSG("closing fabric_->fid");
             if (fabric_)
@@ -276,9 +257,9 @@ namespace libfabric
             FUNC_END_DEBUG_MSG;
         }
 
-        // --------------------------------------------------------------------
+        // -------------------------------------------------------------------
         // create endpoint and get ready for possible communications
-        void startup()
+        void startup(parcelport *pp)
         {
             FUNC_START_DEBUG_MSG;
             //
@@ -287,13 +268,20 @@ namespace libfabric
 #else
             bind_endpoint_to_queues(ep_passive_);
 #endif
-            refill_client_receives(HPX_PARCELPORT_LIBFABRIC_MAX_PREPOSTS, true);
+            // filling our vector of receivers...
+            std::size_t num_receivers = HPX_PARCELPORT_LIBFABRIC_MAX_PREPOSTS;
+            receivers_.reserve(num_receivers);
+            for(std::size_t i = 0; i != num_receivers; ++i)
+            {
+                receivers_.emplace_back(pp, ep_active_, *memory_pool_);
+            }
         }
 
         // --------------------------------------------------------------------
         void create_event_queue()
         {
             LOG_DEVEL_MSG("Creating event queue");
+            fi_eq_attr eq_attr = {};
             eq_attr.wait_obj = FI_WAIT_NONE;
             int ret = fi_eq_open(fabric_, &eq_attr, &event_queue_, NULL);
             if (ret) throw fabric_error(ret, "fi_eq_open");
@@ -379,21 +367,21 @@ namespace libfabric
         void bind_endpoint_to_queues(struct fid_ep *endpoint)
         {
             int ret;
-            if (av) {
+            if (av_) {
                 LOG_DEBUG_MSG("Binding endpoint to AV");
-                ret = fi_ep_bind(endpoint, &av->fid, 0);
+                ret = fi_ep_bind(endpoint, &av_->fid, 0);
                 if (ret) throw fabric_error(ret, "bind event_queue_");
             }
 
-            if (txcq) {
+            if (txcq_) {
                 LOG_DEBUG_MSG("Binding endpoint to TX CQ");
-                ret = fi_ep_bind(endpoint, &txcq->fid, FI_TRANSMIT);
+                ret = fi_ep_bind(endpoint, &txcq_->fid, FI_TRANSMIT);
                 if (ret) throw fabric_error(ret, "bind txcq");
             }
 
-            if (rxcq) {
+            if (rxcq_) {
                 LOG_DEBUG_MSG("Binding endpoint to RX CQ");
-                ret = fi_ep_bind(endpoint, &rxcq->fid, FI_RECV);
+                ret = fi_ep_bind(endpoint, &rxcq_->fid, FI_RECV);
                 if (ret) throw fabric_error(ret, "rxcq");
             }
 
@@ -495,7 +483,7 @@ namespace libfabric
         {
             // @TODO, disable polling until queues are initialized to avoid this check
             // if queues are not setup, don't poll
-            if (HPX_UNLIKELY(!rxcq)) return 0;
+            if (HPX_UNLIKELY(!rxcq_)) return 0;
             //
             return poll_send_queue() + poll_recv_queue();
         }
@@ -508,7 +496,7 @@ namespace libfabric
 
             int result = 0;
             fi_cq_msg_entry entry;
-            int ret = fi_cq_read(txcq, &entry, 1);
+            int ret = fi_cq_read(txcq_, &entry, 1);
             if (ret>0) {
                 LOG_DEVEL_MSG("Completion txcq wr_id "
                     << fi_tostr(&entry.flags, FI_TYPE_OP_FLAGS)
@@ -516,13 +504,14 @@ namespace libfabric
                     << "context " << hexpointer(entry.op_context)
                     << "length " << hexuint32(entry.len));
                 if (entry.flags & FI_RMA) {
-                    LOG_DEBUG_MSG("Received a txcq RMA completion "
-                        << "Context " << hexpointer(entry.op_context));
-                    rdma_completion_function_(entry.op_context, ep_active_, entry.len);
+                    LOG_DEBUG_MSG("Received a txcq RMA completion");
+                    rma_receiver* rcv = reinterpret_cast<rma_receiver*>(entry.op_context);
+                    rcv->handle_read_completion();
                 }
                 else if (entry.flags == (FI_MSG | FI_SEND)) {
-                    LOG_DEBUG_MSG("Received a txcq MSG send completion");
-                    send_completion_function_(entry.op_context, ep_active_, entry.len);
+                    LOG_DEBUG_MSG("Received a txcq RMA send completion");
+                    sender* handler = reinterpret_cast<sender*>(entry.op_context);
+                    handler->handle_send_completion();
                 }
                 else {
                     LOG_DEVEL_MSG("$$$$$ Received an unknown txcq completion ***** "
@@ -538,7 +527,7 @@ namespace libfabric
             else if (ret<0) {
                 struct fi_cq_err_entry e = {};
                 int err_sz = 0;
-                err_sz = fi_cq_readerr(txcq, &e ,0);
+                err_sz = fi_cq_readerr(txcq_, &e ,0);
                 LOG_ERROR_MSG("txcq Error with flags " << e.flags << " len " << e.len);
                 throw fabric_error(ret, "completion txcq read");
             }
@@ -556,7 +545,7 @@ namespace libfabric
             fi_cq_msg_entry entry;
 
             // receives use fi_cq_readfrom as we want the source address
-            int ret = fi_cq_readfrom(rxcq, &entry, 1, &src_addr);
+            int ret = fi_cq_readfrom(rxcq_, &entry, 1, &src_addr);
             if (ret>0) {
                 LOG_DEVEL_MSG("Completion rxcq wr_id "
                     << fi_tostr(&entry.flags, FI_TYPE_OP_FLAGS)
@@ -569,14 +558,12 @@ namespace libfabric
                     LOG_DEVEL_MSG("Source address not available...\n");
                     std::terminate();
                 }
+//                     if ((entry.flags & FI_RMA) == FI_RMA) {
+//                         LOG_DEVEL_MSG("Received an rxcq RMA completion");
+//                     }
                 else if (entry.flags == (FI_MSG | FI_RECV)) {
-                    // a receive has been consumed
-                    --preposted_receives_;
-                    LOG_DEVEL_MSG("Received an rxcq recv completion "
-                        << hexpointer(entry.op_context));
-                    refill_client_receives(HPX_PARCELPORT_LIBFABRIC_MAX_PREPOSTS, false);
-                    recv_completion_function_(entry.op_context,
-                        ep_active_, entry.len, src_addr);
+                    LOG_DEVEL_MSG("Received an rxcq recv completion" << entry.op_context);
+                    reinterpret_cast<receiver *>(entry.op_context)->handle_recv(src_addr, entry.len);
                 }
                 else {
                     LOG_DEVEL_MSG("Received an unknown rxcq completion "
@@ -592,7 +579,7 @@ namespace libfabric
             else if (ret<0) {
                 struct fi_cq_err_entry e = {};
                 int err_sz = 0;
-                err_sz = fi_cq_readerr(rxcq, &e ,0);
+                err_sz = fi_cq_readerr(rxcq_, &e ,0);
                 LOG_ERROR_MSG("rxcq Error with flags " << e.flags << " len " << e.len);
                 throw fabric_error(ret, "completion rxcq read");
             }
@@ -720,61 +707,8 @@ namespace libfabric
         }
 
         // --------------------------------------------------------------------
-        inline rdma_memory_pool_ptr get_memory_pool() {
-            return memory_pool_;
-        }
-
-        // --------------------------------------------------------------------
-        typedef std::function<void(void* region, struct fid_ep *client, uint32_t len)>
-            CompletionFunctionSend;
-        typedef std::function<void(void* region, struct fid_ep *client, uint32_t len,
-            fi_addr_t src)> CompletionFunctionRecv;
-        typedef std::function<void(void* region, struct fid_ep *client,
-            fi_addr_t src)> CompletionFunctionRdma;
-
-        void setSendCompletionFunction(CompletionFunctionSend f) {
-            send_completion_function_ = f;
-        }
-        void setRecvCompletionFunction(CompletionFunctionRecv f) {
-            recv_completion_function_ = f;
-        }
-        void setRDMACompletionFunction(CompletionFunctionRdma f) {
-            rdma_completion_function_ = f;
-        }
-
-        // ---------------------------------------------------------------------------
-        // The number of outstanding work requests
-        inline uint32_t get_receive_count() const { return preposted_receives_; }
-
-        // ---------------------------------------------------------------------------
-        void refill_client_receives(unsigned int preposts, bool force=true)
-        {
-            FUNC_START_DEBUG_MSG;
-            LOG_DEBUG_MSG("Entering refill " << hexpointer(memory_pool_.get())
-                << "size of waiting receives is "
-                << decnumber(preposted_receives_));
-
-#ifdef HPX_PARCELPORT_LIBFABRIC_ENDPOINT_RDM
-            struct fid_ep *endpoint = ep_active_;
-#else
-            struct fid_ep *endpoint = ep_shared_rx_cxt_;
-#endif
-            while (preposted_receives_<preposts) {
-                if (!memory_pool_->can_allocate_unsafe(memory_pool_->small_.chunk_size()) && !force) {
-                    return;
-                }
-                ++preposted_receives_;
-                auto region = memory_pool_->allocate_region(memory_pool_->small_.chunk_size());
-                void *desc = region->get_desc();
-                LOG_TRACE_MSG("Pre-Posting a receive to client size "
-                    << hexnumber(memory_pool_->small_.chunk_size())
-                    << " descriptor " << hexpointer(desc));
-                int ret = fi_recv(endpoint, region->get_address(), region->get_size(), desc, 0, region);
-                if (ret!=0 && ret != -FI_EAGAIN) {
-                    throw fabric_error(ret, "pp_post_rx");
-                }
-            }
-            FUNC_END_DEBUG_MSG;
+        inline rdma_memory_pool& get_memory_pool() {
+            return *memory_pool_;
         }
 
         // --------------------------------------------------------------------
@@ -785,11 +719,13 @@ namespace libfabric
             // only one thread must be allowed to create queues,
             // and it is only required once
             scoped_lock lock(initialization_mutex_);
-            if (txcq!=nullptr || rxcq!=nullptr || av!=nullptr) {
+            if (txcq_!=nullptr || rxcq_!=nullptr || av_!=nullptr) {
                 return;
             }
 
             int ret;
+
+            fi_cq_attr cq_attr = {};
             // @TODO - why do we check this
 //             if (cq_attr.format == FI_CQ_FORMAT_UNSPEC) {
                 LOG_DEVEL_MSG("Setting CQ attribute to FI_CQ_FORMAT_MSG");
@@ -802,15 +738,17 @@ namespace libfabric
             info->tx_attr->op_flags |= FI_COMPLETION;
             cq_attr.flags = 0;//|= FI_COMPLETION;
             LOG_DEBUG_MSG("Creating CQ with tx size " << decnumber(info->tx_attr->size));
-            ret = fi_cq_open(fabric_domain_, &cq_attr, &txcq, &txcq);
+            ret = fi_cq_open(fabric_domain_, &cq_attr, &txcq_, &txcq_);
             if (ret) throw fabric_error(ret, "fi_cq_open");
 
             // open a completion queue on our fabric domain and set context ptr to rx queue
             cq_attr.size = info->rx_attr->size;
             LOG_DEBUG_MSG("Creating CQ with rx size " << decnumber(info->rx_attr->size));
-            ret = fi_cq_open(fabric_domain_, &cq_attr, &rxcq, &rxcq);
+            ret = fi_cq_open(fabric_domain_, &cq_attr, &rxcq_, &rxcq_);
             if (ret) throw fabric_error(ret, "fi_cq_open");
 
+
+            fi_av_attr av_attr = {};
             if (info->ep_attr->type == FI_EP_RDM || info->ep_attr->type == FI_EP_DGRAM) {
                 if (info->domain_attr->av_type != FI_AV_UNSPEC)
                     av_attr.type = info->domain_attr->av_type;
@@ -821,7 +759,7 @@ namespace libfabric
                 }
 
                 LOG_DEVEL_MSG("Creating address vector ");
-                ret = fi_av_open(fabric_domain_, &av_attr, &av, NULL);
+                ret = fi_av_open(fabric_domain_, &av_attr, &av_, NULL);
                 if (ret) throw fabric_error(ret, "fi_av_open");
             }
             FUNC_END_DEBUG_MSG;
@@ -876,7 +814,7 @@ namespace libfabric
             LOG_DEVEL_MSG("inserting address in vector "
                 << ipaddress(remote.ip_address()));
             fi_addr_t result = 0xffffffff;
-            int ret = fi_av_insert(av, remote.fabric_data(), 1, &result, 0, nullptr);
+            int ret = fi_av_insert(av_, remote.fabric_data(), 1, &result, 0, nullptr);
             if (ret < 0) {
                 fabric_error(ret, "fi_av_insert");
             }
@@ -965,17 +903,12 @@ namespace libfabric
         ConnectionFunction    connection_function_;
         DisconnectionFunction disconnection_function_;
 
-        // callback function for handling a completion event
-        CompletionFunctionSend send_completion_function_;
-        CompletionFunctionRecv recv_completion_function_;
-        CompletionFunctionRdma rdma_completion_function_;
-
         // Pinned memory pool used for allocating buffers
-        rdma_memory_pool_ptr  memory_pool_;
+        std::unique_ptr<rdma_memory_pool>  memory_pool_;
 
         // Shared completion queue for all endoints
         // Count outstanding receives posted to SRQ + Completion queue
-        std::atomic<uint16_t> preposted_receives_;
+        std::vector<receiver> receivers_;
 
         // only allow one thread to handle connect/disconnect events etc
         mutex_type            initialization_mutex_;
