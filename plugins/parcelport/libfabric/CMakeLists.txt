@@ -30,8 +30,7 @@ endif()
 # Logging
 #------------------------------------------------------------------------------
 hpx_option(HPX_PARCELPORT_LIBFABRIC_WITH_LOGGING BOOL
-  "Enable logging in the Verbs ParcelPort \
-   (default: OFF - Warning - severely impacts usability when enabled)"
+  "Enable logging in the Verbs ParcelPort (default: OFF - Warning - severely impacts usability when enabled)"
   OFF CATEGORY "Parcelport" ADVANCED)
 
 if (HPX_PARCELPORT_LIBFABRIC_WITH_LOGGING)
@@ -44,8 +43,7 @@ endif()
 # Development mode (extra logging and customizable tweaks)
 #------------------------------------------------------------------------------
 hpx_option(HPX_PARCELPORT_LIBFABRIC_WITH_DEV_MODE BOOL
-  "Enables some extra logging and debug features in the libfabric parcelport \
-   (default: OFF - Warning - severely impacts usability when enabled)"
+  "Enables some extra logging and debug features in the libfabric parcelport (default: OFF - Warning - severely impacts usability when enabled)"
   OFF CATEGORY "Parcelport" ADVANCED)
 
 if (HPX_PARCELPORT_LIBFABRIC_WITH_DEV_MODE)
@@ -157,8 +155,7 @@ hpx_add_config_define_namespace(
 # Custom Scheduler options
 #------------------------------------------------------------------------------
 hpx_option(HPX_PARCELPORT_LIBFABRIC_USE_CUSTOM_SCHEDULER BOOL
-  "Configure the parcelport to use a custom scheduler \
-   (default: OFF - Warning, experimental, may cause serious program errors)"
+  "Configure the parcelport to use a custom scheduler (default: OFF - Warning, experimental, may cause serious program errors)"
   OFF CATEGORY "Parcelport" ADVANCED)
 
 if (HPX_PARCELPORT_LIBFABRIC_USE_CUSTOM_SCHEDULER)
@@ -171,8 +168,7 @@ endif()
 # Lock checking
 #------------------------------------------------------------------------------
 hpx_option(HPX_PARCELPORT_LIBFABRIC_DEBUG_LOCKS BOOL
-  "Turn on extra log messages for lock/unlock \
-   (default: OFF - Warning, severely impacts performance when enabled)"
+  "Turn on extra log messages for lock/unlock  (default: OFF - Warning, severely impacts performance when enabled)"
   OFF CATEGORY "Parcelport" ADVANCED)
 
 if (HPX_PARCELPORT_LIBFABRIC_DEBUG_LOCKS)
@@ -251,6 +247,9 @@ include(HPX_AddLibrary)
 
 set(_parcelport_CXX_srcs
   "${PROJECT_SOURCE_DIR}/plugins/parcelport/libfabric/parcelport_libfabric.cpp"
+  "${PROJECT_SOURCE_DIR}/plugins/parcelport/libfabric/receiver.cpp"
+  "${PROJECT_SOURCE_DIR}/plugins/parcelport/libfabric/rma_receiver.cpp"
+  "${PROJECT_SOURCE_DIR}/plugins/parcelport/libfabric/sender.cpp"
   CACHE INTERNAL "" FORCE)
 
 set(_hpxc_CXX_srcs          "" CACHE INTERNAL "" FORCE)
