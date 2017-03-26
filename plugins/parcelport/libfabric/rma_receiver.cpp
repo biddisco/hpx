@@ -90,6 +90,9 @@ namespace libfabric
                 << " tag " << hexuint64(header_->tag())
         );
 
+        LOG_DEBUG_MSG(
+            CRC32_MEM(header_, header_->header_length(), "Header region (recv)"));
+
         if (!header_->piggy_back())
         {
             ++rma_count;
@@ -240,6 +243,11 @@ namespace libfabric
         HPX_ASSERT(header_);
         char *piggy_back = header_->piggy_back();
         HPX_ASSERT(piggy_back);
+
+        LOG_DEBUG_MSG(
+            CRC32_MEM(piggy_back, header_->size(),
+                "(Message region recv piggybacked - no rdma)"));
+
         rcv_data_type wrapped_pointer(piggy_back, header_->size(),
             [this]()
             {
@@ -279,21 +287,33 @@ namespace libfabric
             message = static_cast<char *>(message_region_->get_address());
             HPX_ASSERT(message);
             HPX_ASSERT(message_region_->get_message_length() == header_->size());
-            LOG_DEBUG_MSG("No piggy_back message, RDMA GET : "
-                << hexpointer(message_region_)
-                << " length " << decnumber(message_length));
+            LOG_DEBUG_MSG("No piggy_back RDMA message "
+                << "region " << hexpointer(message_region_)
+                << "address " << hexpointer(message_region_->get_address())
+                << "length " << hexuint32(message_length));
+
+            LOG_DEBUG_MSG(
+                CRC32_MEM(message, message_length, "Message region (recv rdma)"));
         }
         else
         {
             HPX_ASSERT(header_->piggy_back());
             message = header_->piggy_back();
+            LOG_DEBUG_MSG(CRC32_MEM(message, message_length,
+                "Message region (recv piggyback with rdma)"));
+        }
+
+        for (auto &r : rma_regions_)
+        {
+            LOG_DEBUG_MSG(CRC32_MEM(r->get_address(), r->get_message_length(),
+                "rdma region (recv) "));
         }
 
         typedef pinned_memory_vector<char, header_size> rcv_data_type;
         typedef parcel_buffer<rcv_data_type, std::vector<char>> rcv_buffer_type;
 
         rcv_data_type wrapped_pointer(message, message_length,
-            [this]()
+            [this, message, message_length]()
             {
                 send_ack();
                 for (auto region: rma_regions_)
@@ -305,6 +325,8 @@ namespace libfabric
                 header_region_ = nullptr;
                 if (message_region_)
                 {
+                    LOG_DEBUG_MSG(
+                        CRC32_MEM(message, message_length, "Message region (rma_receiver delete)"));
                     memory_pool_->deallocate(message_region_);
                     message_region_ = nullptr;
                 }

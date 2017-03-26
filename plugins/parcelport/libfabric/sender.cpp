@@ -78,6 +78,12 @@ namespace libfabric
                     << hexpointer(zero_copy_region->get_address())
                     << " and rkey " << hexpointer(c.rkey_));
                 rma_regions_.push_back(zero_copy_region);
+
+                LOG_DEBUG_MSG(
+                    CRC32_MEM(zero_copy_region->get_address(),
+                        zero_copy_region->get_message_length(),
+                        "zero_copy_region (send) "));
+
             }
             index++;
         }
@@ -134,17 +140,32 @@ namespace libfabric
         if (header_->piggy_back()) {
             LOG_DEBUG_MSG("Main message is piggybacked");
             num_regions += 1;
+
+            LOG_DEBUG_MSG(CRC32_MEM(header_region_->get_address(),
+                header_region_->get_message_length(),
+                "Header region (send piggyback)"));
+
+            LOG_DEBUG_MSG(CRC32_MEM(message_region_->get_address(),
+                message_region_->get_message_length(),
+                "Message region (send piggyback)"));
         }
         else {
             LOG_DEBUG_MSG("Main message NOT piggybacked ");
 
             header_->set_message_rdma_key(message_region_->get_remote_key());
             header_->set_message_rdma_addr(message_region_->get_address());
-//             std::cout << "sending message to " << header_->get_message_rdma_addr() << " " << header_->get_message_rdma_key() << "\n";
 
             LOG_DEBUG_MSG("RDMA message " << hexnumber(buffer_.data_.size())
                 << "desc " << hexnumber(message_region_->get_desc())
-                << "pos " << hexpointer(message_region_->get_address()));
+                << "addr " << hexpointer(message_region_->get_address()));
+
+            LOG_DEBUG_MSG(CRC32_MEM(header_region_->get_address(),
+                header_region_->get_message_length(),
+                "Header region (send)"));
+
+            LOG_DEBUG_MSG(CRC32_MEM(message_region_->get_address(),
+                message_region_->get_message_length(),
+                "Message region (send rdma fetch)"));
         }
 
         // send the header/main_chunk to the destination,
@@ -251,15 +272,23 @@ namespace libfabric
         error_code ec;
         handler_(ec);
 
+        // Why does deleting the message region cause problems?
+        LOG_DEBUG_MSG(
+            CRC32_MEM(message_region_->get_address(), message_region_->get_message_length(), "Message region (sender delete)"));
+        std::fill(message_region_->get_address(), message_region_->get_address()+message_region_->get_message_length(), 255);
+
         memory_pool_->deallocate(message_region_);
         message_region_ = nullptr;
 
+        // release all the RMA regions we were holding on to
         for (auto& region: rma_regions_)
         {
             memory_pool_->deallocate(region);
         }
         rma_regions_.clear();
         header_ = nullptr;
+
+        // put this sender back into the free sender's list
         postprocess_handler_(this);
     }
 
