@@ -141,30 +141,43 @@ namespace libfabric
         // clean up all resources
         ~libfabric_controller()
         {
+            int ret;
             // Cleaning up receivers to avoid memory leak errors.
             receivers_.clear();
 
-            LOG_DEVEL_MSG("closing fabric_->fid");
-            if (fabric_)
-                fi_close(&fabric_->fid);
 #ifdef HPX_PARCELPORT_LIBFABRIC_ENDPOINT_RDM
             LOG_DEVEL_MSG("closing ep_active_->fid");
             if (ep_active_)
                 fi_close(&ep_active_->fid);
 #else
             LOG_DEVEL_MSG("closing ep_passive_->fid");
-            if (ep_passive_)
-                fi_close(&ep_passive_->fid);
+            if (ep_passive_) {
+                ret = fi_close(&ep_passive_->fid);
+                if (ret) throw fabric_error(ret, "ep_passive_ close");
+            }
 #endif
             LOG_DEVEL_MSG("closing event_queue_->fid");
-            if (event_queue_)
-                fi_close(&event_queue_->fid);
+            if (event_queue_) {
+                ret = fi_close(&event_queue_->fid);
+                if (ret) throw fabric_error(ret, "event_queue_ close");
+            }
+
             LOG_DEVEL_MSG("closing fabric_domain_->fid");
-            if (fabric_domain_)
-                fi_close(&fabric_domain_->fid);
+            if (fabric_domain_) {
+                ret = fi_close(&fabric_domain_->fid);
+                if (ret) throw fabric_error(ret, "fabric_domain_ close");
+            }
             LOG_DEVEL_MSG("closing ep_shared_rx_cxt_->fid");
-            if (ep_shared_rx_cxt_)
-                fi_close(&ep_shared_rx_cxt_->fid);
+            if (ep_shared_rx_cxt_) {
+                ret = fi_close(&ep_shared_rx_cxt_->fid);
+                if (ret) throw fabric_error(ret, "ep_shared_rx_cxt_ close");
+            }
+            LOG_DEVEL_MSG("closing fabric_->fid");
+            if (fabric_) {
+                fi_close(&fabric_->fid);
+                ret = fi_close(&fabric_->fid);
+                if (ret) throw fabric_error(ret, "fabric_ close");
+            }
             // clean up
             LOG_DEVEL_MSG("freeing fabric_info");
             fi_freeinfo(fabric_info_);
