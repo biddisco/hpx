@@ -106,7 +106,7 @@ namespace libfabric
         // --------------------------------------------------------------------
         libfabric_controller_ptr libfabric_controller_;
 
-        // our local ip address (estimated based on fabric PP adress info)
+        // our local ip address (estimated based on fabric PP address info)
         uint32_t ip_addr_;
 
         // Not currently working, we support bootstrapping, but when not enabled
@@ -120,6 +120,7 @@ namespace libfabric
 
         typedef header<HPX_PARCELPORT_LIBFABRIC_MESSAGE_HEADER_SIZE> header_type;
         static constexpr unsigned int header_size = header_type::header_block_size;
+        //
         typedef rdma_memory_pool                                   memory_pool_type;
         typedef pinned_memory_vector<char, header_size>            snd_data_type;
         typedef parcel_buffer<snd_data_type>                       snd_buffer_type;
@@ -137,6 +138,7 @@ namespace libfabric
         // These are counters that are used for flow control so that we can throttle
         // send tasks when too many messages have been posted.
         std::atomic<unsigned int> active_send_count_;
+
         // Used to help with shutdown
         std::atomic<bool>         stopped_;
 
@@ -276,31 +278,5 @@ struct plugin_config_data<hpx::parcelset::policies::libfabric::parcelport> {
     }
 };
 }}
-
-/*
-            libfabric_controller_->for_each_client(
-                [](std::pair<uint32_t, libfabric_endpoint_ptr> clientpair)
-                {
-                libfabric_endpoint* client = clientpair.second.get();
-                LOG_TIMED_INIT(clientlog);
-                LOG_TIMED_MSG(clientlog, DEVEL, 0.1,
-                    "internal reported, \n"
-                    << "recv " << decnumber(client->get_total_posted_recv_count()) << "\n"
-                    << "send " << decnumber(client->get_total_posted_send_count()) << "\n"
-                    << "read " << decnumber(client->get_total_posted_read_count()) << "\n"
-                );
-                }
-            );
-
-            LOG_TIMED_INIT(background);
-            LOG_TIMED_MSG(background, DEVEL, 0.1,
-                "PP reported\n"
-                << "actv " << decnumber(active_send_count_) << "\n"
-                << "recv " << decnumber(handled_receives) << "\n"
-                << "send " << decnumber(sends_posted) << "\n"
-                << "read " << decnumber(total_reads) << "\n"
-                << "Total completions " << decnumber(completions_handled)
-                << decnumber(sends_posted+handled_receives+total_reads));
-*/
 
 #endif

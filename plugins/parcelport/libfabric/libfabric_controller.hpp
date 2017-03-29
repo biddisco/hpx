@@ -286,6 +286,7 @@ namespace libfabric
             receivers_.reserve(num_receivers);
             for(std::size_t i = 0; i != num_receivers; ++i)
             {
+                LOG_DEBUG_MSG("Creating a new receiver for preposting recv");
                 receivers_.emplace_back(pp, ep_active_, *memory_pool_);
             }
         }
@@ -495,7 +496,6 @@ namespace libfabric
         }
 
         // --------------------------------------------------------------------
-//         int poll_for_work_completions(unique_lock& lock, bool stopped=false)
         int poll_for_work_completions(bool stopped=false)
         {
             // @TODO, disable polling until queues are initialized to avoid this check
@@ -510,20 +510,11 @@ namespace libfabric
                     LOG_DEVEL_MSG("Polling work completion channel");
                 }
             )
-/*
-struct fi_cq_msg_entry {
-    void     *op_context; // operation context
-    uint64_t flags;       // completion flags
-    size_t   len;         // size of received data
-};
-*/
-            //std::array<char, 256> buffer;
+
             fi_addr_t src_addr;
             fi_cq_msg_entry entry;
             int ret = fi_cq_read(txcq_, &entry, 1);
             if (ret>0) {
-//                 hpx::util::unlock_guard_try<unique_lock> ul(lock);
-                //struct fi_cq_msg_entry *entry = (struct fi_cq_msg_entry *)(buffer.data());
                 LOG_DEVEL_MSG("Completion txcq wr_id "
                     << fi_tostr(&entry.flags, FI_TYPE_OP_FLAGS) << " (" << decnumber(entry.flags) << ") "
                     << hexpointer(entry.op_context) << "length " << hexuint32(entry.len));
@@ -533,14 +524,14 @@ struct fi_cq_msg_entry {
                     rcv->handle_read_completion();
                 }
                 else if (entry.flags == (FI_MSG | FI_SEND)) {
-                    LOG_DEBUG_MSG("Received a txcq RMA send completion");
+                    LOG_DEBUG_MSG("Received a txcq MSG send completion");
                     sender* handler = reinterpret_cast<sender*>(entry.op_context);
                     handler->handle_send_completion();
                 }
                 else {
                     LOG_DEVEL_MSG("$$$$$ Received an unknown txcq completion ***** "
                         << decnumber(entry.flags));
-//                     std::terminate();
+                    std::terminate();
                 }
                 result = 1;
             }
@@ -556,8 +547,6 @@ struct fi_cq_msg_entry {
                 throw fabric_error(ret, "completion txcq read");
             }
 
-//             if (!lock) return 0;
-
             // receives will use fi_cq_readfrom as we want the source address
             ret = fi_cq_readfrom(rxcq_, &entry, 1, &src_addr);
             if (ret>0) {
@@ -566,8 +555,6 @@ struct fi_cq_msg_entry {
                     << " source " << hexpointer(src_addr)
                     << "context " << hexpointer(entry.op_context)
                     << "length " << hexuint32(entry.len));
-//                void *client = reinterpret_cast<libfabric_memory_region*>
-//                    (entry.op_context)->get_user_data();
                 if (src_addr == FI_ADDR_NOTAVAIL)
                 {
                     LOG_DEVEL_MSG("Source address not available...\n");
@@ -577,7 +564,7 @@ struct fi_cq_msg_entry {
 //                         LOG_DEVEL_MSG("Received an rxcq RMA completion");
 //                     }
                 else if (entry.flags == (FI_MSG | FI_RECV)) {
-                    LOG_DEVEL_MSG("Received an rxcq recv completion" << entry.op_context);
+                    LOG_DEVEL_MSG("Received an rxcq recv completion " << entry.op_context);
                     reinterpret_cast<receiver *>(entry.op_context)->handle_recv(src_addr, entry.len);
                 }
                 else {
@@ -612,9 +599,7 @@ struct fi_cq_msg_entry {
                 }
             )
             struct fi_eq_cm_entry *cm_entry;
-//             struct fi_eq_entry    *entry;
             struct fid_ep         *new_ep;
-//             uint32_t *addr;
             uint32_t event;
             std::array<char, 256> buffer;
             ssize_t rd = fi_eq_read(event_queue_, &event, buffer.data(), sizeof(buffer), 0);

@@ -45,6 +45,9 @@
 // elements within the parcelport. This can reduce some memory allocations
 #define HPX_PARCELPORT_LIBFABRIC_USE_SMALL_VECTOR    true
 
+// until we implement immediate data, or counted rdma send completions
+// we will use a small message returned to the sender to signal ok
+// to release buffers.
 #define HPX_PARCELPORT_LIBFABRIC_IMM_UNSUPPORTED 1
 
 // --------------------------------------------------------------------
@@ -167,9 +170,11 @@ namespace libfabric
                     chunk_pool_);
             snd->postprocess_handler_ = [this](sender* s)
                 {
+                    LOG_DEBUG_MSG("Pushed a sender " << hexpointer(s));
                     senders_.push(s);
                 };
-           senders_.push(snd);
+            LOG_DEBUG_MSG("Pushed a sender " << hexpointer(snd));
+            senders_.push(snd);
         }
 
         return true;
@@ -182,10 +187,11 @@ namespace libfabric
     sender* parcelport::get_connection(
         parcelset::locality const& dest, fi_addr_t &fi_addr)
     {
+        FUNC_START_DEBUG_MSG;
         sender* snd = nullptr;
         if (senders_.pop(snd))
         {
-            FUNC_START_DEBUG_MSG;
+            LOG_DEBUG_MSG("Popped a sender " << hexpointer(snd));
             const locality &fabric_locality = dest.get<locality>();
             LOG_DEBUG_MSG("get_fabric_address           from "
                 << ipaddress(here_.get<locality>().ip_address()) << "to "
@@ -194,6 +200,7 @@ namespace libfabric
             FUNC_END_DEBUG_MSG;
             return snd;
         }
+        FUNC_END_DEBUG_MSG;
         return nullptr;
     }
 
@@ -219,8 +226,10 @@ namespace libfabric
         FUNC_START_DEBUG_MSG;
         scoped_lock lk(stop_mutex);
         sender *snd = nullptr;
-        while (senders_.pop(snd))
+        while (senders_.pop(snd)) {
+            LOG_DEBUG_MSG("Popped a sender for delete " << hexpointer(snd));
             delete snd;
+        }
         libfabric_controller_ = nullptr;
         FUNC_END_DEBUG_MSG;
     }
@@ -316,6 +325,7 @@ namespace libfabric
         sender *snd, fi_addr_t addr,
         snd_buffer_type &buffer)
     {
+        LOG_DEBUG_MSG("parcelport::async_write");
         snd->dst_addr_ = addr;
         snd->buffer_ = std::move(buffer);
         snd->handler_ = std::forward<Handler>(handler);

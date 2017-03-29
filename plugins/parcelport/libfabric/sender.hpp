@@ -50,7 +50,7 @@ namespace libfabric
             message_region_(nullptr),
             completion_count_(0)
         {
-            LOG_DEVEL_MSG("Create sender: " << this);
+            LOG_DEVEL_MSG("Create sender: " << hexpointer(this));
         }
 
         ~sender()
@@ -62,6 +62,7 @@ namespace libfabric
 
         snd_buffer_type get_new_buffer()
         {
+            LOG_DEBUG_MSG("Returning a new buffer object from sender " << hexpointer(this));
             return snd_buffer_type(snd_data_type(memory_pool_), memory_pool_);
         }
 
@@ -75,21 +76,23 @@ namespace libfabric
 
         void handle_send_completion();
 
-        void handle_message_completion();
+        void handle_message_completion_ack();
 
         void cleanup();
 
-        parcelport *parcelport_;
-        fid_ep* endpoint_;
-        fid_domain* domain_;
-        rdma_memory_pool* memory_pool_;
-        fi_addr_t dst_addr_;
-
-        snd_buffer_type buffer_;
-        libfabric_memory_region* header_region_;
-        libfabric_memory_region* message_region_;
-        header_type* header_;
+        parcelport                           *parcelport_;
+        fid_ep                               *endpoint_;
+        fid_domain                           *domain_;
+        rdma_memory_pool                     *memory_pool_;
+        fi_addr_t                             dst_addr_;
+        snd_buffer_type                       buffer_;
+        libfabric_memory_region              *header_region_;
+        libfabric_memory_region              *message_region_;
+        header_type                          *header_;
         std::vector<libfabric_memory_region*> rma_regions_;
+        hpx::util::atomic_count               completion_count_;
+        struct iovec                          region_list_[2];
+        void                                 *desc_[2];
 
         util::unique_function_nonser<
             void(
@@ -97,10 +100,7 @@ namespace libfabric
             )
         > handler_;
         util::function_nonser<void(sender*)> postprocess_handler_;
-        hpx::util::atomic_count completion_count_;
 
-        struct iovec region_list_[2];
-        void *desc_[2];
     };
 }}}}
 

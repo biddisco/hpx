@@ -28,7 +28,7 @@ namespace libfabric
     struct receiver
     {
         receiver()
-          : region_(nullptr)
+          : prepost_region_(nullptr)
           , memory_pool_(nullptr)
         {}
 
@@ -44,10 +44,10 @@ namespace libfabric
 
         void post_recv();
 
-        libfabric_memory_region* region_;
-        parcelport* pp_;
-        fid_ep* endpoint_;
-        rdma_memory_pool* memory_pool_;
+        libfabric_memory_region *prepost_region_;
+        parcelport              *pp_;
+        fid_ep                  *endpoint_;
+        rdma_memory_pool        *memory_pool_;
 
         boost::lockfree::stack<
             rma_receiver*,
