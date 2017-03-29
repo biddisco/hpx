@@ -113,6 +113,7 @@ double receive(
     hpx::util::high_resolution_timer t;
 
     message_action msg;
+    skip = 0;
     for (std::size_t i = 0; i != loop + skip; ++i) {
         // do not measure warm up phase
         if (i == skip)
@@ -128,7 +129,7 @@ double receive(
             [&](std::uint64_t j)
             {
                 msg(dest,
-                    buffer_type(send_buffer, size, buffer_type::reference));
+                    buffer_type(send_buffer, size, buffer_type::copy));
             }
         );
     }
@@ -167,14 +168,15 @@ void run_benchmark(boost::program_options::variables_map & vm)
     unsigned long align_size = getpagesize();
     boost::scoped_array<char> send_buffer_orig(new char[max_size + align_size]);
     char* send_buffer = align_buffer(send_buffer_orig.get(), align_size);
-
+    uint32_t *dead_buffer = reinterpret_cast<uint32_t*>(send_buffer);
+    std::fill(dead_buffer, dead_buffer+max_size/4, 0xabba0000);
     // perform actual measurements
     hpx::util::high_resolution_timer timer;
 
     // test for single double
-    double latency = receive_double(there, loop, window_size);
-    hpx::cout << std::left << std::setw(10) << "single double "
-              << latency << hpx::endl << hpx::flush;
+//    double latency = receive_double(there, loop, window_size);
+//    hpx::cout << std::left << std::setw(10) << "single double "
+//              << latency << hpx::endl << hpx::flush;
 
     for (std::size_t size = min_size; size <= max_size; size *= 2)
     {

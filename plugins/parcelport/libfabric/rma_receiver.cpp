@@ -146,6 +146,9 @@ namespace libfabric
             {
                 libfabric_memory_region *get_region =
                     memory_pool_->allocate_region(c.size_);
+                LOG_DEBUG_MSG(
+                    CRC32_MEM(get_region->get_address(), c.size_,
+                        "(RDMA GET region (new))"));
 
                 LOG_DEVEL_MSG("rma_receiver " << hexpointer(this)
                     << "RDMA Get addr " << hexpointer(c.data_.cpos_)
@@ -180,6 +183,12 @@ namespace libfabric
                 ssize_t ret = 0;
                 for (std::size_t k = 0; true; ++k)
                 {
+                    uint32_t *dead_buffer = reinterpret_cast<uint32_t*>(get_region->get_address());
+                    std::fill(dead_buffer, dead_buffer+c.size_/4, 0x01010101);
+                    LOG_DEBUG_MSG(
+                        CRC32_MEM(get_region->get_address(), c.size_,
+                            "(RDMA GET region (pre-fi_read))"));
+
                     ret = fi_read(endpoint_,
                         get_region->get_address(), c.size_, get_region->get_desc(),
                         src_addr_,
@@ -206,10 +215,27 @@ namespace libfabric
         // If the main message was not piggy backed
         if (!piggy_back)
         {
-            std::size_t size = header_->size();
-            message_region_ = memory_pool_->allocate_region(size);
-            message_region_->set_message_length(size);
+            // suspected bug in libfabric : allocated a dummy block before the real one
+            // to change the memory address assigned, just in case it is the same as the
+            // previous completion. libfabric seems to mis-handle the address and signal
+            // a completion without transferring memory
 
+            std::size_t size = header_->size();
+            // @TODO : fix this
+//            auto dummy = new char[size]; // memory_pool_->allocate_region(size);
+            //
+            message_region_ = memory_pool_->allocate_region(size);
+            // @TODO : fix this
+//            delete []dummy; // memory_pool_->deallocate(dummy);
+            //
+            message_region_->set_message_length(size);
+            LOG_EXCLUSIVE(
+            uint32_t *dead_buffer = reinterpret_cast<uint32_t*>(message_region_->get_address());
+            std::fill(dead_buffer, dead_buffer+size/4, 0xFFFFFFFF);
+            LOG_DEBUG_MSG(
+                CRC32_MEM(message_region_->get_address(), size,
+                    "(RDMA message region (pre-fi_read))"));
+            );
             LOG_DEVEL_MSG("rma_receiver " << hexpointer(this)
                 << "RDMA Get fi_read message :"
                 << "client " << hexpointer(endpoint_)
