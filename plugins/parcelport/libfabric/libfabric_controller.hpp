@@ -286,6 +286,7 @@ namespace libfabric
             receivers_.reserve(num_receivers);
             for(std::size_t i = 0; i != num_receivers; ++i)
             {
+                LOG_DEBUG_MSG("Creating a new receiver for preposting recv");
                 receivers_.emplace_back(pp, ep_active_, *memory_pool_);
             }
         }
@@ -507,7 +508,6 @@ namespace libfabric
             LOG_TIMED_INIT(poll);
             LOG_TIMED_BLOCK(poll, DEVEL, 5.0, { LOG_DEVEL_MSG("poll_send_queue"); });
 
-            int result = 0;
             fi_cq_msg_entry entry;
             int ret = fi_cq_read(txcq_, &entry, 1);
             if (ret>0) {
@@ -522,7 +522,7 @@ namespace libfabric
                     rcv->handle_read_completion();
                 }
                 else if (entry.flags == (FI_MSG | FI_SEND)) {
-                    LOG_DEBUG_MSG("Received a txcq RMA send completion");
+                    LOG_DEBUG_MSG("Received a txcq MSG send completion");
                     sender* handler = reinterpret_cast<sender*>(entry.op_context);
                     handler->handle_send_completion();
                 }
@@ -553,11 +553,10 @@ namespace libfabric
             LOG_TIMED_INIT(poll);
             LOG_TIMED_BLOCK(poll, DEVEL, 5.0, { LOG_DEVEL_MSG("poll_recv_queue"); });
 
-            int result = 0;
             fi_addr_t src_addr;
             fi_cq_msg_entry entry;
 
-            // receives use fi_cq_readfrom as we want the source address
+            // receives will use fi_cq_readfrom as we want the source address
             int ret = fi_cq_readfrom(rxcq_, &entry, 1, &src_addr);
             if (ret>0) {
                 LOG_DEVEL_MSG("Completion rxcq wr_id "
@@ -575,7 +574,7 @@ namespace libfabric
 //                         LOG_DEVEL_MSG("Received an rxcq RMA completion");
 //                     }
                 else if (entry.flags == (FI_MSG | FI_RECV)) {
-                    LOG_DEVEL_MSG("Received an rxcq recv completion" << entry.op_context);
+                    LOG_DEVEL_MSG("Received an rxcq recv completion " << entry.op_context);
                     reinterpret_cast<receiver *>(entry.op_context)->handle_recv(src_addr, entry.len);
                 }
                 else {
@@ -583,7 +582,7 @@ namespace libfabric
                         << decnumber(entry.flags));
                     std::terminate();
                 }
-                result = 1;
+                return 1;
             }
             else if (ret==0 || ret==-EAGAIN) {
                 // do nothing, we will try again on the next check
@@ -596,7 +595,7 @@ namespace libfabric
                 LOG_ERROR_MSG("rxcq Error with flags " << e.flags << " len " << e.len);
                 throw fabric_error(ret, "completion rxcq read");
             }
-            return result;
+            return 0;
         }
 
         // --------------------------------------------------------------------
@@ -609,9 +608,7 @@ namespace libfabric
                 }
             )
             struct fi_eq_cm_entry *cm_entry;
-//             struct fi_eq_entry    *entry;
             struct fid_ep         *new_ep;
-//             uint32_t *addr;
             uint32_t event;
             std::array<char, 256> buffer;
             ssize_t rd = fi_eq_read(event_queue_, &event, buffer.data(), sizeof(buffer), 0);

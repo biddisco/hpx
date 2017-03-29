@@ -61,7 +61,7 @@ namespace libfabric
 
         void handle_read_completion();
 
-        void send_ack();
+        void send_rdma_complete_ack();
 
     private:
         parcelport* pp_;

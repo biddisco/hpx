@@ -10,6 +10,7 @@
 #include <plugins/parcelport/libfabric/header.hpp>
 #include <plugins/parcelport/libfabric/sender.hpp>
 
+#include <hpx/util/high_resolution_timer.hpp>
 #include <hpx/util/atomic_count.hpp>
 #include <hpx/util/unique_function.hpp>
 #include <hpx/util/detail/yield_k.hpp>
@@ -29,13 +30,12 @@ namespace libfabric
         HPX_ASSERT(completion_count_ == 0);
         // for each zerocopy chunk, we must create a memory region for the data
         LOG_EXCLUSIVE(
-            for (auto &c : buffer.chunks_) {
+            for (auto &c : buffer_.chunks_) {
             LOG_DEBUG_MSG("write : chunk : size " << hexnumber(c.size_)
-                    << " type " << decnumber((uint64_t)c.type_)
-                    << " rkey " << hexpointer(c.rkey_)
-                    << " cpos " << hexpointer(c.data_.cpos_)
-                    << " pos " << hexpointer(c.data_.pos_)
-                    << " index " << decnumber(c.data_.index_));
+                << " type " << decnumber((uint64_t)c.type_)
+                << " rkey " << hexpointer(c.rkey_)
+                << " cpos " << hexpointer(c.data_.cpos_)
+                << " index " << decnumber(c.data_.index_));
         });
 
         rma_regions_.reserve(buffer_.chunks_.size());
@@ -46,29 +46,13 @@ namespace libfabric
         {
             if (c.type_ == serialization::chunk_type_pointer)
             {
-//                     send_data.has_zero_copy  = true;
-                // if the data chunk fits into a memory block, copy it
                 LOG_EXCLUSIVE(util::high_resolution_timer regtimer);
                 libfabric_memory_region *zero_copy_region;
-//                 if (c.size_<=HPX_PARCELPORT_LIBFABRIC_MEMORY_COPY_THRESHOLD)
-//                 {
-//                     zero_copy_region = memory_pool_->allocate_region((std::max)
-//                       (c.size_, (std::size_t)RDMA_POOL_SMALL_CHUNK_SIZE));
-//                     char *zero_copy_memory =
-//                         (char*)(zero_copy_region->get_address());
-//                     std::memcpy(zero_copy_memory, c.data_.cpos_, c.size_);
-//                     // the pointer in the chunk info must be changed
-//                     buffer_.chunks_[index] = serialization::create_pointer_chunk(
-//                         zero_copy_memory, c.size_);
-//                     LOG_DEBUG_MSG("Time to copy memory (ns) "
-//                         << decnumber(regtimer.elapsed_nanoseconds()));
-//                 }
-//                 else
                 {
                     // create a memory region from the pointer
                     zero_copy_region = new libfabric_memory_region(
-                            domain_, c.data_.cpos_, (std::max)(c.size_,
-                                (std::size_t)RDMA_POOL_SMALL_CHUNK_SIZE));
+                        domain_, c.data_.cpos_, (std::max)(c.size_,
+                            (std::size_t)RDMA_POOL_SMALL_CHUNK_SIZE));
                     LOG_DEBUG_MSG("Time to register memory (ns) "
                         << decnumber(regtimer.elapsed_nanoseconds()));
                 }
@@ -88,26 +72,29 @@ namespace libfabric
             index++;
         }
 
-        // Increase the completion count to be equal to two
-        completion_count_ = 2;
-        HPX_ASSERT(completion_count_ == 2);
-
-        char *header_memory = (char*)(header_region_->get_address());
-
         // create the header in the pinned memory block
+        char *header_memory = (char*)(header_region_->get_address());
         LOG_DEBUG_MSG("Placement new for header with piggyback copy disabled");
         header_ = new(header_memory) header_type(buffer_, this);
         header_region_->set_message_length(header_->header_length());
 
-        LOG_DEVEL_MSG("sending, buffsize "
-            << decnumber(header_->size())
-            << "header_length " << decnumber(header_->header_length())
-            << "chunks zerocopy( " << decnumber(header_->num_chunks().first) << ") "
+        LOG_DEVEL_MSG("sending, "
+            << "sender " << hexpointer(this)
+            << ", buffsize " << hexuint32(header_->size())
+            << ", header_length " << decnumber(header_->header_length())
+            << ", chunks zerocopy( " << decnumber(header_->num_chunks().first) << ") "
             << ", chunk_flag " << decnumber(header_->header_length())
             << ", normal( " << decnumber(header_->num_chunks().second) << ") "
             << ", chunk_flag " << decnumber(header_->header_length())
-            << "tag " << hexuint64(header_->tag())
+            << ", tag " << hexuint64(header_->tag())
         );
+
+        // The number of completions we need before cleaning will be
+        // 1 (header block send) + 1 (ack message if we have RMA chunks)
+        completion_count_ = 1;
+        if (rma_regions_.size()>0 || !header_->piggy_back()) {
+            ++completion_count_;
+        }
 
         // Get the block of pinned memory where the message was encoded
         // during serialization
@@ -130,7 +117,8 @@ namespace libfabric
         desc_[1] = message_region_->get_desc();
 
         if (header_->chunk_data()) {
-            LOG_DEBUG_MSG("Chunk info is piggybacked");
+            LOG_DEVEL_MSG("Sender " << hexpointer(this)
+                << "Chunk info is piggybacked");
         }
         else {
             throw std::runtime_error("@TODO : implement chunk info rdma get "
@@ -138,7 +126,8 @@ namespace libfabric
         }
 
         if (header_->piggy_back()) {
-            LOG_DEBUG_MSG("Main message is piggybacked");
+            LOG_DEVEL_MSG("Sender " << hexpointer(this)
+                << "Main message is piggybacked");
             num_regions += 1;
 
             LOG_DEBUG_MSG(CRC32_MEM(header_region_->get_address(),
@@ -150,12 +139,12 @@ namespace libfabric
                 "Message region (send piggyback)"));
         }
         else {
-            LOG_DEBUG_MSG("Main message NOT piggybacked ");
-
             header_->set_message_rdma_key(message_region_->get_remote_key());
             header_->set_message_rdma_addr(message_region_->get_address());
 
-            LOG_DEBUG_MSG("RDMA message " << hexnumber(buffer_.data_.size())
+            LOG_DEVEL_MSG("Sender " << hexpointer(this)
+                << "Main message NOT piggybacked " << hexnumber(buffer_.data_.size())
+                << "rkey " << hexnumber(message_region_->get_remote_key())
                 << "desc " << hexnumber(message_region_->get_desc())
                 << "addr " << hexpointer(message_region_->get_address()));
 
@@ -170,22 +159,21 @@ namespace libfabric
 
         // send the header/main_chunk to the destination,
         // wr_id is header_region (entry 0 in region_list)
-        LOG_DEVEL_MSG("fi_send num regions " << decnumber(num_regions)
+        LOG_DEVEL_MSG("Sender " << hexpointer(this)
+            << "fi_send num regions " << decnumber(num_regions)
+            << " sender " << hexpointer(this)
             << " client " << hexpointer(endpoint_)
             << " fi_addr " << hexpointer(dst_addr_)
             << " header_region"
             << " buffer " << hexpointer(header_region_->get_address())
             << " region " << hexpointer(header_region_));
 
-        if (header_->piggy_back() && rma_regions_.empty())
-            --completion_count_;
         int ret = 0;
         if (num_regions>1)
         {
-            LOG_TRACE_MSG(
-            "message_region"
-            << " buffer " << hexpointer(send_data.message_region->get_address())
-            << " region " << hexpointer(send_data.message_region));
+            LOG_TRACE_MSG("message_region"
+              << " buffer " << hexpointer(message_region_->get_address())
+              << " region " << hexpointer(message_region_));
             for (std::size_t k = 0; true; ++k)
             {
                 ret = fi_sendv(endpoint_, region_list_,
@@ -220,28 +208,6 @@ namespace libfabric
             }
         }
 
-//         fi_msg msg;
-//         msg.msg_iov = region_list;
-//         msg.desc = desc;
-//         msg.iov_count = num_regions;
-//         msg.addr = dst_addr_;
-//         msg.context = this;
-//         msg.data = 0;
-//         int ret = 0;
-//         for (std::size_t k = 0; true; ++k)
-//         {
-//             ret = fi_sendmsg(endpoint_, &msg, FI_COMPLETION | FI_TRANSMIT_COMPLETE);
-//             if (ret == -FI_EAGAIN)
-//             {
-//                 LOG_DEVEL_MSG("reposting send...\n");
-//                 hpx::util::detail::yield_k(k,
-//                     "libfabric::sender::async_write");
-//                 continue;
-//             }
-//             if (ret) throw fabric_error(ret, "fi_sendv");
-//             break;
-//         }
-
         // log the time spent in performance counter
 //                buffer.data_point_.time_ =
 //                        timer.elapsed_nanoseconds() - buffer.data_point_.time_;
@@ -252,20 +218,26 @@ namespace libfabric
 
     void sender::handle_send_completion()
     {
-        LOG_DEVEL_MSG("sender handle send_completion message("
-            << hexpointer(header_->piggy_back()) << ") RMA regions:" << rma_regions_.size());
+        LOG_DEVEL_MSG("Sender " << hexpointer(this)
+            << "handle send_completion "
+            << "RMA regions " << decnumber(rma_regions_.size())
+            << "completion count " << decnumber(completion_count_));
         cleanup();
     }
 
-    void sender::handle_message_completion()
+    void sender::handle_message_completion_ack()
     {
-        LOG_DEVEL_MSG("sender handle message_completion message("
-            << hexpointer(header_->piggy_back()) << ") RMA regions:" << rma_regions_.size());
+        LOG_DEVEL_MSG("Sender " << hexpointer(this)
+            << "handle handle_message_completion_ack ( "
+            << "RMA regions " << decnumber(rma_regions_.size())
+            << "completion count " << decnumber(completion_count_));
         cleanup();
     }
 
     void sender::cleanup()
     {
+        LOG_DEBUG_MSG("Sender " << hexpointer(this)
+            << "decrementing completion_count from " << completion_count_);
         if (--completion_count_ > 0)
             return;
 

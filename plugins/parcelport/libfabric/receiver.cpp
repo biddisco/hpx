@@ -24,20 +24,20 @@ namespace policies {
 namespace libfabric
 {
     receiver::receiver(parcelport* pp, fid_ep* endpoint, rdma_memory_pool& memory_pool)
-      : region_(memory_pool.allocate_region(memory_pool.small_.chunk_size()))
+      : prepost_region_(memory_pool.allocate_region(memory_pool.small_.chunk_size()))
       , pp_(pp)
       , endpoint_(endpoint)
       , memory_pool_(&memory_pool)
     {
-        LOG_DEVEL_MSG("created receiver: " << this);
+        LOG_DEVEL_MSG("created receiver: " << hexpointer(this));
         // Once constructed, we need to post the receive...
         post_recv();
     }
 
     receiver::~receiver()
     {
-        if (region_ && memory_pool_)
-            memory_pool_->deallocate(region_);
+        if (prepost_region_ && memory_pool_)
+            memory_pool_->deallocate(prepost_region_);
 
         rma_receiver *rcv = nullptr;
         while(rma_receivers_.pop(rcv))
@@ -47,24 +47,23 @@ namespace libfabric
     }
 
     receiver::receiver(receiver&& other)
-      : region_(other.region_)
+      : prepost_region_(other.prepost_region_)
       , pp_(other.pp_)
       , endpoint_(other.endpoint_)
       , memory_pool_(other.memory_pool_)
     {
-        other.region_ = nullptr;
-        other.memory_pool_ = nullptr;
+        other.prepost_region_ = nullptr;
+        other.memory_pool_    = nullptr;
     }
 
     receiver& receiver::operator=(receiver&& other)
     {
-        region_ = other.region_;
-        pp_ = other.pp_;
-        endpoint_ = other.endpoint_;
-        memory_pool_ = other.memory_pool_;
-        other.region_ = nullptr;
-        other.memory_pool_ = nullptr;
-
+        prepost_region_       = other.prepost_region_;
+        pp_                   = other.pp_;
+        endpoint_             = other.endpoint_;
+        memory_pool_          = other.memory_pool_;
+        other.prepost_region_ = nullptr;
+        other.memory_pool_    = nullptr;
         return *this;
     }
 
@@ -79,10 +78,10 @@ namespace libfabric
         if (len <= sizeof(std::uint64_t))
         {
             /// @TODO: fixme immediate tag retreival
-            sender* snd = *reinterpret_cast<sender **>(region_->get_address());
+            sender* snd = *reinterpret_cast<sender **>(prepost_region_->get_address());
             post_recv();
-            LOG_DEVEL_MSG("Handling sender completion: " << hexpointer(snd));
-            snd->handle_message_completion();
+            LOG_DEVEL_MSG("Handling sender tag (RMA ack) completion: " << hexpointer(snd));
+            snd->handle_message_completion_ack();
             return;
         }
 
@@ -92,7 +91,9 @@ namespace libfabric
         {
             auto f = [this](rma_receiver* recv)
             {
-                if(!rma_receivers_.push(recv))
+                LOG_DEBUG_MSG("receiver " << hexpointer(this)
+                    << "pushing new rma_receiver " hexpointer(recv));
+                if (!rma_receivers_.push(recv))
                     delete recv;
             };
             recv = new rma_receiver(pp_, endpoint_, memory_pool_, std::move(f));
@@ -102,8 +103,8 @@ namespace libfabric
 
         // We save the received region and swap it with a newly allocated
         // to be able to post a recv again as soon as possible.
-        libfabric_memory_region* region = region_;
-        region_ = memory_pool_->allocate_region(
+        libfabric_memory_region* region = prepost_region_;
+        prepost_region_ = memory_pool_->allocate_region(
             memory_pool_->small_.chunk_size());
         post_recv();
 
@@ -117,7 +118,7 @@ namespace libfabric
     void receiver::post_recv()
     {
         FUNC_START_DEBUG_MSG;
-        void* desc = region_->get_desc();
+        void* desc = prepost_region_->get_desc();
         LOG_DEVEL_MSG("Pre-Posting a receive to client size "
             << hexnumber(memory_pool_->small_.chunk_size())
             << " descriptor " << hexpointer(desc) << " context " << hexpointer(this));
@@ -127,8 +128,8 @@ namespace libfabric
         {
             ret = fi_recv(
                 endpoint_,
-                region_->get_address(),
-                region_->get_size(),
+                prepost_region_->get_address(),
+                prepost_region_->get_size(),
                 desc, 0, this);
 
             if (ret == -FI_EAGAIN)
