@@ -175,14 +175,17 @@ namespace libfabric
         {
             sender *snd =
                new sender(this,
-                    libfabric_controller_->ep_active_, libfabric_controller_->get_domain(),
+                    libfabric_controller_->ep_active_,
+                    libfabric_controller_->get_domain(),
                     chunk_pool_);
+            // the postprocess handler will be triggered when the send operation completes
+            // this function simply pushes it back onto the senders queue/stack
             snd->postprocess_handler_ = [this](sender* s)
                 {
-                    LOG_DEBUG_MSG("Pushed a sender " << hexpointer(s));
+                    LOG_DEBUG_MSG("Pushed a sender (postprocess_handler)" << hexpointer(s));
                     senders_.push(s);
                 };
-            LOG_DEBUG_MSG("Pushed a sender " << hexpointer(snd));
+            LOG_DEBUG_MSG("Pushed a sender (startup)" << hexpointer(snd));
             senders_.push(snd);
         }
 
@@ -209,6 +212,9 @@ namespace libfabric
             FUNC_END_DEBUG_MSG;
             return snd;
         }
+        // if no senders are available shutdown
+        LOG_ERROR_MSG("No senders left, stop sending stuff please");
+        std::terminate();
         FUNC_END_DEBUG_MSG;
         return nullptr;
     }
@@ -221,14 +227,10 @@ namespace libfabric
         parcelset::locality const& dest, error_code& ec)
     {
         LOG_DEVEL_MSG("Creating new sender");
-//         const locality &fabric_locality = dest.get<locality>();
-//         fi_addr_t fi_addr = libfabric_controller_->get_fabric_address(fabric_locality);
+        // if no senders are available shutdown
+        LOG_ERROR_MSG("Do not support the connection cache stuff");
+        std::terminate();
         return std::shared_ptr<sender>();
-//         return std::make_shared<sender>(
-//             this,
-//             libfabric_controller_->ep_active_, libfabric_controller_->get_domain(),
-//             &libfabric_controller_->get_memory_pool(),
-//             fi_addr, dest);
     }
 
 /*    
@@ -294,11 +296,6 @@ namespace libfabric
         LOG_DEVEL_MSG("Got AGAS addr " << addr);
         LOG_DEVEL_MSG("What should we return for agas locality for fabric PP" << addr);
         std::terminate();
-
-//            inet_pton(AF_INET, &addr[0], &buf);
-//            return
-//                parcelset::locality(locality(buf.s_addr));
-
         FUNC_END_DEBUG_MSG;
         return parcelset::locality(locality());
     }
@@ -346,7 +343,11 @@ namespace libfabric
     }
 
     // --------------------------------------------------------------------
-    bool parcelport::can_send_immediate() {
+    bool parcelport::can_send_immediate()
+    {
+        while (senders_.empty()) {
+            background_work(0);
+        }
         return true;
     }
 
@@ -356,10 +357,10 @@ namespace libfabric
         sender *snd, fi_addr_t addr,
         snd_buffer_type &buffer)
     {
-        LOG_DEBUG_MSG("parcelport::async_write");
+        LOG_DEBUG_MSG("parcelport::async_write using sender " << hexpointer(snd));
         snd->dst_addr_ = addr;
-        snd->buffer_ = std::move(buffer);
-        snd->handler_ = std::forward<Handler>(handler);
+        snd->buffer_   = std::move(buffer);
+        snd->handler_  = std::forward<Handler>(handler);
         snd->async_write_impl();
         return true;
     }

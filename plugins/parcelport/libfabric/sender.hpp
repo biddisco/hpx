@@ -17,6 +17,10 @@
 #include <hpx/util/atomic_count.hpp>
 #include <hpx/util/unique_function.hpp>
 
+//#if HPX_PARCELPORT_LIBFABRIC_USE_SMALL_VECTOR
+# include <boost/container/small_vector.hpp>
+//#endif
+
 #include <memory>
 
 // include for iovec
@@ -29,6 +33,10 @@ namespace libfabric
 {
     struct parcelport;
 
+    // --------------------------------------------------------------------
+    // each sender owns a header_region that is reused for each new message
+    // other buffers must be allocated and deallocated
+    // --------------------------------------------------------------------
     struct sender
     {
         typedef header<HPX_PARCELPORT_LIBFABRIC_MESSAGE_HEADER_SIZE> header_type;
@@ -39,6 +47,13 @@ namespace libfabric
         typedef parcel_buffer<snd_data_type,serialization::serialization_chunk>
             snd_buffer_type;
 
+//#if HPX_PARCELPORT_LIBFABRIC_USE_SMALL_VECTOR
+        typedef boost::container::small_vector<libfabric_memory_region*,4> zero_copy_vector;
+//#else
+//        typedef std::vector<libfabric_memory_region*> zero_copy_vector;
+//#endif
+
+        // --------------------------------------------------------------------
         sender(parcelport* pp, fid_ep* endpoint, fid_domain* domain,
             rdma_memory_pool* memory_pool)
           : parcelport_(pp),
@@ -53,24 +68,28 @@ namespace libfabric
             LOG_DEVEL_MSG("Create sender: " << hexpointer(this));
         }
 
+        // --------------------------------------------------------------------
         ~sender()
         {
             memory_pool_->deallocate(header_region_);
         }
 
-        void verify(parcelset::locality const & parcel_locality_id) const {}
-
+        // --------------------------------------------------------------------
         snd_buffer_type get_new_buffer()
         {
             LOG_DEBUG_MSG("Returning a new buffer object from sender " << hexpointer(this));
             return snd_buffer_type(snd_data_type(memory_pool_), memory_pool_);
         }
 
+        // --------------------------------------------------------------------
         template <typename Handler, typename ParcelPostprocess>
         void async_write(Handler && handler, ParcelPostprocess && parcel_postprocess)
         {
             HPX_ASSERT(false);
         }
+
+        // --------------------------------------------------------------------
+        void verify(parcelset::locality const & parcel_locality_id) const {}
 
         void async_write_impl();
 
@@ -80,27 +99,24 @@ namespace libfabric
 
         void cleanup();
 
-        parcelport                           *parcelport_;
-        fid_ep                               *endpoint_;
-        fid_domain                           *domain_;
-        rdma_memory_pool                     *memory_pool_;
-        fi_addr_t                             dst_addr_;
-        snd_buffer_type                       buffer_;
-        libfabric_memory_region              *header_region_;
-        libfabric_memory_region              *message_region_;
-        header_type                          *header_;
-        std::vector<libfabric_memory_region*> rma_regions_;
-        hpx::util::atomic_count               completion_count_;
-        struct iovec                          region_list_[2];
-        void                                 *desc_[2];
-
-        util::unique_function_nonser<
-            void(
-                error_code const&
-            )
-        > handler_;
-        util::function_nonser<void(sender*)> postprocess_handler_;
-
+        // --------------------------------------------------------------------
+        parcelport                *parcelport_;
+        fid_ep                    *endpoint_;
+        fid_domain                *domain_;
+        rdma_memory_pool          *memory_pool_;
+        fi_addr_t                  dst_addr_;
+        snd_buffer_type            buffer_;
+        libfabric_memory_region   *header_region_;
+        libfabric_memory_region   *message_region_;
+        header_type               *header_;
+        zero_copy_vector           rma_regions_;
+        hpx::util::atomic_count    completion_count_;
+        //
+        util::unique_function_nonser<void(error_code const&)> handler_;
+        util::function_nonser<void(sender*)>                  postprocess_handler_;
+        //
+        struct iovec               region_list_[2];
+        void                      *desc_[2];
     };
 }}}}
 

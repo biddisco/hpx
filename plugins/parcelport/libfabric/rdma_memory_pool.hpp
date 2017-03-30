@@ -353,13 +353,13 @@ namespace libfabric
                 << hexlength(small_.chunk_size()) << " "
                 << hexlength(medium_.chunk_size()) << " "
                 << hexlength(large_.chunk_size()) << " "
-                << "free (t) "  << (RDMA_POOL_MAX_1K_CHUNKS-tiny_.used_)
+                << "free (t) "  << decnumber(RDMA_POOL_MAX_1K_CHUNKS-tiny_.used_)
                 << " used "      << decnumber(this->tiny_.used_)
-                << "free (s) "  << (RDMA_POOL_MAX_SMALL_CHUNKS-small_.used_)
+                << "free (s) "  << decnumber(RDMA_POOL_MAX_SMALL_CHUNKS-small_.used_)
                 << " used "      << decnumber(this->small_.used_)
-                << "free (m) "  << (RDMA_POOL_MAX_MEDIUM_CHUNKS-medium_.used_)
+                << "free (m) "  << decnumber(RDMA_POOL_MAX_MEDIUM_CHUNKS-medium_.used_)
                 << " used "      << decnumber(this->medium_.used_)
-                << "free (l) "  << (RDMA_POOL_MAX_LARGE_CHUNKS-large_.used_)
+                << "free (l) "  << decnumber(RDMA_POOL_MAX_LARGE_CHUNKS-large_.used_)
                 << " used "      << decnumber(this->large_.used_));
             //
             return region;

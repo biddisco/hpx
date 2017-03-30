@@ -248,7 +248,6 @@ include(HPX_AddLibrary)
 set(_parcelport_CXX_srcs
   "${PROJECT_SOURCE_DIR}/plugins/parcelport/libfabric/parcelport_libfabric.cpp"
   "${PROJECT_SOURCE_DIR}/plugins/parcelport/libfabric/receiver.cpp"
-  "${PROJECT_SOURCE_DIR}/plugins/parcelport/libfabric/rma_receiver.cpp"
   "${PROJECT_SOURCE_DIR}/plugins/parcelport/libfabric/sender.cpp"
   CACHE INTERNAL "" FORCE)
 
