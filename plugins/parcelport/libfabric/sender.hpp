@@ -17,9 +17,7 @@
 #include <hpx/util/atomic_count.hpp>
 #include <hpx/util/unique_function.hpp>
 
-//#if HPX_PARCELPORT_LIBFABRIC_USE_SMALL_VECTOR
-# include <boost/container/small_vector.hpp>
-//#endif
+#include <boost/container/small_vector.hpp>
 
 #include <memory>
 
@@ -47,11 +45,7 @@ namespace libfabric
         typedef parcel_buffer<snd_data_type,serialization::serialization_chunk>
             snd_buffer_type;
 
-//#if HPX_PARCELPORT_LIBFABRIC_USE_SMALL_VECTOR
         typedef boost::container::small_vector<libfabric_memory_region*,4> zero_copy_vector;
-//#else
-//        typedef std::vector<libfabric_memory_region*> zero_copy_vector;
-//#endif
 
         // --------------------------------------------------------------------
         sender(parcelport* pp, fid_ep* endpoint, fid_domain* domain,
@@ -61,10 +55,13 @@ namespace libfabric
             domain_(domain),
             memory_pool_(memory_pool),
             buffer_(snd_data_type(memory_pool_), memory_pool_),
-            header_region_(memory_pool_->allocate_region(memory_pool_->small_.chunk_size())),
+            header_region_(nullptr),
             message_region_(nullptr),
             completion_count_(0)
         {
+            // the header region is reused multiple times
+            header_region_ =
+                memory_pool_->allocate_region(memory_pool_->small_.chunk_size());
             LOG_DEVEL_MSG("Create sender: " << hexpointer(this));
         }
 

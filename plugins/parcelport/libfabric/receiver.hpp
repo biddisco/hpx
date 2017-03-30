@@ -11,6 +11,8 @@
 #include <plugins/parcelport/libfabric/rdma_memory_pool.hpp>
 #include <plugins/parcelport/libfabric/header.hpp>
 
+#include <boost/container/small_vector.hpp>
+
 namespace hpx {
 namespace parcelset {
 namespace policies {
@@ -33,11 +35,7 @@ namespace libfabric
         typedef header<HPX_PARCELPORT_LIBFABRIC_MESSAGE_HEADER_SIZE> header_type;
         static constexpr unsigned int header_size = header_type::header_block_size;
 
-#if HPX_PARCELPORT_LIBFABRIC_USE_SMALL_VECTOR
         typedef boost::container::small_vector<libfabric_memory_region*,4> zero_copy_vector;
-#else
-        typedef std::vector<libfabric_memory_region*> zero_copy_vector;
-#endif
 
         // --------------------------------------------------------------------
         // construct receive object
@@ -48,15 +46,9 @@ namespace libfabric
         ~receiver();
 
         // --------------------------------------------------------------------
-        // the receiver posts a single receive buffer to the queue, attaching
-        // itself as the contect, so that when a message is received
-        // the owning reciever is called to handle processing of the buffer
-        void post_recv();
-
-        // --------------------------------------------------------------------
         // A received message is routed by the controller into this function.
-        // it might be an incoming message or an ack sent to inform that
-        // all rdma operations are complete.
+        // it might be an incoming message or just an ack sent to inform that
+        // all rdma reads are complete from a previous send operation.
         void handle_recv(fi_addr_t const& src_addr, std::uint64_t len);
 
         // --------------------------------------------------------------------
@@ -76,7 +68,7 @@ namespace libfabric
         // --------------------------------------------------------------------
         // process a read completion event. If we are doing RMA, then count
         // all RMA operations and trigger complete when done
-        void handle_read_completion();
+        void handle_rma_read_completion();
 
         // --------------------------------------------------------------------
         // An ack message is sent back to the sender when we have completed all
@@ -87,10 +79,15 @@ namespace libfabric
         // final cleanup before we can reuse/repost this receiver again
         void cleanup_receive();
 
+        // --------------------------------------------------------------------
+        // the receiver posts a single receive buffer to the queue, attaching
+        // itself as the context, so that when a message is received
+        // the owning reciever is called to handle processing of the buffer
+        void pre_post_receive();
+
     private:
         parcelport                  *pp_;
         fid_ep                      *endpoint_;
-        libfabric_memory_region     *prepost_region_;
         libfabric_memory_region     *header_region_ ;
         libfabric_memory_region     *message_region_;
         header_type                 *header_;

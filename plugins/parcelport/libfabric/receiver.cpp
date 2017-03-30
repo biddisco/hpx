@@ -27,8 +27,7 @@ namespace libfabric
     receiver::receiver(parcelport* pp, fid_ep* endpoint, rdma_memory_pool *memory_pool)
         : pp_(pp),
           endpoint_(endpoint),
-          prepost_region_(memory_pool->allocate_region(memory_pool->small_.chunk_size())),
-          header_region_(nullptr),
+          header_region_(memory_pool->allocate_region(memory_pool->small_.chunk_size())),
           message_region_(nullptr),
           header_(nullptr),
           memory_pool_(memory_pool),
@@ -37,14 +36,14 @@ namespace libfabric
     {
         LOG_DEVEL_MSG("created receiver: " << hexpointer(this));
         // Once constructed, we need to post the receive...
-        post_recv();
+        pre_post_receive();
     }
 
     // --------------------------------------------------------------------
     receiver::~receiver()
     {
-        if (prepost_region_ && memory_pool_) {
-            memory_pool_->deallocate(prepost_region_);
+        if (header_region_ && memory_pool_) {
+            memory_pool_->deallocate(header_region_);
         }
     }
 
@@ -56,17 +55,17 @@ namespace libfabric
         static_assert(sizeof(std::uint64_t) == sizeof(std::size_t),
             "sizeof(std::uint64_t) != sizeof(std::size_t)");
 
-        // If we recieve a message smaller than 8 byte, we got a tag and need to handle
+        // If we recieve a message of 8 bytes, we got a tag and need to handle
         // the tag completion...
         if (len <= sizeof(std::uint64_t))
         {
-            /// @TODO: fixme immediate tag retreival
+            // @TODO: fixme immediate tag retreival
             // Get the sender that has completed rma operations and signal to it
             // that it can now cleanup - all remote get operations are done.
-            sender* snd = *reinterpret_cast<sender **>(prepost_region_->get_address());
-            post_recv();
+            sender* snd = *reinterpret_cast<sender **>(header_region_->get_address());
             LOG_DEVEL_MSG("Handling sender tag (RMA ack) completion: " << hexpointer(snd));
             snd->handle_message_completion_ack();
+            pre_post_receive();
             return;
         }
 
@@ -78,43 +77,6 @@ namespace libfabric
     }
 
     // --------------------------------------------------------------------
-    void receiver::post_recv()
-    {
-        FUNC_START_DEBUG_MSG;
-        void* desc = prepost_region_->get_desc();
-        LOG_DEVEL_MSG("Pre-Posting a receive to client size "
-            << hexnumber(memory_pool_->small_.chunk_size())
-            << " descriptor " << hexpointer(desc) << " context " << hexpointer(this));
-
-        int ret = 0;
-        for (std::size_t k = 0; true; ++k)
-        {
-            // post a receive using 'this' as the context, so that this receiver object
-            // can be used to handle the incoming receive/request
-            ret = fi_recv(
-                endpoint_,
-                prepost_region_->get_address(),
-                prepost_region_->get_size(),
-                desc, 0, this);
-
-            if (ret == -FI_EAGAIN)
-            {
-                LOG_DEVEL_MSG("reposting recv\n");
-                hpx::util::detail::yield_k(k,
-                    "libfabric::receiver::post_recv");
-                continue;
-            }
-            if (ret!=0)
-            {
-                // TODO: proper error message
-                throw fabric_error(ret, "pp_post_rx");
-            }
-            break;
-        }
-        FUNC_END_DEBUG_MSG;
-    }
-
-    // --------------------------------------------------------------------
     void receiver::async_read(fi_addr_t const& src_addr)
     {
         HPX_ASSERT(rma_count_ == 0);
@@ -122,7 +84,6 @@ namespace libfabric
         HPX_ASSERT(rma_regions_.size() == 0);
 
         // the region posted as a receive contains the received header
-        header_region_ = prepost_region_;
         header_   = reinterpret_cast<header_type*>(header_region_->get_address());
         src_addr_ = src_addr;
 
@@ -141,7 +102,7 @@ namespace libfabric
         LOG_TRACE_MSG(
             CRC32_MEM(header_, header_->header_length(), "Header region (recv)"));
 
-        long rma_count = header_->num_chunks().first;
+        uint32_t rma_count = header_->num_chunks().first;
         if (!header_->piggy_back())
         {
             ++rma_count;
@@ -182,13 +143,7 @@ namespace libfabric
 
         // when parcel decoding from the wrapped pointer buffer has completed,
         // the lambda function will be called
-        rcv_data_type wrapped_pointer(piggy_back, header_->size(),
-            [this]()
-            {
-                LOG_DEBUG_MSG("wrapped_pointer for receiver " << hexpointer(this)
-                    << "calling cleanup");
-                this->cleanup_receive();
-            },
+        rcv_data_type wrapped_pointer(piggy_back, header_->size(), [](){},
             nullptr, nullptr);
 
         rcv_buffer_type buffer(std::move(wrapped_pointer), nullptr);
@@ -200,6 +155,8 @@ namespace libfabric
         decode_message_with_chunks(*pp_, std::move(buffer), 1, chunks_, num_thread);
         LOG_DEVEL_MSG("receiver " << hexpointer(this)
             << "parcel decode called for complete NORMAL (small) parcel");
+
+        this->cleanup_receive();
     }
 
     // --------------------------------------------------------------------
@@ -259,6 +216,8 @@ namespace libfabric
                     hpx::serialization::create_pointer_chunk(
                         get_region->get_address(), c.size_, c.rkey_);
 
+                uint64_t aligned_size = (c.size_ + (16-1)) & ~(16-1);
+
                 // post the rdma read/get
                 LOG_DEVEL_MSG("receiver " << hexpointer(this)
                     << "RDMA Get fi_read :"
@@ -268,6 +227,7 @@ namespace libfabric
                     << "local addr " << hexpointer(get_region->get_address())
                     << "local desc " << hexpointer(get_region->get_desc())
                     << "size " << hexnumber(c.size_)
+                    << "asize " << hexnumber(aligned_size)
                     << "rkey " << hexpointer(c.rkey_)
                     << "remote cpos " << hexpointer(remoteAddr)
                     << "index " << decnumber(c.data_.index_));
@@ -275,20 +235,21 @@ namespace libfabric
                 ssize_t ret = 0;
                 for (std::size_t k = 0; true; ++k)
                 {
+/*
                     uint32_t *dead_buffer = reinterpret_cast<uint32_t*>(get_region->get_address());
-                    std::fill(dead_buffer, dead_buffer+c.size_/4, 0x01010101);
+                    std::fill(dead_buffer, dead_buffer + get_region->get_size()/4, 0x01010101);
                     LOG_TRACE_MSG(
                         CRC32_MEM(get_region->get_address(), c.size_,
                             "(RDMA GET region (pre-fi_read))"));
-
+*/
                     ret = fi_read(endpoint_,
-                        get_region->get_address(), c.size_, get_region->get_desc(),
+                        get_region->get_address(), aligned_size, get_region->get_desc(),
                         src_addr_,
                         (uint64_t)(remoteAddr), c.rkey_, this);
                     if (ret == -FI_EAGAIN)
                     {
-                        LOG_DEVEL_MSG("receiver " << hexpointer(this)
-                            << "reposting read...\n");
+                        LOG_ERROR_MSG("receiver " << hexpointer(this)
+                            << "reposting fi_read...\n");
                         hpx::util::detail::yield_k(k,
                             "libfabric::receiver::async_read");
                         continue;
@@ -314,20 +275,24 @@ namespace libfabric
 
             std::size_t size = header_->size();
             // @TODO : fix this
-//            auto dummy = new char[size]; // memory_pool_->allocate_region(size);
+            auto dummy = new char[size]; // memory_pool_->allocate_region(size);
             //
             message_region_ = memory_pool_->allocate_region(size);
             // @TODO : fix this
-//            delete []dummy; // memory_pool_->deallocate(dummy);
+            delete []dummy; // memory_pool_->deallocate(dummy);
             //
+            uint64_t aligned_size = (size + (16-1)) & ~(16-1);
+
             message_region_->set_message_length(size);
+/*
             LOG_EXCLUSIVE(
-            uint32_t *dead_buffer = reinterpret_cast<uint32_t*>(message_region_->get_address());
-            std::fill(dead_buffer, dead_buffer+size/4, 0xFFFFFFFF);
-            LOG_TRACE_MSG(
-                CRC32_MEM(message_region_->get_address(), size,
-                    "(RDMA message region (pre-fi_read))"));
+                uint32_t *dead_buffer = reinterpret_cast<uint32_t*>(message_region_->get_address());
+                std::fill(dead_buffer, dead_buffer+size/4, 0xff00ff00);
+                LOG_TRACE_MSG(
+                    CRC32_MEM(message_region_->get_address(), size,
+                        "(RDMA message region (pre-fi_read))"));
             );
+*/
             LOG_DEVEL_MSG("receiver " << hexpointer(this)
                 << "RDMA Get fi_read message :"
                 << "client " << hexpointer(endpoint_)
@@ -337,20 +302,22 @@ namespace libfabric
                 << "remote addr " << hexpointer(header_->get_message_rdma_addr())
                 << "rkey " << hexpointer(header_->get_message_rdma_key())
                 << "size " << hexnumber(size)
+                << "asize " << hexnumber(aligned_size)
             );
 
             ssize_t ret = 0;
             for (std::size_t k = 0; true; ++k)
             {
                 ret = fi_read(endpoint_,
-                    message_region_->get_address(), size, message_region_->get_desc(),
+                    message_region_->get_address(), aligned_size, message_region_->get_desc(),
                     src_addr_,
                     (uint64_t)header_->get_message_rdma_addr(),
                     header_->get_message_rdma_key(), this);
                 if (ret == -FI_EAGAIN)
                 {
-                    LOG_DEVEL_MSG("receiver " << hexpointer(this)
-                        << "reposting read...\n");
+                    LOG_ERROR_MSG("receiver " << hexpointer(this)
+                        << "reposting fi_read...\n");
+                    std::terminate();
                     hpx::util::detail::yield_k(k,
                         "libfabric::receiver::async_read");
                     continue;
@@ -362,7 +329,7 @@ namespace libfabric
     }
 
     // --------------------------------------------------------------------
-    void receiver::handle_read_completion()
+    void receiver::handle_rma_read_completion()
     {
         FUNC_START_DEBUG_MSG;
         HPX_ASSERT(rma_count_ > 0);
@@ -419,18 +386,11 @@ namespace libfabric
         rcv_data_type wrapped_pointer(message, message_length,
             [this, message, message_length]()
             {
-                LOG_DEBUG_MSG("receiver " << hexpointer(this) << "Sending ack");
-                send_rdma_complete_ack();
-
+                // deleted until problems resolved
                 if (message_region_) {
                     LOG_TRACE_MSG(CRC32_MEM(message, message_length,
                         "Message region (receiver delete)"));
                 }
-
-                LOG_DEBUG_MSG("wrapped_pointer for receiver rma " << hexpointer(this)
-                    << "calling cleanup");
-
-                this->cleanup_receive();
             }, nullptr, nullptr);
         //
         rcv_buffer_type buffer(std::move(wrapped_pointer), nullptr);
@@ -448,10 +408,18 @@ namespace libfabric
 
         buffer.num_chunks_ = header_->num_chunks();
         buffer.data_size_ = header_->size();
+
+        LOG_DEVEL_MSG("receiver " << hexpointer(this)
+            << "calling parcel decode for ZEROCOPY complete parcel");
         std::size_t num_thread = hpx::get_worker_thread_num();
         decode_message_with_chunks(*pp_, std::move(buffer), 1, chunks_, num_thread);
         LOG_DEVEL_MSG("receiver " << hexpointer(this)
             << "parcel decode called for ZEROCOPY complete parcel");
+
+        LOG_DEBUG_MSG("receiver " << hexpointer(this) << "Sending ack");
+        send_rdma_complete_ack();
+
+        this->cleanup_receive();
         FUNC_END_DEBUG_MSG;
     }
 
@@ -473,8 +441,8 @@ namespace libfabric
             ret = fi_inject(endpoint_, &tag, sizeof(std::uint64_t), src_addr_);
             if (ret == -FI_EAGAIN)
             {
-                LOG_DEVEL_MSG("receiver " << hexpointer(this)
-                    << "reposting inject...\n");
+                LOG_ERROR_MSG("receiver " << hexpointer(this)
+                    << "reposting fi_inject...\n");
                 hpx::util::detail::yield_k(k,
                     "libfabric::receiver::send_rdma_complete_ack");
                 continue;
@@ -492,9 +460,9 @@ namespace libfabric
     // --------------------------------------------------------------------
     void receiver::cleanup_receive()
     {
-        // header region is an alias for the preposted region
-        header_        = nullptr;
-        header_region_ = nullptr;
+        LOG_DEBUG_MSG("cleanup for receiver rma " << hexpointer(this));
+        //
+        header_ = nullptr;
         //
         for (auto region: rma_regions_) {
             memory_pool_->deallocate(region);
@@ -509,6 +477,46 @@ namespace libfabric
         src_addr_ = 0 ;
         HPX_ASSERT(rma_count_ == 0);
         //
-        post_recv();
+        LOG_DEVEL_MSG("receiver " << hexpointer(this)
+            << "Cleaned up, posting self back to recv queue");
+        pre_post_receive();
+    }
+
+    // --------------------------------------------------------------------
+    void receiver::pre_post_receive()
+    {
+        FUNC_START_DEBUG_MSG;
+        void* desc = header_region_->get_desc();
+        LOG_DEVEL_MSG("Pre-Posting receive "
+            << "size " << hexnumber(header_region_->get_size())
+            << "descriptor " << hexpointer(desc)
+            << "context " << hexpointer(this));
+
+        int ret = 0;
+        for (std::size_t k = 0; true; ++k)
+        {
+            // post a receive using 'this' as the context, so that this receiver object
+            // can be used to handle the incoming receive/request
+            ret = fi_recv(
+                endpoint_,
+                header_region_->get_address(),
+                header_region_->get_size(),
+                desc, 0, this);
+
+            if (ret == -FI_EAGAIN)
+            {
+                LOG_ERROR_MSG("reposting fi_recv\n");
+                hpx::util::detail::yield_k(k,
+                    "libfabric::receiver::post_recv");
+                continue;
+            }
+            if (ret!=0)
+            {
+                // TODO: proper error message
+                throw fabric_error(ret, "pp_post_rx");
+            }
+            break;
+        }
+        FUNC_END_DEBUG_MSG;
     }
 }}}}

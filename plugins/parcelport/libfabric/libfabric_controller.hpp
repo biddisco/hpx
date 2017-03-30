@@ -504,17 +504,17 @@ namespace libfabric
             // @TODO, disable polling until queues are initialized to avoid this check
             // if queues are not setup, don't poll
             if (HPX_UNLIKELY(!rxcq_)) return 0;
+            //
+            return poll_send_queue() + poll_recv_queue();
+        }
+
+        // --------------------------------------------------------------------
+        int poll_send_queue()
+        {
+            LOG_TIMED_INIT(poll);
+            LOG_TIMED_BLOCK(poll, DEVEL, 5.0, { LOG_DEVEL_MSG("poll_send_queue"); });
 
             int result = 0;
-
-            LOG_TIMED_INIT(poll);
-            LOG_TIMED_BLOCK(poll, DEVEL, 5.0,
-                {
-                    LOG_DEVEL_MSG("Polling work completion channel");
-                }
-            )
-
-            fi_addr_t src_addr;
             fi_cq_msg_entry entry;
             int ret = fi_cq_read(txcq_, &entry, 1);
             if (ret>0) {
@@ -524,9 +524,10 @@ namespace libfabric
                     << "context " << hexpointer(entry.op_context)
                     << "length " << hexuint32(entry.len));
                 if (entry.flags & FI_RMA) {
-                    LOG_DEBUG_MSG("Received a txcq RMA completion");
+                    LOG_DEBUG_MSG("Received a txcq RMA completion "
+                        << "Context " << hexpointer(entry.op_context));
                     receiver* rcv = reinterpret_cast<receiver*>(entry.op_context);
-                    rcv->handle_read_completion();
+                    rcv->handle_rma_read_completion();
                 }
                 else if (entry.flags == (FI_MSG | FI_SEND)) {
                     LOG_DEBUG_MSG("Received a txcq MSG send completion");
@@ -538,7 +539,7 @@ namespace libfabric
                         << decnumber(entry.flags));
                     std::terminate();
                 }
-                result = 1;
+                return 1;
             }
             else if (ret==0 || ret==-EAGAIN) {
                 // do nothing, we will try again on the next check
@@ -551,9 +552,21 @@ namespace libfabric
                 LOG_ERROR_MSG("txcq Error with flags " << e.flags << " len " << e.len);
                 throw fabric_error(ret, "completion txcq read");
             }
+            return 0;
+        }
 
-            // receives will use fi_cq_readfrom as we want the source address
-            ret = fi_cq_readfrom(rxcq_, &entry, 1, &src_addr);
+        // --------------------------------------------------------------------
+        int poll_recv_queue()
+        {
+            LOG_TIMED_INIT(poll);
+            LOG_TIMED_BLOCK(poll, DEVEL, 5.0, { LOG_DEVEL_MSG("poll_recv_queue"); });
+
+            int result = 0;
+            fi_addr_t src_addr;
+            fi_cq_msg_entry entry;
+
+            // receives use fi_cq_readfrom as we want the source address
+            int ret = fi_cq_readfrom(rxcq_, &entry, 1, &src_addr);
             if (ret>0) {
                 LOG_DEVEL_MSG("Completion rxcq wr_id "
                     << fi_tostr(&entry.flags, FI_TYPE_OP_FLAGS)
@@ -590,7 +603,6 @@ namespace libfabric
                 LOG_ERROR_MSG("rxcq Error with flags " << e.flags << " len " << e.len);
                 throw fabric_error(ret, "completion rxcq read");
             }
-
             return result;
         }
 
