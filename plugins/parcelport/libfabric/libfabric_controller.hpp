@@ -520,9 +520,10 @@ namespace libfabric
                     << "context " << hexpointer(entry.op_context)
                     << "length " << hexuint32(entry.len));
                 if (entry.flags & FI_RMA) {
-                    LOG_DEBUG_MSG("Received a txcq RMA completion");
+                    LOG_DEBUG_MSG("Received a txcq RMA completion "
+                        << "Context " << hexpointer(entry.op_context));
                     receiver* rcv = reinterpret_cast<receiver*>(entry.op_context);
-                    rcv->handle_read_completion();
+                    rcv->handle_rma_read_completion();
                 }
                 else if (entry.flags == (FI_MSG | FI_SEND)) {
                     LOG_DEBUG_MSG("Received a txcq MSG send completion");

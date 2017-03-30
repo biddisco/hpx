@@ -25,8 +25,6 @@ namespace libfabric
 {
     struct libfabric_memory_region
     {
-//        libfabric_memory_region ( libfabric_memory_region && ) = default;
-
         // --------------------------------------------------------------------
         libfabric_memory_region() :
             region_(nullptr), address_(nullptr), base_addr_(nullptr),
@@ -41,17 +39,22 @@ namespace libfabric
 
         // --------------------------------------------------------------------
         // construct a memory region object by registering an existing address buffer
+        // by default no memory alignment is assumed, but if align=4/16/64 then
+        // the region is assumed to be larger than size and padded out to the next
+        // alignment multiple
         libfabric_memory_region(struct fid_domain *pd,
-            const void *buffer, const uint64_t length)
+            const void *buffer, const uint64_t length, uint64_t align=1)
         {
             address_    = static_cast<char *>(const_cast<void *>(buffer));
             base_addr_  = address_;
             size_       = length;
             used_space_ = length;
             flags_      = BLOCK_USER;
+            //
+            uint64_t aligned = (length + align-1) & ~(align-1);
 
             int ret = fi_mr_reg(pd,
-                    const_cast<void*>(buffer), length,
+                    const_cast<void*>(buffer), aligned,
                     FI_READ | FI_WRITE | FI_RECV | FI_SEND |
                     FI_REMOTE_READ | FI_REMOTE_WRITE,
                     0, 0, 0, &(region_),
@@ -60,7 +63,7 @@ namespace libfabric
             if (ret) {
                 LOG_ERROR_MSG(
                     "error registering fi_mr_reg "
-                    << hexpointer(buffer) << hexlength(length));
+                    << hexpointer(buffer) << hexlength(length) << hexlength(aligned));
                 throw fabric_error(ret, "error in fi_mr_reg");
             }
             else {
@@ -69,7 +72,8 @@ namespace libfabric
                     << hexpointer(buffer) << hexpointer(address_)
                     << "desc " << hexpointer(fi_mr_desc(region_))
                     << "rkey " << hexpointer(fi_mr_key(region_))
-                    << "length " << hexlength(size_));
+                    << "length " << hexlength(size_)
+                    << "aligned " << hexlength(aligned));
             }
         }
 
@@ -181,6 +185,10 @@ namespace libfabric
             return size_;
         }
 
+        inline uint64_t get_size_aligned(uint64_t align) const {
+            return (size_ + (align-1)) & ~(align-1);
+        }
+
         // --------------------------------------------------------------------
         // Get the local descriptor of the memory region.
         inline void * get_desc(void) const {
@@ -203,6 +211,10 @@ namespace libfabric
         // Get the size used by a message in the memory region.
         inline uint32_t get_message_length(void) const {
             return used_space_;
+        }
+
+        inline uint32_t get_message_length_aligned(uint64_t align) const {
+            return (used_space_ + align-1) & ~(align-1);
         }
 
         // --------------------------------------------------------------------
@@ -250,7 +262,6 @@ namespace libfabric
         inline bool get_partial_region() const {
             return (flags_ & BLOCK_PARTIAL) == BLOCK_PARTIAL;
         }
-    }
 
     private:
         // The internal Infiniband memory region handle
