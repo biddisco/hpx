@@ -20,7 +20,6 @@
 #include <plugins/parcelport/libfabric/rdma_locks.hpp>
 #include <plugins/parcelport/libfabric/receiver.hpp>
 #include <plugins/parcelport/libfabric/sender.hpp>
-#include <plugins/parcelport/libfabric/rma_receiver.hpp>
 #include <plugins/parcelport/libfabric/locality.hpp>
 //
 #include <plugins/parcelport/unordered_map.hpp>
@@ -143,7 +142,9 @@ namespace libfabric
         {
             int ret;
             // Cleaning up receivers to avoid memory leak errors.
-            receivers_.clear();
+            for(auto &r : receivers_) {
+                delete r;
+            }
 
 #ifdef HPX_PARCELPORT_LIBFABRIC_ENDPOINT_RDM
             LOG_DEVEL_MSG("closing ep_active_->fid");
@@ -281,13 +282,15 @@ namespace libfabric
 #else
             bind_endpoint_to_queues(ep_passive_);
 #endif
-            // filling our vector of receivers...
-            std::size_t num_receivers = HPX_PARCELPORT_LIBFABRIC_MAX_PREPOSTS;
-            receivers_.reserve(num_receivers);
-            for(std::size_t i = 0; i != num_receivers; ++i)
+            // filling our array of receivers...
+            for(std::size_t i=0; i<HPX_PARCELPORT_LIBFABRIC_MAX_PREPOSTS; ++i)
             {
                 LOG_DEBUG_MSG("Creating a new receiver for preposting recv");
-                receivers_.emplace_back(pp, ep_active_, *memory_pool_);
+
+                auto f = [this](receiver* recv) {
+                    LOG_DEBUG_MSG("receiver " << hexpointer(this) << " completion");
+                };
+                receivers_[i] = new receiver(pp, ep_active_, memory_pool_.get());//, std::move(f));
             }
         }
 
@@ -516,11 +519,13 @@ namespace libfabric
             int ret = fi_cq_read(txcq_, &entry, 1);
             if (ret>0) {
                 LOG_DEVEL_MSG("Completion txcq wr_id "
-                    << fi_tostr(&entry.flags, FI_TYPE_OP_FLAGS) << " (" << decnumber(entry.flags) << ") "
-                    << hexpointer(entry.op_context) << "length " << hexuint32(entry.len));
+                    << fi_tostr(&entry.flags, FI_TYPE_OP_FLAGS)
+                    << " (" << decnumber(entry.flags) << ") "
+                    << "context " << hexpointer(entry.op_context)
+                    << "length " << hexuint32(entry.len));
                 if (entry.flags & FI_RMA) {
                     LOG_DEBUG_MSG("Received a txcq RMA completion");
-                    rma_receiver* rcv = reinterpret_cast<rma_receiver*>(entry.op_context);
+                    receiver* rcv = reinterpret_cast<receiver*>(entry.op_context);
                     rcv->handle_read_completion();
                 }
                 else if (entry.flags == (FI_MSG | FI_SEND)) {
@@ -551,8 +556,9 @@ namespace libfabric
             ret = fi_cq_readfrom(rxcq_, &entry, 1, &src_addr);
             if (ret>0) {
                 LOG_DEVEL_MSG("Completion rxcq wr_id "
-                    << fi_tostr(&entry.flags, FI_TYPE_OP_FLAGS) << " (" << decnumber(entry.flags) << ") "
-                    << " source " << hexpointer(src_addr)
+                    << fi_tostr(&entry.flags, FI_TYPE_OP_FLAGS)
+                    << " (" << decnumber(entry.flags) << ") "
+                    << "source " << hexpointer(src_addr)
                     << "context " << hexpointer(entry.op_context)
                     << "length " << hexuint32(entry.len));
                 if (src_addr == FI_ADDR_NOTAVAIL)
@@ -560,12 +566,11 @@ namespace libfabric
                     LOG_DEVEL_MSG("Source address not available...\n");
                     std::terminate();
                 }
-//                     if ((entry.flags & FI_RMA) == FI_RMA) {
-//                         LOG_DEVEL_MSG("Received an rxcq RMA completion");
-//                     }
                 else if (entry.flags == (FI_MSG | FI_RECV)) {
-                    LOG_DEVEL_MSG("Received an rxcq recv completion " << entry.op_context);
-                    reinterpret_cast<receiver *>(entry.op_context)->handle_recv(src_addr, entry.len);
+                    LOG_DEVEL_MSG("Received an rxcq recv completion "
+                        << hexpointer(entry.op_context));
+                    reinterpret_cast<receiver *>(entry.op_context)->
+                        handle_recv(src_addr, entry.len);
                 }
                 else {
                     LOG_DEVEL_MSG("Received an unknown rxcq completion "
@@ -909,7 +914,7 @@ namespace libfabric
 
         // Shared completion queue for all endoints
         // Count outstanding receives posted to SRQ + Completion queue
-        std::vector<receiver> receivers_;
+        std::array<receiver*, HPX_PARCELPORT_LIBFABRIC_MAX_PREPOSTS> receivers_;
 
         // only allow one thread to handle connect/disconnect events etc
         mutex_type            initialization_mutex_;

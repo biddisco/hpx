@@ -24,6 +24,10 @@ namespace parcelset {
 namespace policies {
 namespace libfabric
 {
+    // --------------------------------------------------------------------
+    // The main message send routine : package the header, send it
+    // with an optional extra message region if it cannot be piggybacked
+    // send chunk/rma information for all zero copy serialization regions
     void sender::async_write_impl()
     {
         HPX_ASSERT(message_region_ == nullptr);
@@ -49,10 +53,12 @@ namespace libfabric
                 LOG_EXCLUSIVE(util::high_resolution_timer regtimer);
                 libfabric_memory_region *zero_copy_region;
                 {
-                    // create a memory region from the pointer
+                    // when zero copy is enabled, the threshold should not be underused
+//                    HPX_ASSERT(c.size_>=memory_pool_->small_.chunk_size());
+
+                    // create a new memory region from the user supplied pointer
                     zero_copy_region = new libfabric_memory_region(
-                        domain_, c.data_.cpos_, (std::max)(c.size_,
-                            (std::size_t)RDMA_POOL_SMALL_CHUNK_SIZE));
+                        domain_, c.data_.cpos_, c.size_);
                     LOG_DEBUG_MSG("Time to register memory (ns) "
                         << decnumber(regtimer.elapsed_nanoseconds()));
                 }
@@ -63,11 +69,10 @@ namespace libfabric
                     << " and rkey " << hexpointer(c.rkey_));
                 rma_regions_.push_back(zero_copy_region);
 
-                LOG_DEBUG_MSG(
+                LOG_TRACE_MSG(
                     CRC32_MEM(zero_copy_region->get_address(),
                         zero_copy_region->get_message_length(),
                         "zero_copy_region (send) "));
-
             }
             index++;
         }
@@ -89,11 +94,11 @@ namespace libfabric
             << ", tag " << hexuint64(header_->tag())
         );
 
-        // The number of completions we need before cleaning will be
+        // The number of completions we need before cleaning up:
         // 1 (header block send) + 1 (ack message if we have RMA chunks)
         completion_count_ = 1;
         if (rma_regions_.size()>0 || !header_->piggy_back()) {
-            ++completion_count_;
+            completion_count_ = 2;
         }
 
         // Get the block of pinned memory where the message was encoded
@@ -130,11 +135,11 @@ namespace libfabric
                 << "Main message is piggybacked");
             num_regions += 1;
 
-            LOG_DEBUG_MSG(CRC32_MEM(header_region_->get_address(),
+            LOG_TRACE_MSG(CRC32_MEM(header_region_->get_address(),
                 header_region_->get_message_length(),
                 "Header region (send piggyback)"));
 
-            LOG_DEBUG_MSG(CRC32_MEM(message_region_->get_address(),
+            LOG_TRACE_MSG(CRC32_MEM(message_region_->get_address(),
                 message_region_->get_message_length(),
                 "Message region (send piggyback)"));
         }
@@ -148,11 +153,11 @@ namespace libfabric
                 << "desc " << hexnumber(message_region_->get_desc())
                 << "addr " << hexpointer(message_region_->get_address()));
 
-            LOG_DEBUG_MSG(CRC32_MEM(header_region_->get_address(),
+            LOG_TRACE_MSG(CRC32_MEM(header_region_->get_address(),
                 header_region_->get_message_length(),
                 "Header region (send)"));
 
-            LOG_DEBUG_MSG(CRC32_MEM(message_region_->get_address(),
+            LOG_TRACE_MSG(CRC32_MEM(message_region_->get_address(),
                 message_region_->get_message_length(),
                 "Message region (send rdma fetch)"));
         }
@@ -168,6 +173,8 @@ namespace libfabric
             << " buffer " << hexpointer(header_region_->get_address())
             << " region " << hexpointer(header_region_));
 
+        // The fi_send operations must be the last things done here
+        // as they might trigger completions before this function has finished
         int ret = 0;
         if (num_regions>1)
         {
@@ -195,7 +202,7 @@ namespace libfabric
             {
                 ret = fi_send(endpoint_,
                     region_list_[0].iov_base, region_list_[0].iov_len,
-                desc_[0], dst_addr_, this);
+                    desc_[0], dst_addr_, this);
                 if (ret == -FI_EAGAIN)
                 {
                     LOG_DEVEL_MSG("reposting send...\n");
@@ -216,6 +223,7 @@ namespace libfabric
         FUNC_END_DEBUG_MSG;
     }
 
+    // --------------------------------------------------------------------
     void sender::handle_send_completion()
     {
         LOG_DEVEL_MSG("Sender " << hexpointer(this)
@@ -225,6 +233,7 @@ namespace libfabric
         cleanup();
     }
 
+    // --------------------------------------------------------------------
     void sender::handle_message_completion_ack()
     {
         LOG_DEVEL_MSG("Sender " << hexpointer(this)
@@ -234,21 +243,30 @@ namespace libfabric
         cleanup();
     }
 
+    // --------------------------------------------------------------------
     void sender::cleanup()
     {
         LOG_DEBUG_MSG("Sender " << hexpointer(this)
-            << "decrementing completion_count from " << completion_count_);
+            << "decrementing completion_count from " << decnumber(completion_count_));
+
+        // if we need to wait for more completion events, return without cleaning
         if (--completion_count_ > 0)
             return;
 
-        error_code ec;
-        handler_(ec);
+        // This is the callback handler that tells the user that buffers have been sent
+        LOG_DEBUG_MSG("Sender " << hexpointer(this) << "Calling hpx callback handler");
+        handler_.operator()(error_code());
 
         // Why does deleting the message region cause problems?
-        LOG_DEBUG_MSG(
-            CRC32_MEM(message_region_->get_address(), message_region_->get_message_length(), "Message region (sender delete)"));
-        std::fill(message_region_->get_address(), message_region_->get_address()+message_region_->get_message_length(), 255);
+        LOG_TRACE_MSG(
+            CRC32_MEM(message_region_->get_address(),
+                      message_region_->get_message_length(),
+                      "Message region (sender delete)"));
+        std::fill(message_region_->get_address(),
+                  message_region_->get_address() + message_region_->get_message_length(),
+                  255);
 
+        // cleanup the message region
         memory_pool_->deallocate(message_region_);
         message_region_ = nullptr;
 
@@ -259,6 +277,7 @@ namespace libfabric
         }
         rma_regions_.clear();
         header_ = nullptr;
+        HPX_ASSERT(completion_count_==0);
 
         // put this sender back into the free sender's list
         postprocess_handler_(this);
