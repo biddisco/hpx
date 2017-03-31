@@ -203,20 +203,21 @@ namespace libfabric
                 << "Writing 0xdeadbeef to region address "
                 << hexpointer(region->get_address()));
 
-            if (region->get_address()!=nullptr) {
-                // get use the pointer to the region
-                uintptr_t *ptr = reinterpret_cast<uintptr_t*>(region->get_address());
-                for (unsigned int c=0; c<ChunkSize/8; ++c) {
-                    ptr[c] = 0xdeadbeef;
-                    ptr[c] = val;
+            LOG_EXCLUSIVE(
+                if (region->get_address()!=nullptr) {
+                    // get use the pointer to the region
+                    uintptr_t *ptr = reinterpret_cast<uintptr_t*>(region->get_address());
+                    for (unsigned int c=0; c<ChunkSize/8; ++c) {
+                        ptr[c] = 0xdeadbeef;
+                    }
                 }
-            }
+            )
 
             if (!free_list_.push(region)) {
                 LOG_ERROR_MSG(PoolType::desc() << "Error in memory pool push");
             }
             // decrement one reference
-            used_--;
+            --used_;
         }
 
         // ------------------------------------------------------------------------
@@ -237,7 +238,7 @@ namespace libfabric
             }
             // Keep reference counts to self so that we can check
             // this pool is not deleted whilst blocks still exist
-            used_++;
+            ++used_;
             LOG_TRACE_MSG(PoolType::desc() << "Pop block "
                 << hexpointer(region->get_address()) << hexlength(region->get_size())
                 << decnumber(used_));
@@ -254,8 +255,8 @@ namespace libfabric
         std::atomic<int>                                              used_;
         struct fid_domain *                                           pd_;
         std::unordered_map<const char *, libfabric_memory_region_ptr> block_list_;
-        std::array<libfabric_memory_region, MaxChunks>               region_list_;
-        bl::stack<libfabric_memory_region*, bl::capacity<MaxChunks>> free_list_;
+        std::array<libfabric_memory_region, MaxChunks>                region_list_;
+        bl::stack<libfabric_memory_region*, bl::capacity<MaxChunks>>  free_list_;
 };
 
     // ---------------------------------------------------------------------------
