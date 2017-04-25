@@ -87,6 +87,7 @@ if(HPX_WITH_PARCELPORT_LIBFABRIC)
       hpx_program_options
       hpx_runtime_local
       hpx_serialization
+      hpx_static_reinit
       hpx_threading
       hpx_threadmanager
       hpx_timing
