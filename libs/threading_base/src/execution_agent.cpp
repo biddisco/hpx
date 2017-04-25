@@ -15,6 +15,7 @@
 #include <hpx/threading_base/execution_agent.hpp>
 #include <hpx/threading_base/scheduler_base.hpp>
 #include <hpx/threading_base/thread_description.hpp>
+#include <hpx/threading_base/thread_helpers.hpp>
 
 #ifdef HPX_HAVE_THREAD_BACKTRACE_ON_SUSPENSION
 #include <hpx/util/backtrace.hpp>
@@ -151,7 +152,7 @@ namespace hpx { namespace threads {
                 id, util::thread_description(desc));
 #endif
 #ifdef HPX_HAVE_THREAD_BACKTRACE_ON_SUSPENSION
-            detail::reset_backtrace bt(id, ec);
+            //detail::reset_backtrace bt(id, ec);
 #endif
             HPX_ASSERT(thrd_data->get_state().state() == active);
             HPX_ASSERT(state != active);

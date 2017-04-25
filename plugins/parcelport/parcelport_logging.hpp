@@ -15,7 +15,6 @@
 #include <thread>
 //
 #include <hpx/config.hpp>
-#include <hpx/config/parcelport_defines.hpp>
 #include <hpx/preprocessor/stringize.hpp>
 #include <hpx/runtime/threads/thread.hpp>
 //

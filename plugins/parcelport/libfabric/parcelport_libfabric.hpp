@@ -182,6 +182,19 @@ namespace libfabric
 
         parcelset::locality create_locality() const;
 
+        rma_memory_region_base *allocate_region(std::size_t size) override {
+            return libfabric_controller_->get_memory_pool().allocate_region(size);
+        }
+
+        int deallocate_region(rma_memory_region_base *region) {
+            rma_memory_region<libfabric_region_provider> *r =
+                dynamic_cast<rma_memory_region<libfabric_region_provider>*>(region);
+            HPX_ASSERT(r);
+            libfabric_controller_->get_memory_pool().deallocate(r);
+            return 0;
+        }
+
+
         static void suspended_task_debug(const std::string &match);
 
         void do_stop();
@@ -226,28 +239,6 @@ template<>
 struct plugin_config_data<hpx::parcelset::policies::libfabric::parcelport> {
     static char const* priority() {
         FUNC_START_DEBUG_MSG;
-        static int log_init = false;
-        if (!log_init) {
-#if defined(HPX_PARCELPORT_LIBFABRIC_HAVE_LOGGING) || \
-    defined(HPX_PARCELPORT_LIBFABRIC_HAVE_DEV_MODE)
-            boost::log::add_console_log(
-            std::clog,
-            // This makes the sink to write log records that look like this:
-            // 1: <normal> A normal severity message
-            // 2: <error> An error severity message
-            boost::log::keywords::format =
-                (
-                    boost::log::expressions::stream
-                    // << hpx::util::format("{:05}", expr::attr< unsigned int >("LineID"))
-                    << boost::log::expressions::attr< unsigned int >("LineID")
-                    << ": <" << boost::log::trivial::severity
-                    << "> " << boost::log::expressions::smessage
-                )
-            );
-            boost::log::add_common_attributes();
-#endif
-            log_init = true;
-        }
         FUNC_END_DEBUG_MSG;
         return "10000";
     }
