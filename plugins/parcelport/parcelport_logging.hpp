@@ -119,10 +119,11 @@ namespace hpx { namespace parcelset { namespace policies { namespace libfabric {
             return os;
         }
 
+#ifdef HPX_PARCELPORT_LOGGING_HAVE_TRACE_LOG
         // ------------------------------------------------------------------
-        // helper function for printing CRC32
+        // helper fuction for printing CRC32
         // ------------------------------------------------------------------
-        inline uint32_t crc32(const void* address, size_t length)
+        inline uint32_t crc32(const void *address, size_t length)
         {
             boost::crc_32_type result;
             result.process_bytes(address, length);
@@ -148,6 +149,8 @@ namespace hpx { namespace parcelset { namespace policies { namespace libfabric {
             temp << ": " << txt;
             return temp.str();
         }
+    }
+#endif
 
 }}}}}    // namespace hpx::parcelset::policies::libfabric::detail
 
@@ -155,17 +158,17 @@ namespace hpx { namespace parcelset { namespace policies { namespace libfabric {
     "" << hpx::parcelset::policies::libfabric::detail::                        \
             rdma_thread_print_helper()
 
-#define CRC32(buf, len)                                                        \
-    "" << hpx::parcelset::policies::libfabric::detail::crc32(buf, len)
-
-#define CRC32_MEM(buf, len, txt)                                               \
-    "" << hpx::parcelset::policies::libfabric::detail::mem_crc32(buf, len, txt)
-
 // ------------------------------------------------------------------
 // Trace messages are enabled for full debug
 // ------------------------------------------------------------------
 #ifdef HPX_PARCELPORT_LOGGING_HAVE_TRACE_LOG
-#define LOG_TRACE_MSG(x) BOOST_LOG_TRIVIAL(trace) << THREAD_ID << " " << x;
+#  define LOG_TRACE_MSG(x) BOOST_LOG_TRIVIAL(trace)   << THREAD_ID << " " << x;
+
+# define CRC32(buf,len) "" \
+    << hpx::parcelset::policies::libfabric::detail::crc32(buf,len)
+
+# define CRC32_MEM(buf, len, txt) "" \
+    << hpx::parcelset::policies::libfabric::detail::mem_crc32(buf, len, txt)
 #else
 #define LOG_TRACE_MSG(x)
 #endif
