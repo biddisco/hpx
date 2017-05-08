@@ -17,16 +17,16 @@ namespace hpx{
 
     // structure used to encapsulate all characteristics of thread_pools
     // as specified by the user in int main()
-    struct initial_thread_pool{
+    class initial_thread_pool{
     public:
         initial_thread_pool()
-                : pool_name_(),
-                  my_pus_(std::vector<std::size_t>(0))
+                : pool_name_(0),
+                  my_pus_(0)
         {}
 
         initial_thread_pool(std::string name)
                 : pool_name_(name),
-                  my_pus_(std::vector<std::size_t>(0))
+                  my_pus_(0)
         {}
 
 
@@ -37,7 +37,7 @@ namespace hpx{
 
     private:
         std::string pool_name_;
-        std::vector<size_t> my_pus_;
+        std::vector<std::size_t> my_pus_;
 
     };
 
@@ -55,9 +55,13 @@ namespace hpx{
         }
 
         // create a new thread_pool, add it to the RP and return a pointer to it
-        initial_thread_pool* create_thread_pool(std::string name){
+        initial_thread_pool* create_thread_pool(std::string name)
+        {
             initial_thread_pool_.push_back(initial_thread_pool(name));
+            initial_thread_pool* ret(&initial_thread_pool_.back());
+            return ret;
         }
+
 
         // lots of get_functions
 /*        std::size_t get_number_pools(){
