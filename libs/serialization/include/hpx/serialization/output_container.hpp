@@ -15,7 +15,10 @@
 #include <hpx/serialization/serialization_chunk.hpp>
 #include <hpx/serialization/traits/serialization_access_data.hpp>
 
-#include <cstddef>    // for size_t
+#include <hpx/serialization/traits/serialization_access_data.hpp>
+#include <hpx/runtime/parcelset/rma/memory_region.hpp>
+
+#include <cstddef> // for size_t
 #include <cstdint>
 #include <cstring>    // for memcpy
 #include <memory>
@@ -264,6 +267,38 @@ namespace hpx { namespace serialization {
         bool is_preprocessing() const override
         {
             return access_traits::is_preprocessing();
+        }
+
+        std::size_t save_rma_chunk(void const* address, std::size_t count,
+            parcelset::rma::memory_region *region) // override
+        {
+            if (count < HPX_ZERO_COPY_SERIALIZATION_THRESHOLD)
+            {
+                // fall back to serialization_chunk-less archive
+                this->output_container::save_binary(address, count);
+                // the container has grown by count bytes
+                return count;
+            }
+            else {
+                HPX_ASSERT(
+                    chunker_.get_chunk_type() == chunk_type_index ||
+                    chunker_.get_chunk_size() != 0);
+
+                // complement current serialization_chunk by setting its length
+                if (chunker_.get_chunk_type() == chunk_type_index)
+                {
+                    HPX_ASSERT(chunker_.get_chunk_size() == 0);
+
+                    chunker_.set_chunk_size(
+                        current_ - chunker_.get_chunk_data_index());
+                }
+
+                // add a new serialization_chunk referring to the external
+                // buffer and including the rma key
+                chunker_.push_back(create_rma_chunk(address, count, region->get_remote_key()));
+                // the container did not grow
+                return 0;
+            }
         }
 
     protected:

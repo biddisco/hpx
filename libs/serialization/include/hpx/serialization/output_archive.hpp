@@ -14,6 +14,7 @@
 #include <hpx/serialization/detail/raw_ptr.hpp>
 #include <hpx/serialization/output_container.hpp>
 #include <hpx/serialization/traits/is_bitwise_serializable.hpp>
+#include <hpx/runtime/parcelset/rma_fwd.hpp>
 
 #include <boost/predef/other/endian.h>
 
@@ -171,7 +172,11 @@ namespace hpx { namespace serialization {
         friend class array;
 
         template <typename T>
-        void invoke_impl(T const& t)
+        friend void hpx::serialization::detail::save_impl(output_archive &,
+            const hpx::parcelset::rma::rma_vector<T> & , std::true_type);
+
+        template <typename T>
+        void invoke_impl(T const & t)
         {
             save(t);
         }
@@ -300,6 +305,19 @@ namespace hpx { namespace serialization {
             {
                 // the size might grow if optimizations are not used
                 size_ += buffer_->save_binary_chunk(address, count);
+            }
+        }
+
+        void save_rma_chunk(void const * address, std::size_t count,
+            hpx::parcelset::rma::memory_region *region)
+        {
+            if(count == 0) return;
+            if (disable_data_chunking()) {
+                size_ += count;
+                buffer_->save_binary(address, count);
+            }
+            else {
+                size_ += buffer_->save_rma_chunk(address, count, region);
             }
         }
 

@@ -62,7 +62,6 @@ namespace detail
                 LOG_ERROR_MSG(
                     "error registering region "
                     << hexpointer(buffer) << hexlength(length));
-                throw std::runtime_error("error in memory registration");
             }
             else {
                 LOG_DEBUG_MSG(
@@ -98,7 +97,6 @@ namespace detail
                 LOG_ERROR_MSG(
                     "error registering region "
                     << hexpointer(buffer) << hexlength(length));
-                throw std::runtime_error("error in memory registration");
             }
             else {
                 LOG_DEBUG_MSG(
