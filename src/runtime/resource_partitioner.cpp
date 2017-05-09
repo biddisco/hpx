@@ -5,6 +5,7 @@
 
 #include <hpx/runtime/resource_partitioner.hpp>
 #include <hpx/runtime/threads/thread_data_fwd.hpp>
+//#include <hpx/include/runtime.hpp>
 
 namespace hpx { namespace resource {
 
@@ -102,12 +103,13 @@ namespace hpx { namespace resource {
 
 
     // if resource manager has not been instantiated yet, it simply returns a nullptr
-    resource_partitioner* get_resource_partitioner_ptr() {
+    resource_partitioner* get_resource_partitioner_ptr_from_main() {
         resource_partitioner** rp = resource_partitioner::resource_partitioner_.get();
         return rp ? *rp : nullptr;
     }
-/*    resource_partitioner* resource_partitioner::get_resource_partitioner_ptr() {
-        return resource_partitioner_ptr;
+
+/*    resource_partitioner* get_resource_partitioner_ptr() {
+        return hpx::get_runtime_ptr()->get_resource_partitioner();
     }*/
 
     ////////////////////////////////////////////////////////////////////////
