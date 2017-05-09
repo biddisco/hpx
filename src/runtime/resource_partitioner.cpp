@@ -7,7 +7,7 @@
 #include <hpx/runtime/threads/thread_data_fwd.hpp>
 #include <hpx/include/runtime.hpp>
 
-namespace hpx { namespace resource {
+namespace hpx { namespace bloob {
 
     ////////////////////////////////////////////////////////////////////////
 
@@ -74,6 +74,11 @@ namespace hpx { namespace resource {
     threads::topology& resource_partitioner::get_topology() const
     {
         return topology_;
+    }
+
+    std::size_t resource_partitioner::dummy_access() const //! delete this in the future
+    {
+        return topology_.socket_numbers_[0] + 1;
     }
 
     ////////////////////////////////////////////////////////////////////////

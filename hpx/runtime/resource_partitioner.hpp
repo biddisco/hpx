@@ -8,6 +8,7 @@
 
 #include <hpx/runtime/threads/topology.hpp>
 #include <hpx/runtime/threads/policies/topology.hpp>
+#include <hpx/runtime/threads/policies/hwloc_topology_info.hpp>
 #include <hpx/util/thread_specific_ptr.hpp>
 #include <hpx/runtime/threads/coroutines/detail/coroutine_self.hpp>
 
@@ -21,7 +22,7 @@
 #include <stdexcept>
 #include <algorithm>
 
-namespace hpx{ namespace resource {
+namespace hpx { namespace bloob {
 
     // structure used to encapsulate all characteristics of thread_pools
     // as specified by the user in int main()
@@ -52,6 +53,7 @@ namespace hpx{ namespace resource {
 
     class HPX_EXPORT resource_partitioner{
     public:
+
         resource_partitioner();
 
         //! used to make a global accessible pointer. Copied from runtime.hpp
@@ -72,6 +74,7 @@ namespace hpx{ namespace resource {
         }*/
 
         threads::topology& get_topology() const;
+        std::size_t dummy_access() const; //! delete this in the future
 
         //! this is an old version
         // if resource manager has not been instantiated yet, it simply returns a nullptr
@@ -109,7 +112,7 @@ namespace hpx{ namespace resource {
         // list of schedulers or is it enough if they're owned by thread_pool?
 
         // reference to the topology
-        threads::topology& topology_;
+        threads::hwloc_topology_info& topology_;
 
         // reference to affinity data
         //! I'll probably have to take this away from runtime
