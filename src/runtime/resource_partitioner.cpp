@@ -5,7 +5,7 @@
 
 #include <hpx/runtime/resource_partitioner.hpp>
 #include <hpx/runtime/threads/thread_data_fwd.hpp>
-//#include <hpx/include/runtime.hpp>
+#include <hpx/include/runtime.hpp>
 
 namespace hpx { namespace resource {
 
@@ -104,13 +104,18 @@ namespace hpx { namespace resource {
 
     // if resource manager has not been instantiated yet, it simply returns a nullptr
     resource_partitioner* get_resource_partitioner_ptr_from_main() {
+        //! make sure it cannot be used once runtime has been instantiated (
+        //! assert with get_runtime_ptr()
         resource_partitioner** rp = resource_partitioner::resource_partitioner_.get();
         return rp ? *rp : nullptr;
     }
 
-/*    resource_partitioner* get_resource_partitioner_ptr() {
-        return hpx::get_runtime_ptr()->get_resource_partitioner();
-    }*/
+    // if resource manager has not been instantiated yet, it simply returns a nullptr
+    resource_partitioner* get_resource_partitioner_ptr() {
+        //! make sure runtime has been instantiated !
+        return hpx::get_runtime_ptr()->get_resource_partitioner_ptr();
+    }
+
 
     ////////////////////////////////////////////////////////////////////////
 
@@ -146,9 +151,9 @@ namespace hpx { namespace resource {
 
     ////////////////////////////////////////////////////////////////////////
 
-    boost::atomic<int> resource_partitioner::instance_number_counter_(-1); //! move to .cpp
+    boost::atomic<int> resource_partitioner::instance_number_counter_(-1);
 
-    resource_partitioner* resource_partitioner::resource_partitioner_ptr(nullptr); //! move to .cpp probably
+    resource_partitioner* resource_partitioner::resource_partitioner_ptr(nullptr); //! I don't need this anymore, do I?
 
 
 } }

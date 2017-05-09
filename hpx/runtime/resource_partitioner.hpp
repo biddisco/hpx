@@ -118,7 +118,8 @@ namespace hpx{ namespace resource {
 
     //! used in the constructor of runtime
     HPX_API_EXPORT resource_partitioner* get_resource_partitioner_ptr_from_main();
-
+    //! used anywhere once the runtime has been instantiated
+    HPX_API_EXPORT resource_partitioner* get_resource_partitioner_ptr();
     }
 /*
     //! returns a pointer to resource_partitioner from anywhere
