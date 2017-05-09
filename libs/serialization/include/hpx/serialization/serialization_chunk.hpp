@@ -32,7 +32,8 @@ namespace hpx { namespace serialization {
     enum chunk_type
     {
         chunk_type_index = 0,
-        chunk_type_pointer = 1
+        chunk_type_pointer = 1,
+        chunk_type_rma = 2
     };
 
     struct serialization_chunk
@@ -62,6 +63,17 @@ namespace hpx { namespace serialization {
         retval.data_.cpos_ = pos;
         return retval;
     }
-}}    // namespace hpx::serialization
+
+    inline serialization_chunk create_rma_chunk(
+        void const* pos, std::size_t size, std::uint64_t rkey)
+    {
+        serialization_chunk retval = {
+            { 0 }, size, rkey, static_cast<std::uint8_t>(chunk_type_rma)
+        };
+        retval.data_.cpos_ = pos;
+        return retval;
+    }
+
+}}
 
 #endif

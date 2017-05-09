@@ -17,6 +17,7 @@
 #include <hpx/serialization/detail/raw_ptr.hpp>
 #include <hpx/serialization/input_container.hpp>
 #include <hpx/serialization/traits/is_bitwise_serializable.hpp>
+#include <hpx/runtime/parcelset/rma_fwd.hpp>
 
 #include <boost/cstdint.hpp>
 #include <boost/predef/other/endian.h>
@@ -132,7 +133,11 @@ namespace hpx { namespace serialization {
         friend class array;
 
         template <typename T>
-        void load_bitwise(T& t, std::false_type)
+        friend void hpx::serialization::detail::load_impl(input_archive &,
+            hpx::parcelset::rma::rma_vector<T> & , std::true_type);
+
+        template <typename T>
+        void load_bitwise(T & t, std::false_type)
         {
             load_nonintrusively_polymorphic(
                 t, hpx::traits::is_nonintrusive_polymorphic<T>());
@@ -252,6 +257,17 @@ namespace hpx { namespace serialization {
                 buffer_->load_binary_chunk(address, count);
 
             size_ += count;
+        }
+
+        void load_rma_chunk(void * address, std::size_t count,
+            hpx::parcelset::rma::memory_region *region)
+        {
+            if(count == 0) return;
+            size_ += count;
+            if(disable_data_chunking())
+              buffer_->load_binary(address, count);
+            else
+              buffer_->load_rma_chunk(address, count, region);
         }
 
         std::unique_ptr<erased_input_container> buffer_;
