@@ -236,7 +236,7 @@ namespace hpx
       : ini_(rtcfg),
         instance_number_(++instance_number_counter_),
         thread_support_(new util::thread_mapper),
-        resource_partitioner_(bloob::get_resource_partitioner_ptr_from_main()),
+        resource_partitioner_(resource::get_resource_partitioner_ptr_from_main()),
         affinity_init_(affinity_init),
         topology_(resource_partitioner_->get_topology()),
         state_(state_invalid),

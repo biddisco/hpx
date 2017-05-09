@@ -7,7 +7,7 @@
 #include <hpx/runtime/threads/thread_data_fwd.hpp>
 #include <hpx/include/runtime.hpp>
 
-namespace hpx { namespace bloob {
+namespace hpx { namespace resource {
 
     ////////////////////////////////////////////////////////////////////////
 

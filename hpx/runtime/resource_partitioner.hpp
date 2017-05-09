@@ -22,7 +22,7 @@
 #include <stdexcept>
 #include <algorithm>
 
-namespace hpx { namespace bloob {
+namespace hpx { namespace resource {
 
     // structure used to encapsulate all characteristics of thread_pools
     // as specified by the user in int main()

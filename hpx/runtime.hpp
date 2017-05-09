@@ -167,7 +167,7 @@ namespace hpx
             return topology_;
         }
 
-        bloob::resource_partitioner* get_resource_partitioner_ptr() const
+        resource::resource_partitioner* get_resource_partitioner_ptr() const
         {
             return resource_partitioner_;
         }
@@ -347,7 +347,7 @@ namespace hpx
         boost::scoped_ptr<util::thread_mapper> thread_support_;
 
         // pointer to the resource_partitioner
-        bloob::resource_partitioner* resource_partitioner_;
+        resource::resource_partitioner* resource_partitioner_;
 
         // topology and affinity data
         threads::policies::init_affinity_data affinity_init_;
