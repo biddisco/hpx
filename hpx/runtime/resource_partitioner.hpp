@@ -47,7 +47,7 @@ namespace hpx { namespace resource {
         std::string pool_name_;
         std::vector<std::size_t> my_pus_;
         //! does it need to hold the information "run HPX on me/not"? ie "can be used for runtime"/not?
-        //! would make life easier for ppl who want to run HPX side-by-sie with OpenMP ofr example?
+        //! would make life easier for ppl who want to run HPX side-by-sie with OpenMP for example?
 
     };
 
@@ -76,9 +76,6 @@ namespace hpx { namespace resource {
         threads::topology& get_topology() const;
         std::size_t dummy_access() const; //! delete this in the future
 
-        //! this is an old version
-        // if resource manager has not been instantiated yet, it simply returns a nullptr
-        //HPX_API_EXPORT static resource_partitioner* get_resource_partitioner_ptr(); //! does not work everywhere at the moment
 
     private:
         ////////////////////////////////////////////////////////////////////////
@@ -91,7 +88,7 @@ namespace hpx { namespace resource {
         initial_thread_pool* get_pool(std::string pool_name);
 
         void init_tss();
-/*        void deinit_tss();*/ //! is this even needed ???
+/*        void deinit_tss();*/ //! is this even needed ? probs should delete this
 
         ////////////////////////////////////////////////////////////////////////
 
@@ -103,11 +100,10 @@ namespace hpx { namespace resource {
 
         // contains the basic characteristics of the thread pool partitioning ...
         // that will be passed to the runtime
-        //! instead of a struct, should I just have a map of names (std:string) to vector<size_t>??
         std::vector<initial_thread_pool> initial_thread_pool_;
 
         // actual thread pools of OS-threads
-//        std::vector<threads::detail::thread_pool> thread_pools_; //! template param needed?
+//        std::vector<threads::detail::thread_pool> thread_pools_; //! template param needed? owned via thread_manager? Different data structure?
 
         // list of schedulers or is it enough if they're owned by thread_pool?
 
