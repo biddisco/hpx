@@ -167,7 +167,7 @@ namespace hpx
             return topology_;
         }
 
-        resource::resource_partitioner* get_resource_partitioner_ptr() const
+        resource::resource_partitioner* get_resource_partitioner_ptr_() const
         {
             return resource_partitioner_;
         }
