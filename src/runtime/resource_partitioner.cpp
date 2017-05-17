@@ -6,7 +6,6 @@
 #include <hpx/runtime/resource_partitioner.hpp>
 #include <hpx/runtime/threads/thread_data_fwd.hpp>
 #include <hpx/include/runtime.hpp>
-//#include <hpx/runtime/threads/policies/schedulers.hpp>
 
 namespace hpx {
 
@@ -158,7 +157,6 @@ namespace hpx {
         //! if the user did not create one yet, do so now
         create_default_pool();
 
-
         //! If the user specified a default_pool, but there still are some unassigned resources,
         //! should they be added to the default pool or simply ignored (current implementation: ignored)
 
@@ -173,8 +171,6 @@ namespace hpx {
                 pu_usage[pu] ++;
             }
         }
-
-        std::cout << "PU usage: "; print_vector(pu_usage); //! to delete
 
         for(size_t i(0); i<num_pus; i++){
             if(pu_usage[i] == 0)
@@ -241,9 +237,7 @@ namespace hpx {
         thread_manager_ = thrd_manag;
     }
 
-
-
-        // create a new thread_pool, add it to the RP and return a pointer to it
+    // create a new thread_pool, add it to the RP and return a pointer to it
     void resource_partitioner::create_thread_pool(std::string name, scheduling_policy sched)
     {
         if(name.empty())
@@ -253,6 +247,7 @@ namespace hpx {
         /*init_pool_data* ret(&initial_thread_pools_[initial_thread_pools_.size()-1]);
         return ret;*/ //! or should I return a pointer to that pool?
     }
+
     void resource_partitioner::create_default_pool(scheduling_policy sched) {
         create_thread_pool("default", sched);
     }
@@ -261,6 +256,7 @@ namespace hpx {
     void resource_partitioner::add_resource(std::size_t resource, std::string pool_name){
         get_pool(pool_name)->add_resource(resource);
     }
+
     void resource_partitioner::add_resource_to_default(std::size_t resource){
         add_resource(resource, "default");
     }
@@ -271,11 +267,8 @@ namespace hpx {
 
     void resource_partitioner::init_rp(){
 
-        //! what do I actually need to do?
-
-        //! en gros:
-
-        //! if nothing else, than just take all previous little setups and stick them here
+        //! copy all the little setups done in hpx_init
+        //! and stick the here
 
     }
 
@@ -284,7 +277,6 @@ namespace hpx {
     // this function is called in the constructor of thread_pool
     // returns a scheduler (moved) that thread pool should have as a data member
     scheduling_policy resource_partitioner::which_scheduler(std::string pool_name) {
-
         // look up which scheduler is needed
         scheduling_policy sched_type = get_pool(pool_name)->get_scheduling_policy();
         if(sched_type == unspecified)
@@ -335,7 +327,7 @@ namespace hpx {
 
         throw std::invalid_argument(
                 "the resource partitioner does not own a thread pool named \"" + pool_name + "\". \n");
-        //! Add names of available pools?
+        //! FIXME Add names of available pools?
     }
 
     init_pool_data* resource_partitioner::get_default_pool() {
@@ -345,7 +337,7 @@ namespace hpx {
         );
 
         if(pool != initial_thread_pools_.end()){
-            init_pool_data* ret(&(*pool)); //! FIXME
+            init_pool_data* ret(&(*pool)); //! FIXME yuck
             return ret;
         }
 
