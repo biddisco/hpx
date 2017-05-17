@@ -630,7 +630,6 @@ namespace hpx
                 auto &rp = hpx::get_resource_partitioner();
                 rp.set_init_affinity_data(cfg);
                 rp.set_affinity_data(cfg.num_threads_);
-                rp.set_config(cfg);
                 rp.set_default_pool(cfg.num_threads_);
                 rp.set_default_schedulers(cfg.queuing_);
                 //! FIXME when I'm done, move all the above to rp.init_rp();
@@ -647,7 +646,8 @@ namespace hpx
                 // Build and configure this runtime instance.
                 typedef hpx::runtime_impl runtime_type;
                 std::unique_ptr<hpx::runtime> rt(
-                        new runtime_type(cfg.rtcfg_, cfg.mode_, cfg.num_threads_));
+                        new runtime_type(cfg.rtcfg_, cfg, cfg.mode_, cfg.num_threads_));
+                //! FIXME give only the parts of cfg that are needed for the initialization of the scheduler
 
                 result = run_or_start(blocking, std::move(rt), cfg,
                                     std::move(startup), std::move(shutdown));

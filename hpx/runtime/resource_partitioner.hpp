@@ -110,17 +110,6 @@ namespace hpx {
         }
         bool default_pool(); // returns whether a default pool already exists
 
-        //! used for handing the thread pool its scheduler. To be written better in the future.
-        void set_config(util::command_line_handling cfg){
-            cfg_ = &cfg;
-        }
-
-        //! called in the threadmanager's constructor to setup the thread pools
-        util::command_line_handling* get_config(){
-            return cfg_;
-        }
-
-
         // called in hpx_init
         void init_rp();
 

@@ -269,7 +269,8 @@ namespace hpx {
     threadmanager_impl::threadmanager_impl(
             util::io_service_pool& timer_pool,
             notification_policy_type& notifier,
-            std::size_t num_threads)
+            std::size_t num_threads,
+            util::command_line_handling cfg_)
       : num_threads_(num_threads),
         timer_pool_(timer_pool),
         thread_logger_("threadmanager_impl::register_thread"),
@@ -288,7 +289,6 @@ namespace hpx {
         //! in V2, loop over all schedulers, look up their name, etc.
         std::string name = "default"; // old name: "main_thread_scheduling_pool"
         resource::scheduling_policy sched_type = hpx::get_resource_partitioner().which_scheduler(name);
-        util::command_line_handling* cfg_ = hpx::get_resource_partitioner().get_config();
 
         switch (sched_type) {
             case -1 : //! unspecified = -1
@@ -299,15 +299,15 @@ namespace hpx {
             case 0 : //! local = 0
             {
 #if defined(HPX_HAVE_LOCAL_SCHEDULER)
-                hpx::detail::ensure_high_priority_compatibility(cfg_->vm_);
-                hpx::detail::ensure_hierarchy_arity_compatibility(cfg_->vm_);
+                hpx::detail::ensure_high_priority_compatibility(cfg_.vm_);
+                hpx::detail::ensure_hierarchy_arity_compatibility(cfg_.vm_);
                 std::string affinity_desc;
                 std::size_t numa_sensitive =
-                        hpx::detail::get_affinity_description(*cfg_, affinity_desc);
+                        hpx::detail::get_affinity_description(cfg_, affinity_desc);
                 typedef hpx::threads::policies::local_queue_scheduler<>
                         local_sched_type;
                 local_sched_type::init_parameter_type init(
-                        cfg_->num_threads_, 1000, numa_sensitive,
+                        cfg_.num_threads_, 1000, numa_sensitive,
                         "core-local_queue_scheduler");
 
                 // instantiate pool and corresponding scheduler
@@ -328,17 +328,17 @@ namespace hpx {
 
             case 1 : //! local_priority_fifo = 1
             {
-                hpx::detail::ensure_hierarchy_arity_compatibility(cfg_->vm_);
+                hpx::detail::ensure_hierarchy_arity_compatibility(cfg_.vm_);
                 std::size_t num_high_priority_queues =
-                        hpx::detail::get_num_high_priority_queues(*cfg_);
+                        hpx::detail::get_num_high_priority_queues(cfg_);
                 std::string affinity_desc;
                 std::size_t numa_sensitive =
-                        hpx::detail::get_affinity_description(*cfg_, affinity_desc);
+                        hpx::detail::get_affinity_description(cfg_, affinity_desc);
                 typedef hpx::threads::policies::local_priority_queue_scheduler<
                         compat::mutex, hpx::threads::policies::lockfree_fifo
                 > local_sched_type;
                 /*typename */local_sched_type::init_parameter_type init(
-                        cfg_->num_threads_, num_high_priority_queues, 1000,
+                        cfg_.num_threads_, num_high_priority_queues, 1000,
                         numa_sensitive, "core-local_priority_queue_scheduler");
 
                 // instantiate pool and corresponding scheduler
@@ -354,17 +354,17 @@ namespace hpx {
 
             case 2 : //! local_priority_lifo = 2
             {
-                hpx::detail::ensure_hierarchy_arity_compatibility(cfg_->vm_);
+                hpx::detail::ensure_hierarchy_arity_compatibility(cfg_.vm_);
                 std::size_t num_high_priority_queues =
-                        hpx::detail::get_num_high_priority_queues(*cfg_);
+                        hpx::detail::get_num_high_priority_queues(cfg_);
                 std::string affinity_desc;
                 std::size_t numa_sensitive =
-                        hpx::detail::get_affinity_description(*cfg_, affinity_desc);
+                        hpx::detail::get_affinity_description(cfg_, affinity_desc);
                 typedef hpx::threads::policies::local_priority_queue_scheduler<
                         compat::mutex, hpx::threads::policies::lockfree_lifo
                 > local_sched_type;
                 /*typename */local_sched_type::init_parameter_type init(
-                        cfg_->num_threads_, num_high_priority_queues, 1000,
+                        cfg_.num_threads_, num_high_priority_queues, 1000,
                         numa_sensitive, "core-local_priority_queue_scheduler");
 
                 // instantiate pool and corresponding scheduler
@@ -381,16 +381,16 @@ namespace hpx {
             case 3 : //! static_ = 3
             {
 #if defined(HPX_HAVE_STATIC_SCHEDULER)
-                hpx::detail::ensure_high_priority_compatibility(cfg_->vm_);
-                hpx::detail::ensure_hierarchy_arity_compatibility(cfg_->vm_);
-                std::string affinity_domain = hpx::detail::get_affinity_domain(*cfg_);
+                hpx::detail::ensure_high_priority_compatibility(cfg_.vm_);
+                hpx::detail::ensure_hierarchy_arity_compatibility(cfg_.vm_);
+                std::string affinity_domain = hpx::detail::get_affinity_domain(cfg_);
                 std::string affinity_desc;
                 std::size_t numa_sensitive =
-                        hpx::detail::get_affinity_description(*cfg_, affinity_desc);
+                        hpx::detail::get_affinity_description(cfg_, affinity_desc);
                 typedef hpx::threads::policies::static_queue_scheduler<>
                         local_sched_type;
                 local_sched_type::init_parameter_type init(
-                        cfg_->num_threads_, 1000, numa_sensitive,
+                        cfg_.num_threads_, 1000, numa_sensitive,
                         "core-static_queue_scheduler");
 
                 // instantiate pool and corresponding scheduler
@@ -413,17 +413,17 @@ namespace hpx {
             case 4 : //! static_priority = 4
             {
 #if defined(HPX_HAVE_STATIC_PRIORITY_SCHEDULER)
-                hpx::detail::ensure_hierarchy_arity_compatibility(cfg_->vm_);
+                hpx::detail::ensure_hierarchy_arity_compatibility(cfg_.vm_);
                 std::size_t num_high_priority_queues =
-                        hpx::detail::get_num_high_priority_queues(*cfg_);
-                std::string affinity_domain = hpx::detail::get_affinity_domain(*cfg_);
+                        hpx::detail::get_num_high_priority_queues(cfg_);
+                std::string affinity_domain = hpx::detail::get_affinity_domain(cfg_);
                 std::string affinity_desc;
                 std::size_t numa_sensitive =
-                        hpx::detail::get_affinity_description(*cfg_, affinity_desc);
+                        hpx::detail::get_affinity_description(cfg_, affinity_desc);
                 typedef hpx::threads::policies::static_priority_queue_scheduler<>
                         local_sched_type;
                 local_sched_type::init_parameter_type init(
-                        cfg_->num_threads_, num_high_priority_queues,
+                        cfg_.num_threads_, num_high_priority_queues,
                         1000, numa_sensitive,
                         "core-static_priority_queue_scheduler");
 
@@ -448,16 +448,16 @@ namespace hpx {
             case 5 : //! abp_priority = 5
             {
 #if defined(HPX_HAVE_ABP_SCHEDULER)
-                hpx::detail::ensure_hierarchy_arity_compatibility(cfg_->vm_);
-                hpx::detail::ensure_hwloc_compatibility(cfg_->vm_);
+                hpx::detail::ensure_hierarchy_arity_compatibility(cfg_.vm_);
+                hpx::detail::ensure_hwloc_compatibility(cfg_.vm_);
                 std::size_t num_high_priority_queues =
-                        hpx::detail::get_num_high_priority_queues(*cfg_);
+                        hpx::detail::get_num_high_priority_queues(cfg_);
                 typedef hpx::threads::policies::local_priority_queue_scheduler<
                         compat::mutex, hpx::threads::policies::lockfree_fifo
                 > local_sched_type;
                 local_sched_type::init_parameter_type init(
-                        cfg_->num_threads_, num_high_priority_queues, 1000,
-                        cfg_->numa_sensitive_, "core-abp_fifo_priority_queue_scheduler");
+                        cfg_.num_threads_, num_high_priority_queues, 1000,
+                        cfg_.numa_sensitive_, "core-abp_fifo_priority_queue_scheduler");
 
                 // instantiate pool and corresponding scheduler
                 sched_ = new local_sched_type(init);
@@ -480,14 +480,14 @@ namespace hpx {
             {
 #if defined(HPX_HAVE_HIERARCHY_SCHEDULER)
                 hpx::detail::ensure_high_priority_compatibility(
-                        cfg_->vm_);
-                hpx::detail::ensure_numa_sensitivity_compatibility(cfg_->vm_);
-                hpx::detail::ensure_hwloc_compatibility(cfg_->vm_);
+                        cfg_.vm_);
+                hpx::detail::ensure_numa_sensitivity_compatibility(cfg_.vm_);
+                hpx::detail::ensure_hwloc_compatibility(cfg_.vm_);
                 typedef hpx::threads::policies::hierarchy_scheduler<> local_sched_type;
                 std::size_t arity = 2;
-                if (cfg_->vm_.count("hpx:hierarchy-arity"))
-                    arity = cfg_->vm_["hpx:hierarchy-arity"].as<std::size_t>();
-                local_sched_type::init_parameter_type init(cfg_->num_threads_, arity,
+                if (cfg_.vm_.count("hpx:hierarchy-arity"))
+                    arity = cfg_.vm_["hpx:hierarchy-arity"].as<std::size_t>();
+                local_sched_type::init_parameter_type init(cfg_.num_threads_, arity,
                                                            1000, 0, "core-hierarchy_scheduler");
 
                 // instantiate pool and corresponding scheduler
@@ -509,14 +509,14 @@ namespace hpx {
 
             case 7 : //! periodic_priority = 7
             {
-                hpx::detail::ensure_hierarchy_arity_compatibility(cfg_->vm_);
-                hpx::detail::ensure_hwloc_compatibility(cfg_->vm_);
+                hpx::detail::ensure_hierarchy_arity_compatibility(cfg_.vm_);
+                hpx::detail::ensure_hwloc_compatibility(cfg_.vm_);
                 std::size_t num_high_priority_queues =
-                        hpx::detail::get_num_high_priority_queues(*cfg_);
+                        hpx::detail::get_num_high_priority_queues(cfg_);
                 typedef hpx::threads::policies::periodic_priority_queue_scheduler<>
                         local_sched_type;
-                local_sched_type::init_parameter_type init(cfg_->num_threads_,
-                                                           num_high_priority_queues, 1000, cfg_->numa_sensitive_,
+                local_sched_type::init_parameter_type init(cfg_.num_threads_,
+                                                           num_high_priority_queues, 1000, cfg_.numa_sensitive_,
                                                            "core-periodic_priority_queue_scheduler");
 
                 // instantiate pool and corresponding scheduler
@@ -533,16 +533,16 @@ namespace hpx {
             case 8 : //! throttle = 8
             {
 #if defined(HPX_HAVE_THROTTLE_SCHEDULER) && defined(HPX_HAVE_APEX)
-                hpx::detail::ensure_high_priority_compatibility(cfg_->vm_);
-                hpx::detail::ensure_hierarchy_arity_compatibility(cfg_->vm_);
-                std::string affinity_domain = hpx::detail::get_affinity_domain(*cfg_);
+                hpx::detail::ensure_high_priority_compatibility(cfg_.vm_);
+                hpx::detail::ensure_hierarchy_arity_compatibility(cfg_.vm_);
+                std::string affinity_domain = hpx::detail::get_affinity_domain(cfg_);
                 std::string affinity_desc;
                 std::size_t numa_sensitive =
-                        hpx::detail::get_affinity_description(*cfg_, affinity_desc);
+                        hpx::detail::get_affinity_description(cfg_, affinity_desc);
                 typedef hpx::threads::policies::throttle_queue_scheduler<>
                         local_sched_type;
                 local_sched_type::init_parameter_type init(
-                        cfg_->num_threads_, 1000, numa_sensitive,
+                        cfg_.num_threads_, 1000, numa_sensitive,
                         "core-throttle_queue_scheduler");
 
                 // instantiate pool and corresponding scheduler
