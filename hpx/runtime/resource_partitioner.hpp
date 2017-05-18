@@ -60,7 +60,7 @@ namespace hpx {
         // mechanism for adding resources
         void add_resource(std::size_t pu_number);
 
-        void print_me();
+        void print_pools();
 
     private:
         std::string pool_name_;
@@ -71,15 +71,10 @@ namespace hpx {
     class HPX_EXPORT resource_partitioner{
     public:
 
-/*        static resource_partitioner& get_resource_partitioner_(){
-            util::static_<resource::resource_partitioner, std::false_type> rp;
-            return rp.get();
-        }*/
-
         //! constructor: users shouldn't use the constructor but rather get_resource_partitioner
         resource_partitioner();
 
-        void print_me(); //! used by shoshijak for testing. To be deleted.
+        void print_pool();
 
         // create a new thread_pool, add it to the RP and return a pointer to it
         void create_thread_pool(std::string name, scheduling_policy sched = scheduling_policy::unspecified);
@@ -115,6 +110,11 @@ namespace hpx {
 
         // called in runtime::assign_cores()
         size_t init(threads::policies::init_affinity_data data){
+            //! if the user specified the affinity in main, then set affinity according to this
+            //! FIXME is this the behavior I want? simple override??
+            if(set_affinity_from_resource_partitioner_)
+                data.affinity_desc_ = "affinity-from-resource-partitioner";
+
             std::size_t ret = affinity_data_.init(data, topology_);
             thread_manager_->init(data);
             return ret;
@@ -143,6 +143,12 @@ namespace hpx {
 
         // counter for instance numbers
         static boost::atomic<int> instance_number_counter_;
+
+        // if true, then the affinity_masks for OS-threads get set
+        // according to the instructions given by the user in main
+        // which are stored in initial_thread_pool
+        // this flag gets set to "true" if add_resource is called
+        bool set_affinity_from_resource_partitioner_;
 
         // contains the basic characteristics of the thread pool partitioning ...
         // that will be passed to the runtime

@@ -104,7 +104,7 @@ namespace hpx {
         std::cout << "\n";
     }
 
-    void init_pool_data::print_me(){
+    void init_pool_data::print_pool(){
         std::cout << "[pool \"" << pool_name_ << "\"] with scheduler " ;
         std::string sched;
         switch(scheduling_policy_) {
@@ -128,7 +128,8 @@ namespace hpx {
     ////////////////////////////////////////////////////////////////////////
 
     resource_partitioner::resource_partitioner()
-            : topology_(threads::create_topology())
+            : topology_(threads::create_topology()),
+              set_affinity_from_resource_partitioner_(false)
     {
         // allow only one resource_partitioner instance
         if(instance_number_counter_++ >= 0){
@@ -254,10 +255,12 @@ namespace hpx {
 
 
     void resource_partitioner::add_resource(std::size_t resource, std::string pool_name){
+        set_affinity_from_resource_partitioner_ = true;
         get_pool(pool_name)->add_resource(resource);
     }
 
     void resource_partitioner::add_resource_to_default(std::size_t resource){
+        set_affinity_from_resource_partitioner_ = true;
         add_resource(resource, "default");
     }
 
@@ -267,6 +270,7 @@ namespace hpx {
 
     void resource_partitioner::init_rp(){
 
+        //! FIXME
         //! copy all the little setups done in hpx_init
         //! and stick the here
 
@@ -291,6 +295,9 @@ namespace hpx {
         return topology_;
     }
 
+    //! used in the constructor of runtime.
+    //! but rt probs shouldn't even own one ...
+    //! FIXME
     threads::policies::init_affinity_data resource_partitioner::get_init_affinity_data() const
     { //! should this return a pointer instead of a copy?
         return init_affinity_data_;
@@ -358,7 +365,7 @@ namespace hpx {
     }
 
 
-    void resource_partitioner::print_me(){
+    void resource_partitioner::print_pools(){           //! make this prettier
         std::cout << "the resource partitioner owns "
                   << initial_thread_pools_.size() << " pool(s) : \n";
         for(auto itp : initial_thread_pools_){
