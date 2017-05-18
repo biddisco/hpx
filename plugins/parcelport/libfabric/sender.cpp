@@ -79,7 +79,7 @@ namespace libfabric
             }
             else if (c.type_ == serialization::chunk_type_rma)
             {
-                LOG_DEVEL_MSG("an RMA chunk was found");
+                LOG_DEBUG_MSG("an RMA chunk was found");
                 rma_chunks++;
             }
             ++index;
