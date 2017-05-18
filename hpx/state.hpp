@@ -14,6 +14,7 @@ namespace hpx
 {
     enum state
     {
+
         state_invalid = -1,
         state_initialized = 0,
         first_valid_runtime_state = state_initialized,
