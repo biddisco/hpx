@@ -74,6 +74,14 @@ namespace hpx {
         return my_pus_.size();
     }
 
+    std::size_t init_pool_data::get_number_pus() const {
+        return my_pus_.size();
+    }
+
+    std::size_t init_pool_data::get_number_used_pus() const {
+        return std::count(my_pus_.begin(), my_pus_.end(), 1);
+    }
+
     std::vector<size_t> init_pool_data::get_pus() const {
         return my_pus_;
     }
@@ -150,21 +158,22 @@ namespace hpx {
                 pu_offset, pu_step, affinity_domain, affinity_desc);
     }
 
+    // this function is called in hpx_init, even before the instantiation of the runtime
+    // if a default thread pool has not been created by the user, it does so now
+    // and attributes to it as possible resources all resources that have not been
+    // attributed to any other pool.
     void resource_partitioner::set_default_pool(std::size_t num_threads) {
         //! check whether the user created a default_pool already. If so, do nothing.
+        //! FIXME is this right, or should we add all free resources to the default pool,
+        //! even though the user has not assigned these to the default pool himself?
         if(default_pool())
             return;
 
         //! if the user did not create one yet, do so now
         create_default_pool();
 
-        //! If the user specified a default_pool, but there still are some unassigned resources,
-        //! should they be added to the default pool or simply ignored (current implementation: ignored)
-
-        //! take all non-assigned resources and throw them in a regular default pool
-
-        //! FIXME Ugh, how exactly should this interact with num_threads_ specified in cmd line??
-
+        //! take all resources that have not been assigned to any thread pool yet
+        //! and give them to the default pool
         std::size_t num_pus = topology_.get_number_of_pus();
         std::vector<size_t> pu_usage(num_pus);
         for(auto itp : initial_thread_pools_){
@@ -177,6 +186,9 @@ namespace hpx {
             if(pu_usage[i] == 0)
                 add_resource_to_default(i);
         }
+
+        //! if the default pool doesn't have any resources, throw exception
+        //! FIXME add allow-empty-default-pool policy
 
     }
 
@@ -234,7 +246,36 @@ namespace hpx {
         }
     }
 
-    void resource_partitioner::set_threadmanager(threads::threadmanager_base* thrd_manag){
+    // this function is called in threadmanager_impl::run(),
+    // right before each thread_pool is run
+    void resource_partitioner::setup_threads(size_t num_threads)
+    {
+
+        // sets the RP's internal
+        // call a method of RP?
+
+        // constraint: total number of OS-threads = data member num_threads
+
+        // version 1: suppose the user is not an idiot:
+        // give each thread pool one OS-thread per PU it's been assigned
+        // give leftover threads to default pool
+
+        // if same PU assigned to 2 tp?
+        // if no threads left over for default?
+
+        // FIXME version 2:
+        // corner cases : different rp policies, oversubscription, stretches, etc.
+
+
+
+        //! FIXME how does this fit with set_default_scheduler ?
+
+
+    }
+
+
+    void resource_partitioner::set_threadmanager(threads::threadmanager_base* thrd_manag)
+    {
         thread_manager_ = thrd_manag;
     }
 
@@ -303,6 +344,17 @@ namespace hpx {
         return init_affinity_data_;
     }
 
+    size_t resource_partitioner::get_num_pools() const{
+        return initial_thread_pools_.size();
+    }
+    std::string resource_partitioner::get_pool_name(size_t index) const{
+        if(index >= initial_thread_pools_.size())
+            throw std::invalid_argument(
+                    "pool " + i + " (zero-based index) requested out of bounds. "
+                    "The resource_partitioner owns only " + initial_thread_pools_.size()
+                    + " pools\n");
+        return initial_thread_pools_[i].get_name();
+    }
 
     ////////////////////////////////////////////////////////////////////////
 

@@ -85,6 +85,9 @@ namespace hpx {
         void set_default_pool(std::size_t num_threads);
         void set_default_schedulers(std::string queueing);
 
+        //! called in threadmanager_impl::run
+        void setup_threads(size_t num_threads);
+
         //! setup stuff related to pools
         void add_resource(std::size_t resource, std::string pool_name);
         void add_resource_to_default(std::size_t resource);
@@ -125,7 +128,8 @@ namespace hpx {
         scheduling_policy which_scheduler(std::string pool_name);
         threads::topology& get_topology() const;
         threads::policies::init_affinity_data get_init_affinity_data() const;
-
+        size_t get_num_pools() const;
+        std::string get_pool_name(size_t index) const;
 
     private:
 
