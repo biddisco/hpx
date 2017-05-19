@@ -747,6 +747,7 @@ namespace libfabric
             else if (ret == -FI_EAVAIL) {
                 struct fi_cq_err_entry e = {};
                 int err_sz = fi_cq_readerr(txcq_, &e ,0);
+                HPX_UNUSED(err_sz);
                 // from the manpage 'man 3 fi_cq_readerr'
                 //
                 // On error, a negative value corresponding to
@@ -826,6 +827,7 @@ namespace libfabric
             else if (ret == -FI_EAVAIL) {
                 struct fi_cq_err_entry e = {};
                 int err_sz = fi_cq_readerr(rxcq_, &e ,0);
+                HPX_UNUSED(err_sz);
                 // from the manpage 'man 3 fi_cq_readerr'
                 //
                 // On error, a negative value corresponding to
