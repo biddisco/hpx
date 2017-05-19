@@ -96,7 +96,7 @@ namespace hpx { namespace threads { namespace detail
             std::size_t num_threads,
             policies::init_affinity_data const& data)
     {
-        topology const& topology_ = get_topology(); //! this should go ...
+        topology const& topology_ = get_topology(); //! FIXME this should go ...
 
         resize(used_processing_units_, threads::hardware_concurrency());
         for (std::size_t i = 0; i != num_threads; ++i)
@@ -104,12 +104,12 @@ namespace hpx { namespace threads { namespace detail
 
     }
 
-        ///////////////////////////////////////////////////////////////////////////
-        template <typename Scheduler>
-        std::size_t thread_pool_impl<Scheduler>::get_pu_num(std::size_t num_thread) const
-        {
-            return get_resource_partitioner().get_affinity_data()->get_pu_num(num_thread);
-        }
+    ///////////////////////////////////////////////////////////////////////////
+    template <typename Scheduler>
+    std::size_t thread_pool_impl<Scheduler>::get_pu_num(std::size_t num_thread) const
+    {
+        return get_resource_partitioner().get_affinity_data()->get_pu_num(num_thread);
+    }
 
         template <typename Scheduler>
         mask_cref_type thread_pool_impl<Scheduler>::get_pu_mask(

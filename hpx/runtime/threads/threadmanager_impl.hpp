@@ -144,7 +144,8 @@ namespace hpx { namespace threads
         /// \returns      The function returns \a true if the thread manager
         ///               has been started successfully, otherwise it returns
         ///               \a false.
-        bool run(std::size_t num_threads = 1);
+        //! FIXME parameter in commentary is obsolete
+        bool run();
 
         /// \brief Forcefully stop the thread-manager
         ///

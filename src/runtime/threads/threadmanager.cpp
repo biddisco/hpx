@@ -281,12 +281,18 @@ namespace hpx {
         auto& rp = hpx::get_resource_partitioner();
         rp.set_threadmanager(this);
         size_t num_pools = rp.get_num_pools();
-        std::string name; // name of the pool to instantiate
+        std::string name;
 
         for(size_t i(0); i<num_pools; i++) {
 
             name = rp.get_pool_name(i);
             resource::scheduling_policy sched_type = rp.which_scheduler(name);
+
+            // make sure the first thread-pool that gets instantiated is the default one
+            if(i == 0){
+                if(name != "default")
+                    throw std::invalid_argument("Trying to instantiate pool " + name + " as first thread pool, but the first thread pool has to be named default");
+            }
 
             switch (sched_type) {
                 case -1 : //! unspecified = -1
@@ -579,12 +585,30 @@ namespace hpx {
     void threadmanager_impl::init(
         policies::init_affinity_data const& data)
     {
-        pool_->init(num_threads_, data); //! future: loop on pools!
+        auto& rp = hpx::get_resource_partitioner();
+
+        // initialize all pools
+        for(auto& pool_iter : pools_){
+            pool_iter.first->init(rp.get_num_threads(pool_iter.first->get_pool_name()), data);
+        }
     }
 
+    pool_type threadmanager_impl::default_pool() const
+    {
+        return
+    }
+    pool_type threadmanager_impl::default_scheduler() const
+    {
+        return
+    }
+    pool_type threadmanager_impl::get_scheduler(std::string pool_name) const
+    {
 
+    }
     pool_type threadmanager_impl::get_pool(std::string pool_name) const
     {
+        //! pool_name is default, then just call the other function
+
         auto pool = std::find_if(
                 pools_.begin(), pools_.end(),
                 [&pool_name](std::pair<pool_type,scheduler_type> itp) -> bool {
@@ -601,10 +625,6 @@ namespace hpx {
                 + pool_name + "\". \n");
         //! FIXME Add names of available pools?
     }
-    pool_type threadmanager_impl::get_default_pool() const
-    {
-        return get_pool("default");
-    }
 
 
     ///////////////////////////////////////////////////////////////////////////
@@ -612,8 +632,15 @@ namespace hpx {
         get_thread_count(thread_state_enum state, thread_priority priority,
             std::size_t num_thread, bool reset) const
     {
+        std::int64_t total_count = 0;
         std::lock_guard<mutex_type> lk(mtx_);
-        return pool_->get_thread_count(state, priority, num_thread, reset);
+        auto& rp = hpx::get_resource_partitioner();
+
+        for(auto& pool_iter : pools_){
+            total_count += pool_iter.first->get_thread_count(state, priority, num_thread, reset);
+        }
+
+        return total_count;
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -623,7 +650,13 @@ namespace hpx {
         thread_state_enum state) const
     {
         std::lock_guard<mutex_type> lk(mtx_);
-        return pool_->enumerate_threads(f, state);
+        bool result = true;
+
+        for(auto& pool_iter : pools_){
+            result = result && pool_iter.first->enumerate_threads(f, state);
+        }
+
+        return result;
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -633,7 +666,9 @@ namespace hpx {
     void threadmanager_impl::abort_all_suspended_threads()
     {
         std::lock_guard<mutex_type> lk(mtx_);
-        pool_->abort_all_suspended_threads();
+        for(auto& pool_iter : pools_) {
+            pool_iter.first->abort_all_suspended_threads();
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -644,7 +679,13 @@ namespace hpx {
     bool threadmanager_impl::cleanup_terminated(bool delete_all)
     {
         std::lock_guard<mutex_type> lk(mtx_);
-        return pool_->cleanup_terminated(delete_all);
+        bool result = true;
+
+        for(auto& pool_iter : pools_) {
+            result = result && pool_iter.first->cleanup_terminated(delete_all);
+        }
+
+        return result;
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -1660,25 +1701,23 @@ namespace hpx {
     }*/
 
     ///////////////////////////////////////////////////////////////////////////
-    bool threadmanager_impl::
-        run(std::size_t num_threads) //! FIXME I shouldn't even need this argument. number of threads is already specified at construction of the threadmanager
+    bool threadmanager_impl::run()
     {
         std::unique_lock<mutex_type> lk(mtx_);
-
-        if (pool_->get_os_thread_count() != 0 || //! FIXME in what kind of case does this even happen???
-            pool_->has_reached_state(state_running))
-        {
-            return true;    // do nothing if already running
-        }
+        auto& rp = hpx::get_resource_partitioner();
 
         LTM_(info) << "run: running timer pool";
         timer_pool_.run(false);
 
-        hpx::get_resource_partitioner().setup_threads(size_t num_threads);
-
         // run each thread pool
         for(auto& pool_iter : pools_) {
-            if (!pool_iter.first->run(lk, num_threads /* ???? */)) {
+            if (pool_iter.first->get_os_thread_count() != 0 ||
+                pool_iter.first->has_reached_state(state_running))
+            {
+                return true;    // do nothing if already running
+            }
+            if (!pool_iter.first->run(lk, rp.get_num_threads(pool_iter.first->get_pool_name())))
+            {
                 timer_pool_.stop();
                 return false;
             }
