@@ -425,11 +425,12 @@ namespace libfabric
                 "Message region (recv piggyback with rdma)"));
         }
 
-//        for (auto &r : rma_regions_)
-//        {
-//            LOG_TRACE_MSG(CRC32_MEM(r->get_address(), r->get_message_length(),
-//                "rdma region (recv) "));
-//        }
+        for (auto &r : rma_regions_)
+        {
+            HPX_UNUSED(r);
+            LOG_TRACE_MSG(CRC32_MEM(r->get_address(), r->get_message_length(),
+                "rdma region (recv) "));
+        }
 
         // wrap the message and chunks into a pinned vector so that they
         // can be passed into the parcel decode functions and when released have
