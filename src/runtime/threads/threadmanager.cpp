@@ -1,7 +1,8 @@
-//  Copyright (c) 2015 Patricia Grubel
 //  Copyright (c) 2007-2016 Hartmut Kaiser
 //  Copyright (c)      2011 Bryce Lelbach, Katelyn Kufahl
 //  Copyright (c) 2008-2009 Chirag Dekate, Anshul Tandon
+//  Copyright (c) 2015 Patricia Grubel
+//  Copyright (c) 2017 Shoshana Jakobovits
 //
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -286,7 +287,7 @@ namespace hpx {
         // fill the thread-lookup table
         for (auto& pool_iter : pools_) {
             size_t nt = rp.get_num_threads(pool_iter.first->get_pool_name());
-            for (size_t j(0); j < nt; i++) {
+            for (size_t i(0); i < nt; i++) {
                 threads_lookup_[i] = pool_iter.first->get_pool_id();
             }
         }
@@ -359,6 +360,9 @@ namespace hpx {
                             numa_sensitive, "core-local_priority_queue_scheduler");
 
                     // instantiate pool and corresponding scheduler
+                    //! if this seems to cause memory problems: put the "new" directly in make_pair
+                    //! and let the thread pool get a reference to its scheduler through TM
+                    //! in its constructor or in "init"
                     threads::policies::scheduler_base* sched = new local_sched_type(init);
                     detail::thread_pool* pool = new hpx::threads::detail::thread_pool_impl<local_sched_type>(
                             static_cast<local_sched_type *>(sched), notifier, i, name.c_str(),
@@ -366,9 +370,7 @@ namespace hpx {
                                     policies::do_background_work | policies::reduce_thread_priority |
                                     policies::delay_exit));
                     pools_.push_back(std::make_pair(pool, sched));
-                    break;
                 }
-
 
                 case 2 : //! local_priority_lifo = 2
                 {
@@ -386,13 +388,13 @@ namespace hpx {
                             numa_sensitive, "core-local_priority_queue_scheduler");
 
                     // instantiate pool and corresponding scheduler
-                    sched_ = new local_sched_type(init);
-                    pool_ = new hpx::threads::detail::thread_pool_impl<local_sched_type>(
-                            static_cast<local_sched_type *>(sched_), notifier, name.c_str(),
+                    threads::policies::scheduler_base* sched = new local_sched_type(init);
+                    detail::thread_pool* pool = new hpx::threads::detail::thread_pool_impl<local_sched_type>(
+                            static_cast<local_sched_type *>(sched), notifier, i, name.c_str(),
                             policies::scheduler_mode(
                                     policies::do_background_work | policies::reduce_thread_priority |
                                     policies::delay_exit));
-                    break;
+                    pools_.push_back(std::make_pair(pool, sched));
                 }
 
 
@@ -412,12 +414,13 @@ namespace hpx {
                             "core-static_queue_scheduler");
 
                     // instantiate pool and corresponding scheduler
-                    sched_ = new local_sched_type(init);
-                    pool_ = new hpx::threads::detail::thread_pool_impl<local_sched_type>(
-                            static_cast<local_sched_type *>(sched_), notifier, name.c_str(),
+                    threads::policies::scheduler_base* sched = new local_sched_type(init);
+                    detail::thread_pool* pool = new hpx::threads::detail::thread_pool_impl<local_sched_type>(
+                            static_cast<local_sched_type *>(sched), notifier, i, name.c_str(),
                             policies::scheduler_mode(
                                     policies::do_background_work | policies::reduce_thread_priority |
                                     policies::delay_exit));
+                    pools_.push_back(std::make_pair(pool, sched));
 #else
                     throw detail::command_line_error("Command line option "
                         "--hpx:queuing=static "
@@ -446,12 +449,13 @@ namespace hpx {
                             "core-static_priority_queue_scheduler");
 
                     // instantiate pool and corresponding scheduler
-                    sched_ = new local_sched_type(init);
-                    pool_ = new hpx::threads::detail::thread_pool_impl<local_sched_type>(
-                            static_cast<local_sched_type *>(sched_), notifier, name.c_str(),
+                    threads::policies::scheduler_base* sched = new local_sched_type(init);
+                    detail::thread_pool* pool = new hpx::threads::detail::thread_pool_impl<local_sched_type>(
+                            static_cast<local_sched_type *>(sched), notifier, i, name.c_str(),
                             policies::scheduler_mode(
                                     policies::do_background_work | policies::reduce_thread_priority |
                                     policies::delay_exit));
+                    pools_.push_back(std::make_pair(pool, sched));
 
 #else
                     throw detail::command_line_error("Command line option "
@@ -478,12 +482,14 @@ namespace hpx {
                             cfg_.numa_sensitive_, "core-abp_fifo_priority_queue_scheduler");
 
                     // instantiate pool and corresponding scheduler
-                    sched_ = new local_sched_type(init);
-                    pool_ = new hpx::threads::detail::thread_pool_impl<local_sched_type>(
-                            static_cast<local_sched_type *>(sched_), notifier, name.c_str(),
+                    threads::policies::scheduler_base* sched = new local_sched_type(init);
+                    detail::thread_pool* pool = new hpx::threads::detail::thread_pool_impl<local_sched_type>(
+                            static_cast<local_sched_type *>(sched), notifier, i, name.c_str(),
                             policies::scheduler_mode(
                                     policies::do_background_work | policies::reduce_thread_priority |
                                     policies::delay_exit));
+                    pools_.push_back(std::make_pair(pool, sched));
+
 #else
                     throw detail::command_line_error("Command line option "
                         "--hpx:queuing=abp-priority "
@@ -509,12 +515,14 @@ namespace hpx {
                                                                1000, 0, "core-hierarchy_scheduler");
 
                     // instantiate pool and corresponding scheduler
-                    sched_ = new local_sched_type(init);
-                    pool_ = new hpx::threads::detail::thread_pool_impl<local_sched_type>(
-                            static_cast<local_sched_type *>(sched_), notifier, name.c_str(),
+                    threads::policies::scheduler_base* sched = new local_sched_type(init);
+                    detail::thread_pool* pool = new hpx::threads::detail::thread_pool_impl<local_sched_type>(
+                            static_cast<local_sched_type *>(sched), notifier, i, name.c_str(),
                             policies::scheduler_mode(
                                     policies::do_background_work | policies::reduce_thread_priority |
                                     policies::delay_exit));
+                    pools_.push_back(std::make_pair(pool, sched));
+
 #else
                     throw detail::command_line_error("Command line option "
                         "--hpx:queuing=hierarchy "
@@ -538,13 +546,14 @@ namespace hpx {
                                                                "core-periodic_priority_queue_scheduler");
 
                     // instantiate pool and corresponding scheduler
-                    sched_ = new local_sched_type(init);
-                    pool_ = new hpx::threads::detail::thread_pool_impl<local_sched_type>(
-                            static_cast<local_sched_type *>(sched_), notifier, name.c_str(),
+                    threads::policies::scheduler_base* sched = new local_sched_type(init);
+                    detail::thread_pool* pool = new hpx::threads::detail::thread_pool_impl<local_sched_type>(
+                            static_cast<local_sched_type *>(sched), notifier, i, name.c_str(),
                             policies::scheduler_mode(
                                     policies::do_background_work | policies::reduce_thread_priority |
                                     policies::delay_exit));
-                    break;
+                    pools_.push_back(std::make_pair(pool, sched));
+
                 }
 
 
@@ -564,12 +573,14 @@ namespace hpx {
                             "core-throttle_queue_scheduler");
 
                     // instantiate pool and corresponding scheduler
-                    sched_ = new local_sched_type(init);
-                    pool_ = new hpx::threads::detail::thread_pool_impl<local_sched_type>(
-                            static_cast<local_sched_type *>(sched_), notifier, name.c_str(),
+                    threads::policies::scheduler_base* sched = new local_sched_type(init);
+                    detail::thread_pool* pool = new hpx::threads::detail::thread_pool_impl<local_sched_type>(
+                            static_cast<local_sched_type *>(sched), notifier, i, name.c_str(),
                             policies::scheduler_mode(
                                     policies::do_background_work | policies::reduce_thread_priority |
                                     policies::delay_exit));
+                    pools_.push_back(std::make_pair(pool, sched));
+
 #else
                     throw detail::command_line_error("Command line option "
                         "--hpx:queuing=throttle "
@@ -602,15 +613,15 @@ namespace hpx {
         }
     }
 
-    pool_type threadmanager_impl::default_pool() const
+    threadmanager_impl::pool_type threadmanager_impl::default_pool() const
     {
         return pools_[0].first;
     }
-    pool_type threadmanager_impl::default_scheduler() const
+    threadmanager_impl::scheduler_type threadmanager_impl::default_scheduler() const
     {
         return pools_[0].second;
     }
-    pool_type threadmanager_impl::get_scheduler(std::string pool_name) const
+    threadmanager_impl::scheduler_type threadmanager_impl::get_scheduler(std::string pool_name) const
     {
         // if the given pool_name is default, we don't need to look for it
         if(pool_name == "default"){
@@ -624,7 +635,7 @@ namespace hpx {
         );
 
         if(pool != pools_.end()){
-            pool_type ret((&(*pool))->second); //! FIXME this is ugly
+            scheduler_type ret((&(*pool))->second); //! FIXME this is ugly
             return ret;
         }
 
@@ -633,7 +644,7 @@ namespace hpx {
                 + pool_name + "\". \n");
         //! FIXME Add names of available pools?
     }
-    pool_type threadmanager_impl::get_pool(std::string pool_name) const
+    threadmanager_impl::pool_type threadmanager_impl::get_pool(std::string pool_name) const
     {
         // if the given pool_name is default, we don't need to look for it
         if(pool_name == "default"){
@@ -655,6 +666,10 @@ namespace hpx {
                 "the resource partitioner does not own a thread pool named \""
                 + pool_name + "\". \n");
         //! FIXME Add names of available pools?
+    }
+    threadmanager_impl::pool_type threadmanager_impl::get_pool(detail::pool_id_type pool_id) const
+    {
+        return get_pool(pool_id.name_);
     }
 
 
@@ -1764,7 +1779,7 @@ namespace hpx {
 
         std::unique_lock<mutex_type> lk(mtx_);
         for(auto& pool_iter : pools_) {
-            pool_->stop(lk, blocking);
+            pool_iter.first->stop(lk, blocking);
         }
 
         LTM_(info) << "stop: stopping timer pool";
@@ -1779,13 +1794,25 @@ namespace hpx {
     std::int64_t threadmanager_impl::
         get_executed_threads(std::size_t num, bool reset)
     {
-        return pool_->get_executed_threads(num, reset);
+        std::int64_t result = 0;
+
+        for(auto& pool_iter : pools_) {
+            result += pool_iter.first->get_executed_threads(num, reset);
+        }
+
+        return result;
     }
 
     std::int64_t threadmanager_impl::
         get_executed_thread_phases(std::size_t num, bool reset)
     {
-        return pool_->get_executed_thread_phases(num, reset);
+        std::int64_t result = 0;
+
+        for(auto& pool_iter : pools_) {
+            result += pool_iter.first->get_executed_thread_phases(num, reset);
+        }
+
+        return result;
     }
 
 #ifdef HPX_HAVE_THREAD_IDLE_RATES
