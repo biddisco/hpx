@@ -370,6 +370,8 @@ namespace hpx {
                                     policies::do_background_work | policies::reduce_thread_priority |
                                     policies::delay_exit));
                     pools_.push_back(std::make_pair(pool, sched));
+
+                    break;
                 }
 
                 case 2 : //! local_priority_lifo = 2
@@ -395,6 +397,8 @@ namespace hpx {
                                     policies::do_background_work | policies::reduce_thread_priority |
                                     policies::delay_exit));
                     pools_.push_back(std::make_pair(pool, sched));
+
+                    break;
                 }
 
 
@@ -554,6 +558,7 @@ namespace hpx {
                                     policies::delay_exit));
                     pools_.push_back(std::make_pair(pool, sched));
 
+                    break;
                 }
 
 
@@ -610,6 +615,15 @@ namespace hpx {
         // initialize all pools
         for(auto& pool_iter : pools_){
             pool_iter.first->init(rp.get_num_threads(pool_iter.first->get_pool_name()), data);
+        }
+    }
+
+    void threadmanager_impl::print_pools()
+    {
+        std::cout << "The threadmanager owns "
+                  << pools_.size() << " pool(s) : \n";
+        for(auto itp : pools_){
+            itp.first->print_pool();
         }
     }
 
