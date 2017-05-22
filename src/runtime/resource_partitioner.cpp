@@ -184,6 +184,7 @@ namespace hpx {
     void resource_partitioner::set_default_pool(std::size_t num_threads) {
 
         // check whether any of the pools defined up to now are empty
+        // note: does not check "default", this one is allowed not to be given resources by the user
         if(check_empty_pools())
             throw std::invalid_argument("Pools empty of resources are not allowed. Please re-run this program with allow-empty-pool-policy (not implemented yet)");
         //! FIXME add allow-empty-pools policy. Wait, does this even make sense??
@@ -328,14 +329,18 @@ namespace hpx {
     // called in set_default_pool()
     bool resource_partitioner::check_oversubscription() const
     {
-        threads::mask_type pus_in_common((2^(topology_.get_number_of_pus()))-1);
+        threads::mask_type pus_in_common((1<<(topology_.get_number_of_pus()))-1);
 
         for(auto& itp : initial_thread_pools_){
-            pus_in_common = pus_in_common & itp.get_pus();
+            for(auto& itp_comp : initial_thread_pools_){
+                if(itp.get_name() != itp_comp.get_name()){
+                    if(threads::any(itp.get_pus() & itp_comp.get_pus())){
+                        return true;
+                    }
+                }
+            }
         }
 
-        if(threads::any(pus_in_common))
-            return true;
         return false;
     }
 
@@ -345,7 +350,7 @@ namespace hpx {
     {
         std::size_t num_thread_pools = initial_thread_pools_.size();
         for(size_t i(1); i<num_thread_pools; i++){
-            if(threads::any(initial_thread_pools_[i].get_pus())){
+            if(!threads::any(initial_thread_pools_[i].get_pus())){
                 return true;
             }
         }
@@ -367,9 +372,14 @@ namespace hpx {
         if(name == "default")
             throw std::invalid_argument("cannot instantiate a initial_thread_pool named \"default\". The default pool is instantiated automatically by the resource-partitioner");
 
+        //! if there already exists a pool with this name
+        std::size_t num_thread_pools = initial_thread_pools_.size();
+        for(size_t i(1); i<num_thread_pools; i++) {
+            if(name == initial_thread_pools_[i].get_name())
+                throw std::invalid_argument("there already exists a pool named " + name + ".\n");
+        }
+
         initial_thread_pools_.push_back(init_pool_data(name, sched));
-        /*init_pool_data* ret(&initial_thread_pools_[initial_thread_pools_.size()-1]);
-        return ret;*/ //! or should I return a pointer to that pool?
     }
 
     void resource_partitioner::add_resource(std::size_t resource, std::string pool_name){
