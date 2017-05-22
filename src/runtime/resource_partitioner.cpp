@@ -207,6 +207,7 @@ namespace hpx {
 
         // make sure the sum of the number of desired threads is strictly smaller
         // than the total number of OS-threads that will be created (specified by --hpx:threads)
+        //! FIXME should we check whether it's an exact match?
         if(num_threads_desired_total >= affinity_data_.get_num_threads()){
             //! FIXME add allow-empty-default-pool policy
             /*if(allow-empty-pool-policy){
@@ -237,8 +238,7 @@ namespace hpx {
 
         threads::mask_type default_mask = threads::not_(cummulated_pu_usage);
         //! cut off the bits that are above hardware concurrency ...
-        std::size_t hwc = topology_.get_number_of_pus();
-        default_mask &= threads::mask_type((1<<hwc) - 1);
+        default_mask &= threads::mask_type((1<<topology_.get_number_of_pus()) - 1);
 
         // make sure mask for the default pool has resources in it
         //! FIXME add allow-empty-default-pool policy
@@ -253,7 +253,7 @@ namespace hpx {
         std::size_t num_threads_default_pool = affinity_data_.get_num_threads() - num_threads_desired_total; //! hpx:threads - (threads used for other pools)
 
         if(num_threads_default_pool > num_available_threads_for_default){
-            //! throw oversubscription exception except if policy blahblha
+            //! throw oversubscription exception except if policy blahblah
         } else if (num_threads_default_pool == num_available_threads_for_default){
             //! it's all fine :) just set that number :)
         } else { //! num_threads_default_pool < num_available_threads_for_default
@@ -263,6 +263,8 @@ namespace hpx {
                 threads::unset(default_mask, threads::find_first(default_mask));
                 excess_pus--;
             }
+            // re-set default mask since it has been modified
+            get_default_pool()->set_mask(default_mask);
             //! FIXME reduce in a smart way: eg try to take PUs that are close together or something like that
             //! current implementation = just unset the number of bits required in order of appearance in the mask...
         }
