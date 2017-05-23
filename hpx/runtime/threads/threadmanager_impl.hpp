@@ -166,13 +166,15 @@ namespace hpx { namespace threads
             hpx::state result(last_valid_runtime_state);
 
             typedef boost::atomic<hpx::state> state_type;
-            for (auto& pools_iter : pools_)
+/*            for (auto& pools_iter : pools_)
             {
                 hpx::state s = pools_iter.first->get_state();
                 result = (std::min)(result, s);
             }
 
-            return result;
+            return result;*/
+            //! FIXME
+            return default_pool()->get_state();
         }
 
         /// \brief return the number of HPX-threads with the given state
