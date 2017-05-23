@@ -10,6 +10,7 @@
 #include <hpx/config.hpp>
 #include <hpx/compat/mutex.hpp>
 #include <hpx/exception.hpp>
+#include <hpx/include/iostreams.hpp>
 #include <hpx/performance_counters/counters.hpp>
 #include <hpx/performance_counters/counter_creators.hpp>
 #include <hpx/performance_counters/manage_counter_type.hpp>
@@ -285,10 +286,11 @@ namespace hpx {
         std::string name;
 
         // fill the thread-lookup table
+        //! bring this down in loop
         for (auto& pool_iter : pools_) {
             size_t nt = rp.get_num_threads(pool_iter.first->get_pool_name());
             for (size_t i(0); i < nt; i++) {
-                threads_lookup_[i] = pool_iter.first->get_pool_id();
+                threads_lookup_.push_back(pool_iter.first->get_pool_id());
             }
         }
 
@@ -616,7 +618,7 @@ namespace hpx {
 
     void threadmanager_impl::print_pools()
     {
-        std::cout << "The threadmanager owns "
+        hpx::cout << "The threadmanager owns "
                   << pools_.size() << " pool(s) : \n";
         for(auto itp : pools_){
             itp.first->print_pool();
@@ -690,7 +692,6 @@ namespace hpx {
     {
         std::int64_t total_count = 0;
         std::lock_guard<mutex_type> lk(mtx_);
-        auto& rp = hpx::get_resource_partitioner();
 
         for(auto& pool_iter : pools_){
             total_count += pool_iter.first->get_thread_count(state, priority, num_thread, reset);
@@ -1765,7 +1766,7 @@ namespace hpx {
         LTM_(info) << "run: running timer pool";
         timer_pool_.run(false);
 
-        // run each thread pool
+/*        // run each thread pool
         if (default_pool()->get_os_thread_count() != 0 ||
                 default_pool()->has_reached_state(state_running))
         {
@@ -1775,9 +1776,8 @@ namespace hpx {
         {
             timer_pool_.stop();
             return false;
-        }
-        //! FIXME run each thread pool
-/*        for(auto& pool_iter : pools_) {
+        }*/
+        for(auto& pool_iter : pools_) {
             if (pool_iter.first->get_os_thread_count() != 0 ||
                 pool_iter.first->has_reached_state(state_running))
             {
@@ -1788,7 +1788,7 @@ namespace hpx {
                 timer_pool_.stop();
                 return false;
             }
-        }*/
+        }
 
         LTM_(info) << "run: running";
         return true;
