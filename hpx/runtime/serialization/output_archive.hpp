@@ -102,10 +102,7 @@ namespace hpx { namespace serialization
         static std::uint32_t make_flags(std::uint32_t flags,
             std::vector<serialization_chunk>* chunks)
         {
-            return flags |
-                (chunks == nullptr ?
-                    archive_flags::disable_data_chunking :
-                    archive_flags::no_archive_flags);
+            return flags;
         }
 
     public:
@@ -197,6 +194,7 @@ namespace hpx { namespace serialization
 
     private:
         friend struct basic_archive<output_archive>;
+
         template <class T>
         friend class array;
 
@@ -357,11 +355,14 @@ namespace hpx { namespace serialization
         void save_binary_chunk(void const * address, std::size_t count)
         {
             if(count == 0) return;
-            size_ += count;
-            if (disable_data_chunking())
+            if (disable_data_chunking()) {
+                size_ += count;
                 buffer_->save_binary(address, count);
-            else
-                buffer_->save_binary_chunk(address, count);
+            }
+            else {
+                // the size might grow if optimizations are not used
+                size_ += buffer_->save_binary_chunk(address, count);
+            }
         }
 
         typedef std::map<const void *, std::uint64_t> pointer_tracker;
