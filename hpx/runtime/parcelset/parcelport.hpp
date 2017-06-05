@@ -32,7 +32,6 @@
 #include <hpx/datastructures/tuple.hpp>
 #include <hpx/util_fwd.hpp>
 
-
 #include <atomic>
 #include <cstddef>
 #include <cstdint>

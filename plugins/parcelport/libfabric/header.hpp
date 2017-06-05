@@ -12,6 +12,7 @@
 #include <hpx/assertion.hpp>
 #include <hpx/runtime/parcelset/parcel_buffer.hpp>
 #include <plugins/parcelport/parcelport_logging.hpp>
+#include <hpx/runtime/parcelset/rma/memory_region.hpp>
 //
 #include <array>
 #include <cstdint>
@@ -140,7 +141,7 @@ namespace libfabric
                     reinterpret_cast<detail::chunk_header*>(&data_[chunk_data_offset()]);
                 ch->num_rma_chunks = buffer.num_chunks_.first;
                 ch->chunk_rma =
-                    serialization::create_pointer_chunk(nullptr, chunkbytes, 0);
+                    serialization::create_pointer_chunk(nullptr, chunkbytes);
                 // reset chunkbytes size to size of rma hunk header
                 chunkbytes = sizeof(detail::chunk_header);
             }
@@ -158,7 +159,7 @@ namespace libfabric
                     // if chunks are piggybacked, just add one rma chunk for the message
                     message_header.num_chunks += 1;
                     chunktype message =
-                        serialization::create_pointer_chunk(nullptr, buffer.size_, 0);
+                        serialization::create_pointer_chunk(nullptr, buffer.size_);
                     std::memcpy(&data_[chunkbytes], &message, sizeof(chunktype));
                 }
                 else {
@@ -170,7 +171,7 @@ namespace libfabric
                         << decnumber(buffer.size_)
                         << "offset " << decnumber(message_info_offset()));
                     mc->message_rma =
-                        serialization::create_pointer_chunk(nullptr, buffer.size_, 0);
+                        serialization::create_pointer_chunk(nullptr, buffer.size_);
                 }
             }
 
@@ -361,7 +362,7 @@ namespace libfabric
             return size;
         }
 
-        inline void set_message_rdma_info(uint64_t key, const void *addr)
+        inline void set_message_rdma_info(std::uint64_t rkey, const void *addr)
         {
             chunktype *chunks = reinterpret_cast<chunktype *>(chunk_ptr());
             if (!chunks) {
@@ -372,7 +373,7 @@ namespace libfabric
                 chunks = &chunks[message_header.num_chunks-1];
             }
             // the last chunk will be our RMA message chunk
-            chunks->rkey_       = key;
+            chunks->rma_        = rkey;
             chunks->data_.cpos_ = addr;
         }
 
