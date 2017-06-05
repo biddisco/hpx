@@ -26,6 +26,20 @@ namespace parcelset {
 namespace policies {
 namespace libfabric
 {
+    // c++ doesn't have count_if :(
+    template<class InputIt, class UnaryPredicate>
+    typename std::iterator_traits<InputIt>::difference_type
+        count_if(InputIt first, InputIt last, UnaryPredicate p)
+    {
+        typename std::iterator_traits<InputIt>::difference_type ret = 0;
+        for (; first != last; ++first) {
+            if (p(*first)) {
+                ret++;
+            }
+        }
+        return ret;
+    }
+
     namespace detail
     {
         typedef serialization::serialization_chunk chunktype;
@@ -372,15 +386,11 @@ namespace libfabric
             if (!chunks) {
                 throw std::runtime_error("num_zero_copy_chunks without chunk data");
             }
-            uint32_t num=0;
-            for (uint32_t i=0; i<message_header.num_chunks; ++i) {
-                if (chunks[i].type_ == serialization::chunk_type::chunk_type_pointer ||
-                    chunks[i].type_ == serialization::chunk_type::chunk_type_rma)
-                {
-                    ++num;
-                }
-            }
-            return num;
+            return count_if(&chunks[0], &chunks[message_header.num_chunks],
+                [](chunktype &c) {
+                    return c.type_ == serialization::chunk_type_pointer ||
+                           c.type_ == serialization::chunk_type_rma;
+            });
         }
 
         std::uint32_t num_index_chunks()
@@ -389,15 +399,11 @@ namespace libfabric
             if (!chunks) {
                 throw std::runtime_error("num_index_chunks without chunk data");
             }
-            uint32_t num=0;
-            for (uint32_t i=0; i<message_header.num_chunks; ++i) {
-                if (chunks[i].type_ == serialization::chunk_type::chunk_type_index) {
-                    ++num;
-                }
-            }
-            return num;
+            return count_if(&chunks[0], &chunks[message_header.num_chunks],
+                [](chunktype &c) {
+                    return c.type_ == serialization::chunk_type_index;
+            });
         }
-
     };
 
 }}}}
