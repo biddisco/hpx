@@ -51,7 +51,7 @@ void do_stuff(std::size_t n){
     std::cout << "\n";
 }
 
-// this is caled on an hpx thread after the runtime starts up
+// this is called on an hpx thread after the runtime starts up
 int hpx_main(int argc, char* argv[])
 {
     std::cout << "[hpx_main] starting ..." << "\n";
@@ -81,7 +81,6 @@ int hpx_main(int argc, char* argv[])
     });
 
     future_2.get();
-*/
     return hpx::finalize();
 }
 
@@ -124,7 +123,7 @@ int main(int argc, char* argv[])
     rp.create_thread_pool("mpi", hpx::resource::scheduling_policy::local_priority_fifo);
     std::cout << "[main] " << "thread_pools created \n";
 
-    rp.add_resource(rp.get_numa_domains()[0].cores_[0], "mpi");
+    rp.add_resource(rp.numa_domains()[0].cores_[0].pus_, "mpi");
     std::cout << "[main] " << "resources added to thread_pools \n";
 
 /*
@@ -133,18 +132,17 @@ int main(int argc, char* argv[])
             for (const hpx::resource::pu &p : c.pus_) {
                 if (p.id_ == rp.get_topology().get_number_of_pus()/2) {
                     rp.add_resource(p, "single_thread");
-                }*/
+                }
 
-                std::cout << "[PU] number : " << p.id_ << " is on ... \n"
-                          << "socket    : " << topo.get_socket_number(p.id_) << "\n"
-                          << "numa-node : " << topo.get_numa_node_number(p.id_) << ", " << d.id_ << "\n"
-                          << "core      : " << topo.get_core_number(p.id_) << ", " << c.id_ << hpx::flush << "\n"
-                          << "and has occupancy      : " << p.thread_occupancy_ << hpx::flush << "\n";
+                std::cout << "[PU] number : " << p << " is on ... \n"
+                          << "socket    : " << topo.get_socket_number(p) << "\n"
+                          << "numa-node : " << topo.get_numa_node_number(p) << "\n"
+                          << "core      : " << topo.get_core_number(p) << hpx::flush << "\n";
 
             }
         }
     }
-
+*/
 
     std::cout << "[main] " << "Calling hpx::init... \n";
     return hpx::init(desc_cmdline, argc, argv);
