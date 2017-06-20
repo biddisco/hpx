@@ -204,9 +204,6 @@ namespace hpx { namespace threads { namespace detail
 
     protected:
 
-        void init_tss(std::size_t num);
-        void deinit_tss();
-
         virtual  void thread_func(std::size_t num_thread, topology const& topology,
             compat::barrier& startup) = 0;
 

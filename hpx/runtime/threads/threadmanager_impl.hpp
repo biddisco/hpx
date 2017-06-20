@@ -341,6 +341,17 @@ namespace hpx { namespace threads
             }
         }
 
+        void init_tss(std::size_t num)
+        {
+            detail::thread_num_tss_.init_tss(num);
+        }
+
+        void deinit_tss()
+        {
+            detail::thread_num_tss_.deinit_tss();
+        }
+
+
     private:
         // counter creator functions
 /*        naming::gid_type queue_length_counter_creator(

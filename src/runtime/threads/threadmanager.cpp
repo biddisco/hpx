@@ -14,7 +14,6 @@
 #include <hpx/performance_counters/counter_creators.hpp>
 #include <hpx/performance_counters/manage_counter_type.hpp>
 #include <hpx/runtime/resource_partitioner.hpp>
-#include <hpx/runtime/threads/detail/thread_num_tss.hpp>
 #include <hpx/runtime/threads/topology.hpp>
 #include <hpx/runtime/threads/threadmanager_impl.hpp>
 #include <hpx/runtime/threads/thread_data.hpp>
@@ -1861,9 +1860,10 @@ namespace hpx {
                 static_cast<unsigned>(num_threads + 1)));
 
         // the main thread needs to have a unique thread_num
-        //! FIXME should I do init_tss here? But it's done again for each
-        //! spawned thread in thread_func ...
-        // init_tss(num_threads);
+
+        // the main thread needs to have a unique thread_num
+        // threads are numbered 0..N-1, so we can use N for this thread
+        init_tss(num_threads);
 
         LTM_(info) << "run: running timer pool";
         timer_pool_.run(false);
@@ -1902,6 +1902,7 @@ namespace hpx {
         for(auto& pool_iter : pools_) {
             pool_iter->stop(lk, blocking);
         }
+        deinit_tss();
 
         LTM_(info) << "stop: stopping timer pool";
         timer_pool_.stop();             // stop timer pool as well

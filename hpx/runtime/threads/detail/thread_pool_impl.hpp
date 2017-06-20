@@ -235,6 +235,7 @@ namespace detail
             return sched_->set_scheduler_mode(mode);
         }
 
+
         ///////////////////////////////////////////////////////////////////////////
         bool run(
             std::unique_lock<compat::mutex>& l,
@@ -369,7 +370,7 @@ namespace detail
                     // create a new thread
                     threads_.push_back(compat::thread(
                         &thread_pool::thread_func, this, thread_num,
-                        std::ref(topology_), startup));
+                        std::ref(topology_), std::ref(startup)));
 
                     // set the new threads affinity (on Windows systems)
                     if (any(mask)) {
@@ -394,8 +395,6 @@ namespace detail
                     }
                 }
 
-                // the main thread needs to have a unique thread_num
-                init_tss(num_threads);
 //! TODO add try ... catch
 /*            }
             catch (std::exception const &e) {
@@ -418,194 +417,14 @@ namespace detail
             return true;
         }
 
-       bool run(std::unique_lock<compat::mutex>& l, std::size_t num_threads)
+        ///////////////////////////////////////////////////////////////////////////
+        bool run(std::unique_lock<compat::mutex>& l, std::size_t num_threads)
         {
-            HPX_ASSERT(l.owns_lock());
-
-            LTM_(info)    //-V128
-                << "thread_pool::run: " << id_.name_
-                << " number of processing units available: "    //-V128
-                << threads::hardware_concurrency();
-            LTM_(info)    //-V128
-                << "thread_pool::run: " << id_.name_ << " creating "
-                << num_threads << " OS thread(s)";    //-V128
-
-            if (0 == num_threads) {
-                HPX_THROW_EXCEPTION(bad_parameter, "thread_pool::run",
-                    "number of threads is zero");
-            }
-
-            if (!threads_.empty() ||
-                sched_->has_reached_state(state_running))
-                return true;    // do nothing if already running
-
-            executed_threads_.resize(num_threads);
-            executed_thread_phases_.resize(num_threads);
-
-            tfunc_times_.resize(num_threads);
-            exec_times_.resize(num_threads);
-
-            idle_loop_counts_.resize(num_threads);
-            busy_loop_counts_.resize(num_threads);
-
-            reset_tfunc_times_.resize(num_threads);
-
-            tasks_active_.resize(num_threads);
-
-            // scale timestamps to nanoseconds
-            std::uint64_t base_timestamp = util::hardware::timestamp();
-            std::uint64_t base_time = util::high_resolution_clock::now();
-            std::uint64_t curr_timestamp = util::hardware::timestamp();
-            std::uint64_t curr_time = util::high_resolution_clock::now();
-
-            while ((curr_time - base_time) <= 100000) {
-                curr_timestamp = util::hardware::timestamp();
-                curr_time      = util::high_resolution_clock::now();
-            }
-
-            if (curr_timestamp - base_timestamp != 0) {
-                timestamp_scale_ = double(curr_time - base_time) /
-                                   double(curr_timestamp - base_timestamp);
-            }
-
-#if defined(HPX_HAVE_THREAD_CUMULATIVE_COUNTS)
-            // timestamps/values of last reset operation for various
-            // performance
-            // counters
-            reset_executed_threads_.resize(num_threads);
-            reset_executed_thread_phases_.resize(num_threads);
-
-#if defined(HPX_HAVE_THREAD_IDLE_RATES)
-            // timestamps/values of last reset operation for various
-            // performance
-            // counters
-            reset_thread_duration_.resize(num_threads);
-            reset_thread_duration_times_.resize(num_threads);
-
-            reset_thread_overhead_.resize(num_threads);
-            reset_thread_overhead_times_.resize(num_threads);
-            reset_thread_overhead_times_total_.resize(num_threads);
-
-            reset_thread_phase_duration_.resize(num_threads);
-            reset_thread_phase_duration_times_.resize(num_threads);
-
-            reset_thread_phase_overhead_.resize(num_threads);
-            reset_thread_phase_overhead_times_.resize(num_threads);
-            reset_thread_phase_overhead_times_total_.resize(num_threads);
-
-            reset_cumulative_thread_duration_.resize(num_threads);
-
-            reset_cumulative_thread_overhead_.resize(num_threads);
-            reset_cumulative_thread_overhead_total_.resize(num_threads);
-#endif
-#endif
-
-#if defined(HPX_HAVE_THREAD_IDLE_RATES)
-            reset_idle_rate_time_.resize(num_threads);
-            reset_idle_rate_time_total_.resize(num_threads);
-
-#if defined(HPX_HAVE_THREAD_CREATION_AND_CLEANUP_RATES)
-            reset_creation_idle_rate_time_.resize(num_threads);
-            reset_creation_idle_rate_time_total_.resize(num_threads);
-
-            reset_cleanup_idle_rate_time_.resize(num_threads);
-            reset_cleanup_idle_rate_time_total_.resize(num_threads);
-#endif
-#endif
-
-            LTM_(info) << "thread_pool::run: " << id_.name_
-                       << " timestamp_scale: "
-                       << timestamp_scale_;    //-V128
-
-           boost::scoped_ptr<compat::barrier> startup;
-
-           try {
-                HPX_ASSERT(startup.get() == nullptr);
-                startup.reset(new compat::barrier(
-                    static_cast<unsigned>(num_threads + 1)));
-
-                // run threads and wait for initialization to complete
-
-                topology const &topology_ = get_topology();
-
-                for(std::size_t thread_num_(0); thread_num_ < num_threads; thread_num_++)
-                {
-                    std::size_t thread_num = thread_offset_ + thread_num_;
-                    threads::mask_cref_type mask =
-                            get_resource_partitioner().get_pu_mask(thread_num, sched_->numa_sensitive());
-                    // thread_num ordering: 1. threads of default pool
-                    //                      2. threads of first special pool
-                    //                      3. etc.
-                    // get_pu_mask expects index according to ordering of masks in affinity_data::affinity_masks_
-                    // which is in order of occupied PU
-
-                    LTM_(info) //-V128
-                            << "thread_pool::run: " << id_.name_
-                            << " create OS thread " << thread_num //-V128 //! BOTH?
-                            << ": will run on processing units within this "
-                               "mask: "
-#if !defined(HPX_HAVE_MORE_THAN_64_THREADS) || \
-(defined(HPX_HAVE_MAX_CPU_COUNT) && HPX_HAVE_MAX_CPU_COUNT <= 64)
-                        << std::hex << "0x" << mask;
-#else
-                        << "0b" << mask;
-#endif
-
-                    // create a new thread
-                    threads_.push_back(compat::thread(
-                        &thread_pool::thread_func, this, thread_num,
-                        std::ref(topology_), std::ref(*startup)));
-
-                    // set the new threads affinity (on Windows systems)
-                    if (any(mask)) {
-                        error_code ec(lightweight);
-                        topology_.set_thread_affinity_mask(
-                            threads_.back(), mask, ec);
-                        if (ec) {
-                            LTM_(warning)    //-V128
-                                << "thread_pool::run: "
-                                << id_.name_ << " setting thread affinity "
-                                                "on OS thread "    //-V128
-                                << thread_num
-                                << " failed with: " << ec.get_message();
-                        }
-                    }
-                    else {
-                        LTM_(debug)    //-V128
-                            << "thread_pool::run: "
-                            << id_.name_ << " setting thread affinity on "
-                                            "OS thread "    //-V128
-                            << thread_num << " was explicitly disabled.";
-                    }
-                }
-
-                // the main thread needs to have a unique thread_num
-                init_tss(num_threads);
-                startup->wait();
-
-                // The scheduler is now running.
-                sched_->set_all_states(state_running);
-            }
-            catch (std::exception const &e) {
-                LTM_(always) << "thread_pool::run: " << id_.name_
-                             << " failed with: " << e.what();
-
-                // trigger the barrier
-                if (startup.get() != nullptr) {
-                    while (num_threads-- != 0)
-                        startup->wait();
-                }
-
-                stop(l);
-                threads_.clear();
-
-                return false;
-            }
-
-            LTM_(info) << "thread_pool::run: " << id_.name_ << " running";
-            return true;
+            compat::barrier startup(num_threads+1);
+            bool ret = run(l, startup, num_threads);
+            startup.wait();
+            return ret;
         }
-
 
         void stop_locked(std::unique_lock<lcos::local::no_mutex> &l,
             bool blocking = true)
@@ -613,7 +432,7 @@ namespace detail
             LTM_(info) << "thread_pool::stop: " << id_.name_ << " blocking("
                        << std::boolalpha << blocking << ")";
 
-            deinit_tss();
+            threads::get_thread_manager().deinit_tss();
 
             if (!threads_.empty()) {
                 // set state to stopping
@@ -650,8 +469,6 @@ namespace detail
         {
             LTM_(info) << "thread_pool::stop: " << id_.name_ << " blocking("
                        << std::boolalpha << blocking << ")";
-
-            deinit_tss();
 
             if (!threads_.empty()) {
                 // set state to stopping
@@ -1009,13 +826,13 @@ namespace detail
           , thread_num_(thread_num)
         {
             pool.notifier_.on_start_thread(thread_num);
-            pool.init_tss(thread_num);
+            threads::get_thread_manager().init_tss(thread_num);
             pool.sched_->Scheduler::on_start_thread(thread_num - pool.get_thread_offset());
         }
         ~init_tss_helper()
         {
             pool_.sched_->Scheduler::on_stop_thread(thread_num_);
-            pool_.deinit_tss();
+            threads::get_thread_manager().deinit_tss();
             pool_.notifier_.on_stop_thread(thread_num_);
         }
 
