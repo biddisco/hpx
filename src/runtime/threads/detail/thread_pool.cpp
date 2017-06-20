@@ -5,7 +5,6 @@
 
 #include <hpx/runtime/threads/detail/thread_pool.hpp>
 
-#include <hpx/compat/barrier.hpp>
 #include <hpx/compat/thread.hpp>
 #include <hpx/compat/mutex.hpp>
 #include <hpx/error_code.hpp>

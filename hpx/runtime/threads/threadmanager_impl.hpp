@@ -10,6 +10,7 @@
 #define HPX_THREADMANAGER_IMPL_HPP
 
 #include <hpx/config.hpp>
+#include <hpx/compat/barrier.hpp>
 #include <hpx/compat/mutex.hpp>
 #include <hpx/compat/thread.hpp>
 #include <hpx/exception_fwd.hpp>
@@ -388,6 +389,9 @@ namespace hpx { namespace threads
         pool_vector pools_;
 
         notification_policy_type& notifier_;
+
+        // startup barrier
+        boost::scoped_ptr<compat::barrier> startup_;
     };
 }}
 

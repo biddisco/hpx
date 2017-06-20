@@ -87,6 +87,7 @@ namespace hpx { namespace threads { namespace detail
         virtual void init(std::size_t num_threads, std::size_t threads_offset,
                           policies::detail::affinity_data const& data) = 0;
 
+        virtual bool run(std::unique_lock<compat::mutex>& l, compat::barrier& startup, std::size_t num_threads) = 0;
         virtual bool run(std::unique_lock<compat::mutex>& l, std::size_t num_threads) = 0;
         void stop(std::unique_lock<compat::mutex>& l, bool blocking = true);
 
@@ -215,9 +216,6 @@ namespace hpx { namespace threads { namespace detail
 //    private:
         threads::policies::callback_notifier& notifier_;
         pool_id_type id_;
-
-        // startup barrier
-        boost::scoped_ptr<compat::barrier> startup_;
 
         // count number of executed HPX-threads and thread phases (invocations)
         std::vector<std::int64_t> executed_threads_;

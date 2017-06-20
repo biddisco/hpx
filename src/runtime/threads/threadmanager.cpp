@@ -14,6 +14,7 @@
 #include <hpx/performance_counters/counter_creators.hpp>
 #include <hpx/performance_counters/manage_counter_type.hpp>
 #include <hpx/runtime/resource_partitioner.hpp>
+#include <hpx/runtime/threads/detail/thread_num_tss.hpp>
 #include <hpx/runtime/threads/topology.hpp>
 #include <hpx/runtime/threads/threadmanager_impl.hpp>
 #include <hpx/runtime/threads/thread_data.hpp>
@@ -1847,10 +1848,22 @@ namespace hpx {
     }*/
 
     ///////////////////////////////////////////////////////////////////////////
+
     bool threadmanager_impl::run()
     {
         std::unique_lock<mutex_type> lk(mtx_);
         auto& rp = hpx::get_resource_partitioner();
+        std::size_t num_threads(rp.get_num_threads());
+
+        // reset the startup barrier for controlling startup
+        HPX_ASSERT(startup_.get() == nullptr);
+        startup_.reset(new compat::barrier(
+                static_cast<unsigned>(num_threads + 1)));
+
+        // the main thread needs to have a unique thread_num
+        //! FIXME should I do init_tss here? But it's done again for each
+        //! spawned thread in thread_func ...
+        // init_tss(num_threads);
 
         LTM_(info) << "run: running timer pool";
         timer_pool_.run(false);
@@ -1862,11 +1875,19 @@ namespace hpx {
             {
                 return true;    // do nothing if already running
             }
-            if (!pool_iter->run(lk, num_threads_in_pool))
+            if (!pool_iter->run(lk, std::ref(*startup_), num_threads_in_pool))
             {
                 timer_pool_.stop();
                 return false;
             }
+        }
+
+        // wait for all thread pools to have launched all OS threads
+        startup_->wait();
+
+        // set all states of all schedulers to "running"
+        for(auto& pool_iter : pools_) {
+            pool_iter->get_scheduler()->set_all_states(state_running);
         }
 
         LTM_(info) << "run: running";
