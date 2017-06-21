@@ -7,6 +7,8 @@
 #include <hpx/runtime/threads/detail/thread_num_tss.hpp>
 #include <hpx/util/assert.hpp>
 
+#include <plugins/parcelport/parcelport_logging.hpp>
+
 #include <cstddef>
 #include <utility>
 
@@ -22,9 +24,12 @@ namespace hpx { namespace threads { namespace detail
 
     void thread_num_tss::init_tss(std::size_t num)
     {
+        LOG_ERROR_MSG("thread_num_tss init tss " << num);
+
         // shouldn't be initialized yet
         if (nullptr == thread_num_tss::thread_num_.get())
         {
+            LOG_ERROR_MSG("thread_num_tss init tss after check " << num);
             thread_num_tss::thread_num_.reset(new std::size_t);
             *thread_num_tss::thread_num_.get() = num;
         }
@@ -32,6 +37,8 @@ namespace hpx { namespace threads { namespace detail
 
     void thread_num_tss::deinit_tss()
     {
+        LOG_ERROR_MSG("thread_num_tss deinit tss " << hexpointer(thread_num_tss::thread_num_.get()));
+//        LOG_ERROR_MSG("thread_num_tss deinit tss " << *thread_num_tss::thread_num_.get());
         thread_num_tss::thread_num_.reset();
     }
 

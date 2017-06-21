@@ -26,6 +26,8 @@
 #include <hpx/util/io_service_pool.hpp>
 #include <hpx/util/spinlock.hpp>
 
+#include <plugins/parcelport/parcelport_logging.hpp>
+
 #include <boost/atomic.hpp>
 
 #include <cstddef>
@@ -343,11 +345,13 @@ namespace hpx { namespace threads
 
         void init_tss(std::size_t num)
         {
+            LOG_ERROR_MSG("init tss " << num);
             detail::thread_num_tss_.init_tss(num);
         }
 
         void deinit_tss()
         {
+            LOG_ERROR_MSG("deinit tss ");
             detail::thread_num_tss_.deinit_tss();
         }
 

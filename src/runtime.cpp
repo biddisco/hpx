@@ -33,6 +33,8 @@
 #include <hpx/util/thread_mapper.hpp>
 #include <hpx/version.hpp>
 
+#include <plugins/parcelport/parcelport_logging.hpp>
+
 #include <boost/atomic.hpp>
 
 #include <cstddef>
@@ -273,9 +275,11 @@ namespace hpx
 
     void runtime::init_tss()
     {
+        LOG_ERROR_MSG("runtime init tss ");
         // initialize our TSS
         if (nullptr == runtime::runtime_.get())
         {
+            LOG_ERROR_MSG("runtime init tss after check");
             HPX_ASSERT(nullptr == threads::thread_self::get_self());
 
             runtime::runtime_.reset(new runtime* (this));
@@ -288,6 +292,7 @@ namespace hpx
 
     void runtime::deinit_tss()
     {
+        LOG_ERROR_MSG("runtime deinit tss ");
         // reset our TSS
         threads::thread_self::reset_self();
         runtime::uptime_.reset();

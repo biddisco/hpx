@@ -29,6 +29,8 @@
 #include <hpx/util/set_thread_name.hpp>
 #include <hpx/util/thread_mapper.hpp>
 
+#include <plugins/parcelport/parcelport_logging.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -621,6 +623,8 @@ namespace hpx {
     void runtime_impl::init_tss(char const* context,
         std::size_t num, char const* postfix, bool service_thread)
     {
+        LOG_ERROR_MSG("runtime_impl::init_tss " << context);
+
         // prefix thread name with locality number, if needed
         std::string locality = locality_prefix(get_config());
 
@@ -692,6 +696,7 @@ namespace hpx {
 
     void runtime_impl::deinit_tss()
     {
+        LOG_ERROR_MSG("runtime_impl::deinit_tss ");
         // initialize coroutines context switcher
         hpx::threads::coroutines::thread_shutdown();
 

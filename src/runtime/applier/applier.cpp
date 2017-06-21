@@ -20,6 +20,8 @@
 #include <hpx/util/register_locks.hpp>
 #include <hpx/util/thread_description.hpp>
 
+#include <plugins/parcelport/parcelport_logging.hpp>
+
 #include <cstddef>
 #include <cstdint>
 #include <functional>
@@ -350,12 +352,14 @@ namespace hpx { namespace applier
 
     void applier::init_tss()
     {
+        LOG_ERROR_MSG("applier init tss ");
         if (nullptr == applier::applier_.get())
             applier::applier_.reset(new applier* (this));
     }
 
     void applier::deinit_tss()
     {
+        LOG_ERROR_MSG("applier deinit tss ");
         applier::applier_.reset();
     }
 

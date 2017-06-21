@@ -181,6 +181,7 @@ namespace detail {
 #  define LOG_WARN_MSG(x)
 #  define LOG_ERROR_MSG(x) std::cout << "00: <ERROR> " << THREAD_ID << " " \
     << x << " " << __FILE__ << " " << std::dec << __LINE__ << std::endl;
+
 #  define LOG_FATAL_MSG(x) LOG_ERROR_MSG(x)
 //
 #  define LOG_EXCLUSIVE(x)
