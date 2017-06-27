@@ -289,6 +289,7 @@ namespace hpx {
 
             name = rp.get_pool_name(i);
             resource::scheduling_policy sched_type = rp.which_scheduler(name);
+            std::size_t num_threads_in_pool = rp.get_num_threads(i);
 
             // make sure the first thread-pool that gets instantiated is the default one
             if (i == 0){
@@ -302,18 +303,11 @@ namespace hpx {
                 {
                     const auto &pool_func = rp.get_pool_creator(i);
                     detail::thread_pool* pool = pool_func(
-                        notifier, i, name.c_str(),
-                        policies::scheduler_mode(
-                            policies::do_background_work | policies::reduce_thread_priority |
-                            policies::delay_exit),
-                        thread_offset
+                        notifier,
+                        num_threads_in_pool, thread_offset,
+                        i, name.c_str()
                     );
-
                     pools_.push_back(pool);
-
-                    // update the thread_offset for the next pool
-                    thread_offset += rp.get_num_threads(name);
-
                     break;
                 }
                 case -1 : // unspecified = -1
@@ -330,7 +324,6 @@ namespace hpx {
                     std::string affinity_desc;
                     std::size_t numa_sensitive =
                             hpx::detail::get_affinity_description(cfg_, affinity_desc);
-                    std::size_t num_threads_in_pool = rp.get_num_threads(name);
 
                     // instantiate the scheduler
                     typedef hpx::threads::policies::local_queue_scheduler<>
@@ -349,8 +342,6 @@ namespace hpx {
                             thread_offset);
                     pools_.push_back(pool);
 
-                    // update the thread_offset for the next pool
-                    thread_offset += num_threads_in_pool;
 #else
                     throw detail::command_line_error("Command line option "
                         "--hpx:queuing=local "
@@ -369,7 +360,6 @@ namespace hpx {
                     std::string affinity_desc;
                     std::size_t numa_sensitive =
                             hpx::detail::get_affinity_description(cfg_, affinity_desc);
-                    std::size_t num_threads_in_pool = rp.get_num_threads(name);
 
                     // instantiate the scheduler
                     typedef hpx::threads::policies::local_priority_queue_scheduler<
@@ -389,9 +379,6 @@ namespace hpx {
                             thread_offset);
                     pools_.push_back(pool);
 
-                    // update the thread_offset for the next pool
-                    thread_offset += num_threads_in_pool;
-
                     break;
                 }
 
@@ -404,7 +391,6 @@ namespace hpx {
                     std::string affinity_desc;
                     std::size_t numa_sensitive =
                             hpx::detail::get_affinity_description(cfg_, affinity_desc);
-                    std::size_t num_threads_in_pool = rp.get_num_threads(name);
 
                     // instantiate the scheduler
                     typedef hpx::threads::policies::local_priority_queue_scheduler<
@@ -424,9 +410,6 @@ namespace hpx {
                             thread_offset);
                     pools_.push_back(pool);
 
-                    // update the thread_offset for the next pool
-                    thread_offset += num_threads_in_pool;
-
                     break;
                 }
 
@@ -441,7 +424,6 @@ namespace hpx {
                     std::string affinity_desc;
                     std::size_t numa_sensitive =
                             hpx::detail::get_affinity_description(cfg_, affinity_desc);
-                    std::size_t num_threads_in_pool = rp.get_num_threads(name);
 
                     // instantiate the scheduler
                     typedef hpx::threads::policies::static_queue_scheduler<>
@@ -460,8 +442,6 @@ namespace hpx {
                             thread_offset);
                     pools_.push_back(pool);
 
-                    // update the thread_offset for the next pool
-                    thread_offset += num_threads_in_pool;
 #else
                     throw detail::command_line_error("Command line option "
                         "--hpx:queuing=static "
@@ -483,7 +463,6 @@ namespace hpx {
                     std::string affinity_desc;
                     std::size_t numa_sensitive =
                             hpx::detail::get_affinity_description(cfg_, affinity_desc);
-                    std::size_t num_threads_in_pool = rp.get_num_threads(name);
 
                     // instantiate the scheduler
                     typedef hpx::threads::policies::static_priority_queue_scheduler<>
@@ -503,9 +482,6 @@ namespace hpx {
                             thread_offset);
                     pools_.push_back(pool);
 
-                    // update the thread_offset for the next pool
-                    thread_offset += num_threads_in_pool;
-
 #else
                     throw detail::command_line_error("Command line option "
                         "--hpx:queuing=static-priority "
@@ -524,7 +500,6 @@ namespace hpx {
                     hpx::detail::ensure_hwloc_compatibility(cfg_.vm_);
                     std::size_t num_high_priority_queues =
                             hpx::detail::get_num_high_priority_queues(cfg_, rp.get_num_threads(name));
-                    std::size_t num_threads_in_pool = rp.get_num_threads(name);
 
                     // instantiate the scheduler
                     typedef hpx::threads::policies::local_priority_queue_scheduler<
@@ -544,8 +519,6 @@ namespace hpx {
                             thread_offset);
                     pools_.push_back(pool);
 
-                    // update the thread_offset for the next pool
-                    thread_offset += num_threads_in_pool;
 #else
                     throw detail::command_line_error("Command line option "
                         "--hpx:queuing=abp-priority "
@@ -564,7 +537,6 @@ namespace hpx {
                             cfg_.vm_);
                     hpx::detail::ensure_numa_sensitivity_compatibility(cfg_.vm_);
                     hpx::detail::ensure_hwloc_compatibility(cfg_.vm_);
-                    std::size_t num_threads_in_pool = rp.get_num_threads(name);
 
                     // instantiate the pool
                     typedef hpx::threads::policies::hierarchy_scheduler<> local_sched_type;
@@ -585,8 +557,6 @@ namespace hpx {
                             thread_offset);
                     pools_.push_back(pool);
 
-                    // update the thread_offset for the next pool
-                    thread_offset += num_threads_in_pool;
 #else
                     throw detail::command_line_error("Command line option "
                         "--hpx:queuing=hierarchy "
@@ -604,7 +574,6 @@ namespace hpx {
                     hpx::detail::ensure_hwloc_compatibility(cfg_.vm_);
                     std::size_t num_high_priority_queues =
                             hpx::detail::get_num_high_priority_queues(cfg_, rp.get_num_threads(name));
-                    std::size_t num_threads_in_pool = rp.get_num_threads(name);
 
                     // instantiate the scheduler
                     typedef hpx::threads::policies::periodic_priority_queue_scheduler<>
@@ -623,9 +592,6 @@ namespace hpx {
                             thread_offset);
                     pools_.push_back(pool);
 
-                    // update the thread_offset for the next pool
-                    thread_offset += num_threads_in_pool;
-
                     break;
                 }
 
@@ -640,7 +606,6 @@ namespace hpx {
                     std::string affinity_desc;
                     std::size_t numa_sensitive =
                             hpx::detail::get_affinity_description(cfg_, affinity_desc);
-                    std::size_t num_threads_in_pool = rp.get_num_threads(name);
 
                     // instantiate the scheduler
                     typedef hpx::threads::policies::throttle_queue_scheduler<>
@@ -659,8 +624,6 @@ namespace hpx {
                             thread_offset);
                     pools_.push_back(pool);
 
-                    // update the thread_offset for the next pool
-                    thread_offset += num_threads_in_pool;
 #else
                     throw hpx::detail::command_line_error("Command line option "
                         "--hpx:queuing=throttle "
@@ -670,6 +633,9 @@ namespace hpx {
                     break;
                 }
             }
+            // update the thread_offset for the next pool
+            thread_offset += num_threads_in_pool;
+
         }
 
         // fill the thread-lookup table
