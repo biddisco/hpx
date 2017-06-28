@@ -22,6 +22,8 @@
 #include <hpx/util/high_resolution_clock.hpp>
 #include <hpx/util/unlock_guard.hpp>
 
+#include <plugins/parcelport/parcelport_logging.hpp>
+
 #ifdef HPX_HAVE_THREAD_CREATION_AND_CLEANUP_RATES
 #   include <hpx/util/tick_counter.hpp>
 #endif
@@ -313,6 +315,7 @@ namespace hpx { namespace threads { namespace policies
                 // add the new entry to the map of all threads
                 std::pair<thread_map_type::iterator, bool> p =
                     thread_map_.insert(thrd);
+                LOG_ERROR_MSG("inserted " << hexpointer(thrd.get()));
 
                 if (HPX_UNLIKELY(!p.second)) {
                     lk.unlock();

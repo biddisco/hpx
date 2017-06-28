@@ -9,6 +9,8 @@
 #include <hpx/config.hpp>
 #include <hpx/runtime/threads/topology.hpp>
 
+#include <plugins/parcelport/parcelport_logging.hpp>
+
 #include <boost/atomic.hpp>
 
 #include <cstddef>
@@ -46,6 +48,7 @@ namespace hpx { namespace threads { namespace policies { namespace detail
 
         std::size_t get_pu_num(std::size_t num_thread) const
         {
+            LOG_ERROR_MSG("affinity data get_pu_num " << decnumber(num_thread));
             HPX_ASSERT(num_thread < pu_nums_.size());
             return pu_nums_[num_thread];
         }
