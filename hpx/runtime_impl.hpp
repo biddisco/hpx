@@ -363,7 +363,9 @@ namespace hpx
         runtime_mode mode_;
         int result_;
         util::io_service_pool main_pool_;
+#ifdef HPX_HAVE_IO_POOL
         util::io_service_pool io_pool_;
+#endif
 #ifdef HPX_HAVE_TIMER_POOL
         util::io_service_pool timer_pool_;
 #endif
