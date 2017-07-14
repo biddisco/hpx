@@ -137,13 +137,18 @@ namespace hpx {
             util::bind(&runtime_impl::init_tss, This(), "io-thread",
                 util::placeholders::_1, util::placeholders::_2, true),
             util::bind(&runtime_impl::deinit_tss, This()), "io_pool"),
+#ifdef HPX_HAVE_TIMER_POOL
         timer_pool_(rtcfg.get_thread_pool_size("timer_pool"),
             util::bind(&runtime_impl::init_tss, This(), "timer-thread",
                 util::placeholders::_1, util::placeholders::_2, true),
             util::bind(&runtime_impl::deinit_tss, This()), "timer_pool"),
+#endif
         notifier_(runtime_impl::get_notification_policy("worker-thread")),
         thread_manager_(new hpx::threads::threadmanager_impl(
-                timer_pool_, notifier_)),
+#ifdef HPX_HAVE_TIMER_POOL
+                timer_pool_,
+#endif
+                notifier_)),
         parcel_handler_(rtcfg, thread_manager_.get(),
             util::bind(&runtime_impl::init_tss, This(), "parcel-thread",
                 util::placeholders::_1, util::placeholders::_2, true),
@@ -209,7 +214,6 @@ namespace hpx {
         parcel_handler_.stop();     // stops parcel pools as well
         thread_manager_->stop();    // stops timer_pool_ as well
         io_pool_.stop();
-
         // unload libraries
         runtime_support_->tidy();
 
@@ -301,7 +305,6 @@ namespace hpx {
         io_pool_.run(false);
         lbt_ << "(1st stage) runtime_impl::start: started the application "
                       "I/O service pool";
-
         // start the thread manager
         thread_manager_->run();
         lbt_ << "(1st stage) runtime_impl::start: started threadmanager";
@@ -471,7 +474,6 @@ namespace hpx {
         // stop the rest of the system
         parcel_handler_.stop(blocking);     // stops parcel pools as well
         io_pool_.stop();                    // stops io_pool_ as well
-
         deinit_tss();
     }
 
@@ -748,13 +750,14 @@ namespace hpx {
         get_thread_pool(char const* name)
     {
         HPX_ASSERT(name != nullptr);
-
         if (0 == std::strncmp(name, "io", 2))
             return &io_pool_;
         if (0 == std::strncmp(name, "parcel", 6))
             return parcel_handler_.get_thread_pool(name);
+#ifdef HPX_HAVE_TIMER_POOL
         if (0 == std::strncmp(name, "timer", 5))
             return &timer_pool_;
+#endif
         if (0 == std::strncmp(name, "main", 4)) //-V112
             return &main_pool_;
 

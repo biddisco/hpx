@@ -364,7 +364,9 @@ namespace hpx
         int result_;
         util::io_service_pool main_pool_;
         util::io_service_pool io_pool_;
+#ifdef HPX_HAVE_TIMER_POOL
         util::io_service_pool timer_pool_;
+#endif
         notification_policy_type notifier_;
         boost::scoped_ptr<hpx::threads::threadmanager_base> thread_manager_;
         parcelset::parcelhandler parcel_handler_;
