@@ -45,10 +45,11 @@ namespace hpx { namespace compute { namespace host
         auto & tm = hpx::get_runtime().get_thread_manager();
         for(std::size_t num_thread = 0; num_thread != num_os_threads; ++num_thread)
         {
-            std::size_t pu_num = tm.get_pu_num(num_thread);
+            throw std::runtime_error("Please fix this");
+//            std::size_t pu_num = tm.get_pu_mask(topo,num_thread);
 
-            auto const& mask = topo.get_thread_affinity_mask(pu_num, true);
-            targets.emplace_back(mask);
+//            auto const& mask = topo.get_thread_affinity_mask(pu_num, true);
+//            targets.emplace_back(mask);
         }
 
         return targets;

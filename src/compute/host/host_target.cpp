@@ -27,11 +27,13 @@ namespace hpx { namespace compute { namespace host
         std::size_t num_thread = 0;
         for(/**/; num_thread != num_os_threads; ++num_thread)
         {
-            if(hpx::threads::bit_and(
-                    mask, tm.get_pu_mask(topo, num_thread), mask_size))
-            {
-                break;
-            }
+            throw std::runtime_error("Fix this");
+
+//            if(hpx::threads::bit_and(
+//                    mask, tm.get_pu_mask(topo, num_thread), mask_size))
+//            {
+//                break;
+//            }
         }
         return std::make_pair(num_thread, hpx::threads::count(mask));
     }

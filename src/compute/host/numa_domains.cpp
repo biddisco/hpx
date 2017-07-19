@@ -30,6 +30,8 @@ namespace hpx { namespace compute { namespace host
         std::size_t num_os_threads = hpx::get_os_thread_count();
         for(std::size_t num_thread = 0; num_thread != num_os_threads; ++num_thread)
         {
+            throw std::runtime_error("Please fix this");
+/*
             std::size_t pu_num = tm.get_pu_num(num_thread);
             std::size_t numa_node = topo.get_numa_node_number(pu_num);
 
@@ -43,7 +45,7 @@ namespace hpx { namespace compute { namespace host
                     hpx::threads::set(node_masks[numa_node], idx);
                 }
             }
-
+*/
         }
         std::vector<target> res;
         res.reserve(numa_nodes);
