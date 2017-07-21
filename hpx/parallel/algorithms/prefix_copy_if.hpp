@@ -13,7 +13,6 @@
 #include <hpx/util/invoke.hpp>
 #include <hpx/util/tagged_pair.hpp>
 
-#include <hpx/parallel/config/inline_namespace.hpp>
 #include <hpx/parallel/traits/projected.hpp>
 #include <hpx/parallel/execution_policy.hpp>
 #include <hpx/parallel/tagspec.hpp>
@@ -29,7 +28,7 @@
 #include <hpx/util/tuple.hpp>
 //
 
-namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
+namespace hpx { namespace parallel { inline namespace v1
 {
     ///////////////////////////////////////////////////////////////////////////
     // reduce_by_key
@@ -122,7 +121,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
         Proj && proj = Proj())
     {
         typedef std::integral_constant<bool,
-                is_sequential_execution_policy<ExPolicy>::value ||
+                parallel::execution::is_sequenced_execution_policy<ExPolicy>::value ||
                !hpx::traits::is_forward_iterator<InIter>::value ||
                !hpx::traits::is_forward_iterator<OutIter>::value ||
                !hpx::traits::is_output_iterator<OutIter>::value
@@ -204,7 +203,7 @@ namespace hpx { namespace parallel { HPX_INLINE_NAMESPACE(v1)
         Proj && proj = Proj())
     {
         typedef std::integral_constant<bool,
-                is_sequential_execution_policy<ExPolicy>::value ||
+                parallel::execution::is_sequenced_execution_policy<ExPolicy>::value ||
                !hpx::traits::is_forward_iterator<InIter>::value ||
                !hpx::traits::is_forward_iterator<OutIter>::value ||
                !hpx::traits::is_forward_iterator<StencilIter>::value ||
