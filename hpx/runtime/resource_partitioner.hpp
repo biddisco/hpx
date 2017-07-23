@@ -185,10 +185,10 @@ namespace resource {
 
         std::string pool_name_;
         scheduling_policy scheduling_policy_;
-        std::vector<threads::mask_type>
-            assigned_pus_;    // PUs this pool is allowed to run on
-        std::size_t
-            num_threads_;    // counter for number of threads bound to this pool
+        // PUs this pool is allowed to run on
+        std::vector<threads::mask_type> assigned_pus_;
+        // counter for number of threads bound to this pool
+        std::size_t num_threads_;
         scheduler_function create_function_;
     };
 
@@ -221,18 +221,18 @@ namespace resource {
 
         // Functions to add processing units to thread pools via
         // the pu/core/numa_domain API
-        void add_resource(const hpx::resource::pu &p,
-            const std::string &pool_name, std::size_t num_threads = 1);
-        void add_resource(const std::vector<hpx::resource::pu> &pv,
-            const std::string &pool_name);
-        void add_resource(const hpx::resource::core &c,
-            const std::string &pool_name);
-        void add_resource(const std::vector<hpx::resource::core> &cv,
-            const std::string &pool_name);
-        void add_resource(const hpx::resource::numa_domain &nd,
-            const std::string &pool_name);
-        void add_resource(const std::vector<hpx::resource::numa_domain> &ndv,
-            const std::string &pool_name);
+        void add_resource(hpx::resource::pu const& p,
+            const std::string& pool_name, std::size_t num_threads = 1);
+        void add_resource(const std::vector<hpx::resource::pu>& pv,
+            const std::string& pool_name);
+        void add_resource(const hpx::resource::core& c,
+            const std::string& pool_name);
+        void add_resource(const std::vector<hpx::resource::core>& cv,
+            const std::string& pool_name);
+        void add_resource(const hpx::resource::numa_domain& nd,
+            const std::string& pool_name);
+        void add_resource(const std::vector<hpx::resource::numa_domain>& ndv,
+            const std::string& pool_name);
 
         // stuff that has to be done during hpx_init ...
         void set_scheduler(
@@ -267,7 +267,7 @@ namespace resource {
         size_t get_num_pools() const;
         size_t get_num_threads(const std::string &pool_name) const;
         size_t get_num_threads(std::size_t pool_index) const;
-        const init_pool_data *get_pool(std::size_t pool_index) const;
+        init_pool_data const& get_pool(std::size_t pool_index) const;
         const std::string &get_pool_name(size_t index) const;
         threads::mask_cref_type get_pu_mask(
             std::size_t num_thread, bool numa_sensitive) const;
@@ -276,7 +276,7 @@ namespace resource {
             int argc, char **argv, std::vector<std::string> ini_config,
             runtime_mode mode, bool fill_internal_topology = true);
 
-        const scheduler_function &get_pool_creator(size_t index) const;
+        scheduler_function const& get_pool_creator(size_t index) const;
 
         std::vector<numa_domain> &numa_domains()
         {
@@ -308,9 +308,9 @@ namespace resource {
         // has to be private bc pointers become invalid after data member
         // thread_pools_ is resized
         // we don't want to allow the user to use it
-        const init_pool_data *get_pool(const std::string &pool_name) const;
-        init_pool_data *get_pool(const std::string &pool_name);
-        init_pool_data *get_default_pool();
+        init_pool_data const& get_pool(const std::string &pool_name) const;
+        init_pool_data& get_pool(const std::string &pool_name);
+        init_pool_data& get_default_pool();
 
         ////////////////////////////////////////////////////////////////////////
 
