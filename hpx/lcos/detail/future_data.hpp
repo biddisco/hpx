@@ -509,7 +509,6 @@ namespace detail
         {
             try {
                 hpx::util::annotate_function annotate(on_completed);
-                (void)annotate;     // suppress warning about unused variable
                 on_completed();
             }
             catch (...) {
