@@ -199,6 +199,9 @@ namespace hpx { namespace threads
         void print_affinity_mask(std::ostream& os, std::size_t num_thread,
             mask_cref_type m, const std::string &pool_name) const;
 
+        void set_mem_policy_interleaved(mask_cref_type mask,
+            error_code& ec = throws) const;
+
         struct hwloc_topology_tag {};
 
         void write_to_log() const;

@@ -342,6 +342,12 @@ namespace hpx { namespace threads { namespace detail
                 << global_thread_num << " was explicitly disabled.";
         }
 
+        if ((mode_ & policies::set_numa_mempolicy))
+        {
+            unsigned long mask = 0;
+            topo.set_mempolicy(used_processing_units_);
+        }
+
         // Setting priority of worker threads to a lower priority, this
         // needs to
         // be done in order to give the parcel pool threads higher

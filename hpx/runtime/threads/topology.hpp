@@ -153,6 +153,8 @@ namespace hpx { namespace threads
             std::size_t num_thread, mask_cref_type m,
             const std::string &pool_name) const = 0;
 
+        bool set_mempolicy(mask_cref_type cpu_mask, error_code& ec = throws) const;
+
         /// \brief Reduce thread priority of the current thread.
         ///
         /// \param ec         [in,out] this represents the error status on exit,
@@ -194,6 +196,9 @@ namespace hpx { namespace threads
         /// convert a cpu mask into a numa node mask in hwloc bitmap form
         virtual hwloc_bitmap_ptr cpuset_to_nodeset(
             mask_cref_type cpuset) const = 0;
+
+        virtual void set_mem_policy_interleaved(mask_cref_type mask,
+            error_code& ec = throws) const = 0;
 
         virtual void write_to_log() const = 0;
 

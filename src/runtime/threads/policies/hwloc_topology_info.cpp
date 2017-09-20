@@ -1130,6 +1130,39 @@ namespace hpx { namespace threads
         return mask;
     }
 
+    ///////////////////////////////////////////////////////////////////////////
+    void hwloc_topology_info::set_mem_policy_interleaved(mask_cref_type mask,
+        error_code& ec) const
+    {
+        if (&ec != &throws)
+            ec = make_success_code();
+
+        hwloc_membind_policy_t policy = HWLOC_MEMBIND_INTERLEAVE;
+        hwloc_cpuset_t   cpuset = hwloc_bitmap_alloc();
+        for (unsigned int i = 0; std::size_t(i) != num_of_pus_; ++i)
+        {
+            if (test(mask,i)) {
+                hwloc_bitmap_set(cpuset, i);
+            }
+        }
+        if (hwloc_set_membind(topo, cpuset, policy, 0)==-1) {
+            if (errno==ENOSYS) {
+                hwloc_bitmap_free(cpuset);
+                HPX_THROWS_IF(ec, no_success,
+                    "hwloc_topology_info::set_mem_policy_interleaved",
+                    "ENOSYS action is not supported");
+            }
+            else if (errno==EXDEV){
+                hwloc_bitmap_free(cpuset);
+                HPX_THROWS_IF(ec, no_success,
+                    "hwloc_topology_info::set_mem_policy_interleaved",
+                    "EXDEV binding cannot be enforced");
+            }
+            return;
+        }
+        hwloc_bitmap_free(cpuset);
+        return;
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     /// This is equivalent to malloc(), except that it tries to allocate

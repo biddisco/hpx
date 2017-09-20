@@ -70,6 +70,12 @@ namespace hpx { namespace threads
         return (!any(res)) ? machine_mask : res;
     }
 
+    bool topology::set_mempolicy(mask_cref_type cpu_mask, error_code& ec) const
+    {
+        set_mem_policy_interleaved(cpu_mask, ec);
+        return true;
+    }
+
     bool topology::reduce_thread_priority(error_code& ec) const
     {
 #ifdef HPX_HAVE_NICE_THREADLEVEL
