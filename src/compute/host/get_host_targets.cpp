@@ -51,6 +51,16 @@ namespace hpx { namespace compute { namespace host
 
         return targets;
     }
+
+    HPX_EXPORT target get_target(const std::string &pool_name)
+    {
+        typedef hpx::threads::detail::thread_pool_base pool_type;
+        auto& rp = hpx::resource::get_partitioner();
+        pool_type &pool = hpx::threads::get_thread_manager().get_pool(pool_name);
+        hpx::threads::mask_cref_type mask = pool.get_used_processing_units();
+        return target(mask);
+    }
+
 }}}
 
 HPX_PLAIN_ACTION(hpx::compute::host::get_local_targets,

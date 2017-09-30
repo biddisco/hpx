@@ -20,6 +20,7 @@ namespace hpx { namespace compute { namespace host
     HPX_EXPORT std::vector<target> get_local_targets();
     HPX_EXPORT hpx::future<std::vector<target> >
         get_targets(hpx::id_type const& locality);
+    HPX_EXPORT target get_target(const std::string &pool_name);
 }}}
 
 #endif

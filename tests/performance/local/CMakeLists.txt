@@ -110,6 +110,7 @@ set(benchmarks ${benchmarks}
     spinlock_overhead2
     stencil3_iterators
     stream
+    stream_rp
     transform_reduce_scaling
     partitioned_vector_foreach
    )
