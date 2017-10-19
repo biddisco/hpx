@@ -256,27 +256,37 @@ namespace hpx { namespace threads { namespace detail
 
         explicit scheduling_callbacks(
                 callback_type && outer,
-                callback_type && inner = callback_type(),
-                background_callback_type && background =
-                    background_callback_type(),
-                std::size_t max_background_threads =
-                    hpx::util::safe_lexical_cast<std::size_t>(
-                        hpx::get_config_entry("hpx.max_background_threads",
-                            (std::numeric_limits<std::size_t>::max)())),
-                std::size_t max_idle_loop_count =
-                    hpx::util::safe_lexical_cast<std::int64_t>(
-                        hpx::get_config_entry("hpx.max_idle_loop_count",
-                            HPX_IDLE_LOOP_COUNT_MAX)),
-                std::size_t max_busy_loop_count =
-                    hpx::util::safe_lexical_cast<std::int64_t>(
-                        hpx::get_config_entry("hpx.max_busy_loop_count",
-                            HPX_BUSY_LOOP_COUNT_MAX)))
+                callback_type && inner,
+                background_callback_type && background,
+                std::size_t max_background_threads,
+                std::size_t max_idle_loop_count,
+                std::size_t max_busy_loop_count)
           : outer_(std::move(outer)),
             inner_(std::move(inner)),
             background_(std::move(background)),
             max_background_threads_(max_background_threads),
             max_idle_loop_count_(max_idle_loop_count),
             max_busy_loop_count_(max_busy_loop_count)
+        {}
+
+        explicit scheduling_callbacks(
+                callback_type && outer,
+                callback_type && inner = callback_type(),
+                background_callback_type && background =
+                    background_callback_type())
+          : scheduling_callbacks(
+                std::move(outer),
+                std::move(inner),
+                std::move(background),
+                hpx::util::safe_lexical_cast<std::size_t>(
+                    hpx::get_config_entry("hpx.max_background_threads",
+                        (std::numeric_limits<std::size_t>::max)())),
+                hpx::util::safe_lexical_cast<std::int64_t>(
+                    hpx::get_config_entry("hpx.max_idle_loop_count",
+                        HPX_IDLE_LOOP_COUNT_MAX)),
+                hpx::util::safe_lexical_cast<std::int64_t>(
+                    hpx::get_config_entry("hpx.max_busy_loop_count",
+                        HPX_BUSY_LOOP_COUNT_MAX)))
         {}
 
         callback_type outer_;

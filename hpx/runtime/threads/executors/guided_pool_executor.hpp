@@ -148,7 +148,6 @@ namespace hpx { namespace threads { namespace executors
     // --------------------------------------------------------------------
     // this is a guided pool executor templated over a function type
     // the function type should be the one used for async calls
-    template <>
     template <typename R, typename...Args>
     struct HPX_EXPORT guided_pool_executor<pool_numa_hint<R(*)(Args...)>>
         : guided_pool_executor_base
@@ -183,7 +182,6 @@ namespace hpx { namespace threads { namespace executors
     // the args should be the same as those that would be called
     // for an async function or continuation. This makes it possible to
     // guide a lambda rather than a full function.
-    template <>
     template <typename...Args>
     struct HPX_EXPORT guided_pool_executor<pool_numa_hint<Args...>>
         : guided_pool_executor_base
