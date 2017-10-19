@@ -20,6 +20,53 @@
 
 #include <hpx/config/warnings_prefix.hpp>
 
+//
+#include <typeinfo>
+
+#ifdef __GNUG__
+# include <cstdlib>
+# include <cxxabi.h>
+#endif
+
+
+// ------------------------------------------------------------------
+// helper to demangle type names
+// ------------------------------------------------------------------
+#ifdef __GNUG__
+std::string demangle(const char* name)
+{
+    // some arbitrary value to eliminate the compiler warning
+    int status = -4;
+    std::unique_ptr<char, void(*)(void*)> res {
+        abi::__cxa_demangle(name, NULL, NULL, &status),
+                std::free
+    };
+    return (status==0) ? res.get() : name ;
+}
+#else
+// does nothing if not g++
+std::string demangle(const char* name) {
+    return name;
+}
+#endif
+
+inline std::string print_type() { return ""; }
+
+template <class T>
+inline std::string print_type()
+{
+    return demangle(typeid(T).name());
+}
+
+template<typename T, typename... Args>
+inline std::string print_type(T&& head, Args&&... tail)
+{
+    std::string temp = print_type<T>();
+    std::cout << temp << std::endl;
+    return print_type(std::forward<Args>(tail)...);
+}
+
+
 namespace hpx { namespace threads { namespace executors
 {
     struct bitmap_storage
@@ -50,6 +97,8 @@ namespace hpx { namespace threads { namespace executors
         {
             int domain = numa_function_(ts...);
             std::cout << "The numa domain is " << domain << "\n";
+
+            print_type(ts...);
 
             // now we must forward the task on to the correct dispatch function
             typedef typename util::detail::invoke_deferred_result<F, Ts...>::type
