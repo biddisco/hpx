@@ -432,7 +432,7 @@ namespace hpx { namespace lcos { namespace detail
     inline typename hpx::traits::future_then_executor_result<
         Executor, Future, F, Ts...
     >::type
-    then_execute_helper(Executor const&, F&&, Future const&, Ts&&...);
+    then_execute_helper(Executor &&, F&&, Future &, Ts&&...); // JB_FIX const exec
 
     ///////////////////////////////////////////////////////////////////////////
     template <typename Future>
@@ -723,7 +723,7 @@ namespace hpx { namespace lcos { namespace detail
         {
             // simply forward this to executor
             return detail::then_execute_helper(exec, std::forward<F>(f),
-                *static_cast<Derived const*>(this));
+                *static_cast<Derived *>(this));
         }
 
         // Effects: blocks until the shared state is ready.

@@ -722,8 +722,8 @@ namespace hpx { namespace lcos { namespace detail
     inline typename hpx::traits::future_then_executor_result<
         Executor, Future, F, Ts...
     >::type
-    then_execute_helper(Executor const& exec, F && f, Future const& predecessor,
-        Ts &&... ts)
+    then_execute_helper(Executor && exec, F && f, Future & predecessor,
+        Ts &&... ts)  // JB_FIX const exec
     {
         // simply forward this to executor
         return parallel::execution::then_execute(exec, std::forward<F>(f),
