@@ -44,7 +44,7 @@ std::size_t hello_world_worker(std::size_t desired)
         // The HPX-thread has been run on the desired OS-thread.
         char const* msg = "hello world from OS-thread %1% on locality %2%";
 
-        hpx::util::format_to(hpx::cout, msg, desired, hpx::get_locality_id())
+        hpx::util::format_to(std::cout, msg, desired, hpx::get_locality_id())
                   << std::endl << hpx::flush;
 
         return desired;
