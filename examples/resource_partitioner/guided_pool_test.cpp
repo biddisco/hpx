@@ -62,12 +62,22 @@ void async_guided(std::size_t n, bool printout, const std::string &message)
         std::cout << "\n";
     }
 }
+/*
+template <typename ... Args>
+int a_function(Args...args) {
+    std::cout << "A_function double is " << std::endl;
+    return 2;
+}
+*/
+int a_function(hpx::future<double> &&df) {
+    std::cout << "A_function double is " << df.get() << std::endl;
+    return 2;
+}
 
 namespace hpx { namespace threads { namespace executors
 {
     // ------------------------------------------------------------------------
     // specialize the hint template for our function type
-    template <>
     template <typename R, typename...Args>
     struct HPX_EXPORT pool_numa_hint<R(*)(Args...)>
     {
@@ -116,6 +126,7 @@ int hpx_main(boost::program_options::variables_map& vm)
     std::size_t num_threads = hpx::get_num_worker_threads();
     std::cout << "HPX using threads = " << num_threads << std::endl;
 
+    std::cout << std::endl << std::endl;
     std::cout << "----------------------------------------------" << std::endl;
     std::cout << "Testing async guided exec " << std::endl;
     std::cout << "----------------------------------------------" << std::endl;
@@ -127,6 +138,7 @@ int hpx_main(boost::program_options::variables_map& vm)
     hpx::future<void> gf1 = hpx::async(guided_exec, &async_guided, 5, true, "Guided function");
     gf1.get();
 
+    std::cout << std::endl << std::endl;
     std::cout << "----------------------------------------------" << std::endl;
     std::cout << "Testing async guided exec lambda" << std::endl;
     std::cout << "----------------------------------------------" << std::endl;
@@ -135,6 +147,22 @@ int hpx_main(boost::program_options::variables_map& vm)
     using hint_type2 = pool_numa_hint<int, double, const std::string &>;
     // create an executor using the numa hint type
     hpx::threads::executors::guided_pool_executor<hint_type2> guided_lambda_exec(CUSTOM_POOL_NAME);
+
+    using namespace hpx::traits;
+    static_assert(
+        has_sync_execute_member<hpx::threads::executors::guided_pool_executor<hint_type2>>::value == std::false_type(),
+        "check has_sync_execute_member<Executor>::value");
+    static_assert(
+        has_async_execute_member<hpx::threads::executors::guided_pool_executor<hint_type2>>::value == std::true_type(),
+        "check has_async_execute_member<Executor>::value");
+    static_assert(
+        has_then_execute_member<hpx::threads::executors::guided_pool_executor<hint_type2>>::value == std::true_type(),
+        "has_then_execute_member<executor>::value");
+    static_assert(
+        has_post_member<hpx::threads::executors::guided_pool_executor<hint_type2>>::value == std::false_type(),
+        "has_post_member<executor>::value");
+
+
     // invoke the lambda asynchronously and use the numa executor
     hpx::future<double> gf2 = hpx::async(guided_lambda_exec,
         [](int a, double x, const std::string &msg) mutable -> double {
@@ -145,6 +173,7 @@ int hpx_main(boost::program_options::variables_map& vm)
         5, 2.718, "Guided function 2");
     gf2.get();
 
+    std::cout << std::endl << std::endl;
     std::cout << "----------------------------------------------" << std::endl;
     std::cout << "Testing async guided exec continuation" << std::endl;
     std::cout << "----------------------------------------------" << std::endl;
@@ -155,13 +184,15 @@ int hpx_main(boost::program_options::variables_map& vm)
     hpx::threads::executors::guided_pool_executor<hint_type3> guided_cont_exec(CUSTOM_POOL_NAME);
     // invoke the lambda asynchronously and use the numa executor
     auto new_future = hpx::async([]() -> double { return 3.1415;} ).then(
-        guided_cont_exec, hpx::util::unwrapping([](double df)
+        guided_cont_exec, a_function);
+/*
+    [](double df)
     {
         double d = df; // .get();
         std::cout << "received a double of value " << d << std::endl;
         return d*2;
     }));
-
+*/
     new_future.get();
 
     return hpx::finalize();
