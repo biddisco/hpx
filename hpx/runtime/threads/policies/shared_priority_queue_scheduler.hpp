@@ -574,7 +574,7 @@ namespace policies {
         // create a new thread and schedule it if the initial state
         // is equal to pending
         void create_thread(thread_init_data& data, thread_id_type* thrd,
-            thread_state_enum initial_state, bool run_now, error_code& ec) override
+            thread_state_enum initial_state, error_code& ec) override
         {
             // safety check that task was created by this thread/scheduler
             HPX_ASSERT(data.scheduler_base == this);
@@ -649,7 +649,7 @@ namespace policies {
 
                 hp_queues_[domain_num].queues_[hp_lookup_[
                     q_index % hp_queues_[domain_num].num_cores]]->
-                    create_thread(data, thrd, initial_state, run_now, ec);
+                    create_thread(data, thrd, initial_state, ec);
 
                 return;
             }
@@ -658,7 +658,7 @@ namespace policies {
             {
                 lp_queues_[domain_num].queues_[lp_lookup_[
                     q_index % lp_queues_[domain_num].num_cores]]->
-                    create_thread(data, thrd, initial_state, run_now, ec);
+                    create_thread(data, thrd, initial_state, ec);
 
                 return;
             }
@@ -666,7 +666,7 @@ namespace policies {
             // normal priority
             np_queues_[domain_num].queues_[np_lookup_[
                 q_index % np_queues_[domain_num].num_cores]]->
-                create_thread(data, thrd, initial_state, run_now, ec);
+                create_thread(data, thrd, initial_state, ec);
         }
 
         /// Return the next thread to be executed, return false if none available
