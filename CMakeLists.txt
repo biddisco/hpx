@@ -1505,6 +1505,10 @@ endif()
 hpx_libraries(${HWLOC_LIBRARIES})
 include_directories(${HWLOC_INCLUDE_DIR})
 
+find_package(Libfabric REQUIRED)
+hpx_libraries(${LIBFABRIC_LIBRARIES})
+include_directories(${LIBFABRIC_INCLUDE_DIRS})
+
 ################################################################################
 # Enable integration with Intel Amplifier
 ################################################################################
@@ -1769,6 +1773,12 @@ write_config_defines_file(
   TEMPLATE "${PROJECT_SOURCE_DIR}/cmake/templates/config_defines.hpp.in"
   NAMESPACE default
   FILENAME "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx/config/defines.hpp")
+
+if(NOT MPIEXEC)
+  if(MPIEXEC_EXECUTABLE)
+    set(MPIEXEC ${MPIEXEC_EXECUTABLE})
+  endif()
+endif()
 
 # Configure hpxrun.py
 configure_file("${PROJECT_SOURCE_DIR}/cmake/templates/hpxrun.py.in"

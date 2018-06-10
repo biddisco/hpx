@@ -17,7 +17,8 @@ foreach(subdir ${subdirs})
 endforeach()
 
 set(benchmarks
-    pingpong_performance)
+    pingpong_performance
+    libfabric)
 
 foreach(benchmark ${benchmarks})
 
