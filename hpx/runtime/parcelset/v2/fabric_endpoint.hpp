@@ -25,8 +25,13 @@ namespace hpx { namespace parcelset { inline namespace v2 {
     namespace detail {
         struct opaque_address
         {
-            void *addr;
-            std::size_t addrlen;
+            std::vector<char> addr;
+
+            opaque_address(void *addr_, std::size_t addrlen)
+              : addr(addrlen)
+            {
+                std::memcpy(addr.data(), addr_, addrlen);
+            }
 
             struct hash
             {
@@ -57,10 +62,9 @@ namespace hpx { namespace parcelset { inline namespace v2 {
                     constexpr std::size_t FNV_prime = select_prime<sizeof(std::size_t)>::value;
                     std::size_t result = offset_basis;
 
-                    char* array = reinterpret_cast<char*>(addr.addr);
-                    for (std::size_t i = 0; i != addr.addrlen; ++i)
+                    for (char c : addr.addr)
                     {
-                        result = result ^ array[i];
+                        result = result ^ c;
                         result = result * FNV_prime;
                     }
                     return result;
@@ -68,34 +72,29 @@ namespace hpx { namespace parcelset { inline namespace v2 {
             };
 
         private:
-            int memcmp(opaque_address const& other) const
-            {
-                HPX_ASSERT(other.addrlen == addrlen);
-                return std::memcmp(addr, other.addr, addrlen);
-            }
             friend bool operator==(opaque_address const& lhs, opaque_address const& rhs)
             {
-                return lhs.memcmp(rhs) == 0;
+                return lhs.addr == rhs.addr;
             }
             friend bool operator!=(opaque_address const& lhs, opaque_address const& rhs)
             {
-                return lhs.memcmp(rhs) != 0;
+                return lhs.addr != rhs.addr;
             }
             friend bool operator<(opaque_address const& lhs, opaque_address const& rhs)
             {
-                return lhs.memcmp(rhs) < 0;
+                return lhs.addr < rhs.addr;
             }
             friend bool operator>(opaque_address const& lhs, opaque_address const& rhs)
             {
-                return lhs.memcmp(rhs) > 0;
+                return lhs.addr > rhs.addr;
             }
             friend bool operator<=(opaque_address const& lhs, opaque_address const& rhs)
             {
-                return lhs.memcmp(rhs) <= 0;
+                return lhs.addr <= rhs.addr;
             }
             friend bool operator>=(opaque_address const& lhs, opaque_address const& rhs)
             {
-                return lhs.memcmp(rhs) >= 0;
+                return lhs.addr >= rhs.addr;
             }
         };
     }
