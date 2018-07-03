@@ -12,7 +12,7 @@
 #include <rdma/fabric.h>
 #include <rdma/fi_domain.h>
 
-#include <arpa/inet.h>
+#include <netinet/in.h>
 
 #include <cstring>
 #include <string>

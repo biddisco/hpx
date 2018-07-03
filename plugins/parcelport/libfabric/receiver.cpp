@@ -175,7 +175,7 @@ namespace libfabric
                 // receive/request
                 int ret = fi_recv(this->endpoint_,
                     this->header_region_->get_address(),
-                    this->header_region_->get_size(), desc, 0, this);
+                    this->header_region_->get_size(), desc, FI_ADDR_UNSPEC, this);
 
                 if (ret == -FI_EAGAIN)
                 {

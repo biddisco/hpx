@@ -58,7 +58,7 @@ namespace parcelset
 
             if (ret) {
                 LOG_ERROR_MSG(
-                    "error registering region "
+                    "error registering region (rma_memory_region) "
                     << hexpointer(buffer) << hexlength(length));
                 throw std::runtime_error("error in memory registration");
             }
@@ -94,7 +94,7 @@ namespace parcelset
 
             if (ret) {
                 LOG_ERROR_MSG(
-                    "error registering region "
+                    "error registering region (allocate) "
                     << hexpointer(buffer) << hexlength(length));
                 throw std::runtime_error("error in memory registration");
             }

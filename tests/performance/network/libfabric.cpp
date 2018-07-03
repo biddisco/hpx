@@ -16,8 +16,6 @@
 #include <rdma/fi_endpoint.h>
 #include <rdma/fi_cm.h>
 
-#include <arpa/inet.h>
-
 #include <algorithm>
 #include <array>
 #include <cstdlib>
@@ -106,6 +104,7 @@ int main(int argc, char** argv)
         std::cout << "Usage: " << argv[0] << " <port> <remote_host> <remote_port>\n";
         return 1;
     }
+    std::cout << "Usage: " << argv[0] << " <port> <remote_host> <remote_port>\n";
 
     hpx::parcelset::v2::parcelhandler ph;
 
@@ -422,7 +421,7 @@ int main(int argc, char** argv)
                                 std::memcpy(&length, payload, sizeof(length));
                                 payload += sizeof(length);
                                 std::string name(length, '\0');
-                                std::memcpy(name.data(), payload, length);
+                                std::memcpy(const_cast<char*>(name.data()), payload, length);
                                 payload += length;
 
                                 std::memcpy(&length, payload, sizeof(length));
