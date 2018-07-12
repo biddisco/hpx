@@ -380,7 +380,7 @@ namespace hpx { namespace detail
     HPX_EXPORT void throw_exception(Exception const& e, std::string const& func,
         std::string const& file, long line)
     {
-        if (!expect_exception_flag.load(std::memory_order_relaxed) &&
+        if (!expect_exception_flag.load() &&
             get_config_entry("hpx.attach_debugger", "") == "exception")
         {
             util::attach_debugger();
@@ -454,7 +454,7 @@ namespace hpx { namespace detail
     void assertion_failed_msg(char const* msg, char const* expr,
         char const* function, char const* file, long line)
     {
-        if (!expect_exception_flag.load(std::memory_order_relaxed) &&
+        if (!expect_exception_flag.load() &&
             get_config_entry("hpx.attach_debugger", "") == "exception")
         {
             util::attach_debugger();
@@ -501,7 +501,7 @@ namespace hpx { namespace detail
     // report an early or late exception and abort
     void report_exception_and_continue(std::exception_ptr const& e)
     {
-        if (!expect_exception_flag.load(std::memory_order_relaxed) &&
+        if (!expect_exception_flag.load() &&
             get_config_entry("hpx.attach_debugger", "") == "exception")
         {
             util::attach_debugger();
@@ -512,7 +512,7 @@ namespace hpx { namespace detail
 
     void report_exception_and_continue(hpx::exception const& e)
     {
-        if (!expect_exception_flag.load(std::memory_order_relaxed) &&
+        if (!expect_exception_flag.load() &&
             get_config_entry("hpx.attach_debugger", "") == "exception")
         {
             util::attach_debugger();

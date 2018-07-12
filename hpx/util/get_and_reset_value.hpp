@@ -33,8 +33,8 @@ namespace hpx { namespace util
     inline T get_and_reset_value(std::atomic<T>& value, bool reset)
     {
         if (reset)
-            return value.exchange(0, std::memory_order_acq_rel);
-        return value.load(std::memory_order_relaxed);
+            return value.exchange(0);
+        return value.load();
     }
 
     inline std::vector<std::int64_t> get_and_reset_value(

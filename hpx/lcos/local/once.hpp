@@ -48,7 +48,7 @@ namespace hpx { namespace lcos { namespace local
         long const function_complete_flag_value = 0xc15730e2;
         long const running_value = 0x7f0725e3;
 
-        while (flag.status_.load(std::memory_order_acquire) !=
+        while (flag.status_.load() !=
             function_complete_flag_value)
         {
             long status = 0;

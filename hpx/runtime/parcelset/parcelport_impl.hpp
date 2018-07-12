@@ -745,7 +745,7 @@ namespace hpx { namespace parcelset
 
         bool trigger_pending_work()
         {
-            if (0 == num_parcel_destinations_.load(std::memory_order_relaxed))
+            if (0 == num_parcel_destinations_.load())
                 return true;
 
             std::vector<locality> destinations;

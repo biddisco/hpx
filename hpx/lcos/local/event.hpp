@@ -36,13 +36,13 @@ namespace hpx { namespace lcos { namespace local
         /// \brief Check if the event has occurred.
         bool occurred()
         {
-            return event_.load(std::memory_order_acquire);
+            return event_.load();
         }
 
         /// \brief Wait for the event to occur.
         void wait()
         {
-            if (event_.load(std::memory_order_acquire))
+            if (event_.load())
                 return;
 
             std::unique_lock<mutex_type> l(mtx_);
@@ -52,7 +52,7 @@ namespace hpx { namespace lcos { namespace local
         /// \brief Release all threads waiting on this semaphore.
         void set()
         {
-            event_.store(true, std::memory_order_release);
+            event_.store(true);
 
             std::unique_lock<mutex_type> l(mtx_);
             set_locked(std::move(l));
@@ -61,7 +61,7 @@ namespace hpx { namespace lcos { namespace local
         /// \brief Reset the event
         void reset()
         {
-            event_.store(false, std::memory_order_release);
+            event_.store(false);
         }
 
     private:
@@ -69,7 +69,7 @@ namespace hpx { namespace lcos { namespace local
         {
             HPX_ASSERT(l.owns_lock());
 
-            while (!event_.load(std::memory_order_acquire))
+            while (!event_.load())
             {
                 cond_.wait(l, "event::wait_locked");
             }

@@ -39,24 +39,23 @@ namespace hpx { namespace parallel { namespace util
 
         bool was_cancelled(T data) const noexcept
         {
-            return Pred()(was_cancelled_->load(std::memory_order_relaxed), data);
+            return Pred()(was_cancelled_->load(), data);
         }
 
         void cancel(T data) noexcept
         {
-            T old_data = was_cancelled_->load(std::memory_order_relaxed);
+            T old_data = was_cancelled_->load();
 
             do {
                 if (Pred()(old_data, data))
                     break;      // if we already have a closer one, break
 
-            } while (!was_cancelled_->compare_exchange_strong(old_data, data,
-                std::memory_order_relaxed));
+            } while (!was_cancelled_->compare_exchange_strong(old_data, data));
         }
 
         T get_data() const noexcept
         {
-            return was_cancelled_->load(std::memory_order_relaxed);
+            return was_cancelled_->load();
         }
     };
 
@@ -76,12 +75,12 @@ namespace hpx { namespace parallel { namespace util
 
         bool was_cancelled() const noexcept
         {
-            return was_cancelled_->load(std::memory_order_relaxed);
+            return was_cancelled_->load();
         }
 
         void cancel() noexcept
         {
-            was_cancelled_->store(true, std::memory_order_relaxed);
+            was_cancelled_->store(true);
         }
     };
 }}}

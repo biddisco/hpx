@@ -201,7 +201,7 @@ namespace hpx { namespace threads
         /// \returns This function returns \a true if the state has been
         ///          changed successfully
         bool restore_state(thread_state new_state, thread_state old_state,
-            std::memory_order load_order = std::memory_order_relaxed,
+            std::memory_order load_order = std::memory_order_seq_cst,
             std::memory_order load_exchange = std::memory_order_seq_cst)
         {
             // ABA prevention for state only (not for state_ex)
@@ -246,7 +246,7 @@ namespace hpx { namespace threads
         thread_state_ex_enum set_state_ex(thread_state_ex_enum new_state)
         {
             thread_state prev_state =
-                current_state_.load(std::memory_order_acquire);
+                current_state_.load();
 
             for (;;) {
                 thread_state tmp = prev_state;

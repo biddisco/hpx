@@ -161,7 +161,7 @@ namespace hpx { namespace threads { namespace policies
         void do_some_work(std::size_t num_thread)
         {
 #if defined(HPX_HAVE_THREAD_MANAGER_IDLE_BACKOFF)
-            wait_count_.store(0, std::memory_order_release);
+            wait_count_.store(0);
 
             if (num_thread == std::size_t(-1))
                 cond_.notify_all();
@@ -330,7 +330,7 @@ namespace hpx { namespace threads { namespace policies
         // get/set scheduler mode
         scheduler_mode get_scheduler_mode() const
         {
-            return mode_.load(std::memory_order_acquire);
+            return mode_.load();
         }
 
         void set_scheduler_mode(scheduler_mode mode)

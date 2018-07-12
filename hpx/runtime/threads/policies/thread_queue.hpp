@@ -844,7 +844,7 @@ namespace hpx { namespace threads { namespace policies
             bool allow_stealing = false, bool steal = false) HPX_HOT
         {
             std::int64_t work_items_count =
-                work_items_count_.load(std::memory_order_relaxed);
+                work_items_count_.load();
 
             if (allow_stealing && min_tasks_to_steal_pending > work_items_count)
             {
@@ -1008,7 +1008,7 @@ namespace hpx { namespace threads { namespace policies
         {
             // try to generate new threads from task lists, but only if our
             // own list of threads is empty
-            if (0 == work_items_count_.load(std::memory_order_relaxed))
+            if (0 == work_items_count_.load())
             {
                 // see if we can avoid grabbing the lock below
                 if (addfrom)
@@ -1016,7 +1016,7 @@ namespace hpx { namespace threads { namespace policies
                     // don't try to steal if there are only a few tasks left on
                     // this queue
                     if (running && min_tasks_to_steal_staged >
-                        addfrom->new_tasks_count_.load(std::memory_order_relaxed))
+                        addfrom->new_tasks_count_.load())
                     {
                         return false;
                     }
@@ -1024,7 +1024,7 @@ namespace hpx { namespace threads { namespace policies
                 else
                 {
                     if (running &&
-                        0 == new_tasks_count_.load(std::memory_order_relaxed))
+                        0 == new_tasks_count_.load())
                     {
                         return false;
                     }

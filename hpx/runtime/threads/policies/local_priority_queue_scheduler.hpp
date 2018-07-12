@@ -565,7 +565,7 @@ namespace hpx { namespace threads { namespace policies
                 this_queue->increment_num_pending_misses();
 
                 bool have_staged = this_queue->
-                    get_staged_queue_length(std::memory_order_relaxed) != 0;
+                    get_staged_queue_length() != 0;
 
                 // Give up, we should have work to convert.
                 if (have_staged)

@@ -25,35 +25,35 @@ namespace hpx { namespace util
 
         atomic_count& operator=(long value)
         {
-            value_.store(value, std::memory_order_relaxed);
+            value_.store(value);
             return *this;
         }
 
         long operator++()
         {
-            return value_.fetch_add(1, std::memory_order_acq_rel) + 1;
+            return value_.fetch_add(1) + 1;
         }
 
         long operator--()
         {
-            return value_.fetch_sub(1, std::memory_order_acq_rel) - 1;
+            return value_.fetch_sub(1) - 1;
         }
 
         atomic_count& operator+=(long n)
         {
-            value_.fetch_add(n, std::memory_order_acq_rel);
+            value_.fetch_add(n);
             return *this;
         }
 
         atomic_count& operator-=(long n)
         {
-            value_.fetch_sub(n, std::memory_order_acq_rel);
+            value_.fetch_sub(n);
             return *this;
         }
 
         operator long() const
         {
-            return value_.load(std::memory_order_acquire);
+            return value_.load();
         }
 
     private:

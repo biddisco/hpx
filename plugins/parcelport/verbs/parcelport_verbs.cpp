@@ -679,8 +679,7 @@ namespace verbs
                     delete_send_data(current_send);
                 }
                 // if another thread signals to say zero-copy complete, delete the data
-                else if (current_send->delete_flag.test_and_set(
-                    std::memory_order_acquire))
+                else if (current_send->delete_flag.test_and_set())
                 {
                     LOG_DEBUG_MSG("Deleting send data "
                         << hexpointer(&(*current_send)) << "after race detection");
@@ -923,7 +922,7 @@ namespace verbs
 
             // we cannot delete the send data until we are absolutely sure that
             // the initial send has been cleaned up
-            if (current_send->delete_flag.test_and_set(std::memory_order_acquire)) {
+            if (current_send->delete_flag.test_and_set()) {
                 LOG_DEBUG_MSG("Deleting send data "
                     << hexpointer(&(*current_send)) << "with no race detection");
                 delete_send_data(current_send);

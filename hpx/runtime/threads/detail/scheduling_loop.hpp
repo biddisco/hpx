@@ -137,8 +137,7 @@ namespace hpx { namespace threads { namespace detail
           , prev_state_(prev_state)
           , next_thread_id_(nullptr)
           , need_restore_state_(
-                t->set_state_tagged(active, prev_state_, orig_state_,
-                    std::memory_order_relaxed))
+                t->set_state_tagged(active, prev_state_, orig_state_))
         {}
 
         ~switch_status_background()
@@ -174,8 +173,7 @@ namespace hpx { namespace threads { namespace detail
         bool store_state(thread_state& newstate)
         {
             disable_restore();
-            if (thread_->restore_state(prev_state_, orig_state_,
-                    std::memory_order_relaxed, std::memory_order_relaxed))
+            if (thread_->restore_state(prev_state_, orig_state_))
             {
                 newstate = prev_state_;
                 return true;
@@ -517,8 +515,7 @@ namespace hpx { namespace threads { namespace detail
         while (true) {
             thread_data* thrd = next_thrd;
             // Get the next HPX thread from the queue
-            bool running = this_state.load(
-                std::memory_order_relaxed) < state_pre_sleep;
+            bool running = this_state.load() < state_pre_sleep;
 
             if (HPX_LIKELY(thrd ||
                     scheduler.SchedulingPolicy::get_next_thread(
