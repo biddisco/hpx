@@ -303,4 +303,15 @@ namespace hpx { namespace resource
     {
         return partitioner_.numa_domains();
     }
+
+    const hpx::threads::topology &partitioner::get_topology() const
+    {
+        return partitioner_.get_topology();
+    }
+
+    std::size_t partitioner::get_number_requested_threads()
+    {
+        return partitioner_.threads_required();
+    }
+
 }}    // namespace hpx

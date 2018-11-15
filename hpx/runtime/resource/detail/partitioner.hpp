@@ -127,6 +127,14 @@ namespace hpx { namespace resource { namespace detail
         // resource partitioner called in hpx_init
         void configure_pools();
 
+        // returns the number of threads requested by the user at start
+        // should not be called before the RP has parsed the config and
+        // assigned affinity data
+        std::size_t threads_required() {
+            HPX_ASSERT(cores_needed_ != std::size_t(-1));
+            return cores_needed_;
+        }
+
         ////////////////////////////////////////////////////////////////////////
         scheduling_policy which_scheduler(std::string const& pool_name);
         threads::topology &get_topology() const;
