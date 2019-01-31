@@ -1103,20 +1103,23 @@ namespace policies {
                 for (std::size_t i = 0; i < num_domains_; ++i)
                 {
                     std::size_t queues = cores_per_queue_.high_priority>0 ?
-                    (std::max)(q_counts_[i] / cores_per_queue_.high_priority,
-                               std::size_t(1)) : 0;
+                        (std::max)(static_cast<std::size_t>(0.5 + q_counts_[i] /
+                            static_cast<double>(cores_per_queue_.high_priority)),
+                        std::size_t(1)) : 0;
                     hp_queues_[i].init(
                         q_counts_[i], queues, max_queue_thread_count_);
 
                     queues = (std::max)(
-                        q_counts_[i] / cores_per_queue_.normal_priority,
+                        static_cast<std::size_t>(0.5 + q_counts_[i] /
+                            static_cast<double>(cores_per_queue_.normal_priority)),
                         std::size_t(1));
                     np_queues_[i].init(
                         q_counts_[i], queues, max_queue_thread_count_);
 
                     queues = cores_per_queue_.low_priority>0 ?
-                        (std::max)(q_counts_[i] / cores_per_queue_.low_priority,
-                            std::size_t(1)) : 0;
+                        (std::max)(static_cast<std::size_t>(0.5 + q_counts_[i] /
+                            static_cast<double>(cores_per_queue_.low_priority)),
+                        std::size_t(1)) : 0;
                     lp_queues_[i].init(
                         q_counts_[i], queues, max_queue_thread_count_);
                 }
