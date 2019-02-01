@@ -4,6 +4,7 @@
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 set(example_programs
+  numa_pools
   simplest_resource_partitioner_1
   simplest_resource_partitioner_2
 )
