@@ -24,6 +24,7 @@ information on how to build and use |hpx| in different scenarios.
    manual/writing_single_node_hpx_applications
    manual/writing_distributed_hpx_applications
    manual/running_on_batch_systems
+   manual/numa_awareness
    manual/debugging_hpx_applications
    manual/optimizing_hpx_applications
    manual/hpx_runtime_and_resources
