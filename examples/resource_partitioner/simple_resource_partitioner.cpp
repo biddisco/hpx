@@ -276,7 +276,10 @@ int main(int argc, char* argv[])
 
             std::unique_ptr<high_priority_sched> scheduler(
                 new high_priority_sched(
-                    num_threads, hpx::threads::policies::core_ratios(4, 4, 64),
+                    num_threads,
+                    hpx::threads::policies::core_ratios(4, 4, 64),
+                    true,
+                    true,
                     "shared-priority-scheduler"));
 
             auto mode = scheduler_mode(scheduler_mode::do_background_work |
@@ -311,6 +314,8 @@ int main(int argc, char* argv[])
                     new high_priority_sched(
                         num_threads,
                         hpx::threads::policies::core_ratios(4, 4, 64),
+                        true,
+                        true,
                         "shared-priority-scheduler"));
 
                 auto mode = scheduler_mode(scheduler_mode::delay_exit);
