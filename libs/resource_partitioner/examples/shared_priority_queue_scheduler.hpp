@@ -173,6 +173,12 @@ namespace hpx { namespace threads { namespace policies { namespace example {
 #endif
     }
 
+    // we don't want false sharing, so align to cache line
+    struct alignas(64) per_core_counters {
+        per_core_counters() : next_queue(0) {}
+        unsigned int next_queue;
+    };
+
     ///////////////////////////////////////////////////////////////////////////
 #if defined(HPX_HAVE_CXX11_STD_ATOMIC_128BIT)
     using default_shared_priority_queue_scheduler_terminated_queue =
@@ -198,6 +204,12 @@ namespace hpx { namespace threads { namespace policies { namespace example {
     class shared_priority_queue_scheduler : public scheduler_base
     {
     public:
+        enum work_assignment_policy {
+            assign_work_round_robin,
+            assign_work_thread_parent
+        };
+
+    public:
         typedef std::false_type has_periodic_maintenance;
 
         typedef thread_queue<Mutex, PendingQueuing, StagedQueuing,
@@ -208,11 +220,15 @@ namespace hpx { namespace threads { namespace policies { namespace example {
         {
             init_parameter(std::size_t num_worker_threads,
                 core_ratios cores_per_queue,
+                bool numa_stealing,
+                bool core_stealing,
                 detail::affinity_data const& affinity_data,
                 thread_queue_init_parameters thread_queue_init = {},
                 char const* description = "shared_priority_queue_scheduler")
               : num_worker_threads_(num_worker_threads)
               , cores_per_queue_(cores_per_queue)
+              , numa_stealing_(numa_stealing)
+              , core_stealing_(core_stealing)
               , thread_queue_init_(thread_queue_init)
               , affinity_data_(affinity_data)
               , description_(description)
@@ -221,10 +237,14 @@ namespace hpx { namespace threads { namespace policies { namespace example {
 
             init_parameter(std::size_t num_worker_threads,
                 core_ratios cores_per_queue,
+                bool numa_stealing,
+                bool core_stealing,
                 detail::affinity_data const& affinity_data,
                 char const* description)
               : num_worker_threads_(num_worker_threads)
               , cores_per_queue_(cores_per_queue)
+              , numa_stealing_(numa_stealing)
+              , core_stealing_(core_stealing)
               , thread_queue_init_()
               , affinity_data_(affinity_data)
               , description_(description)
@@ -233,6 +253,8 @@ namespace hpx { namespace threads { namespace policies { namespace example {
 
             std::size_t num_worker_threads_;
             core_ratios cores_per_queue_;
+            bool numa_stealing_,
+            bool core_stealing_,
             thread_queue_init_parameters thread_queue_init_;
             detail::affinity_data const& affinity_data_;
             char const* description_;
@@ -243,6 +265,8 @@ namespace hpx { namespace threads { namespace policies { namespace example {
           : scheduler_base(init.num_worker_threads_, init.description_,
                 init.thread_queue_init_)
           , cores_per_queue_(init.cores_per_queue_)
+          , numa_stealing_(init.numa_stealing_)
+          , core_stealing_(init.core_stealing_)
           , num_workers_(init.num_worker_threads_)
           , num_domains_(1)
           , affinity_data_(init.affinity_data_)
@@ -261,6 +285,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                 << " - Deleting shared_priority_queue_scheduler ");
         }
 
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
         bool numa_sensitive() const override
         {
             return true;
@@ -268,6 +293,14 @@ namespace hpx { namespace threads { namespace policies { namespace example {
         virtual bool has_thread_stealing(std::size_t) const override
         {
             return true;
+=======
+        bool numa_sensitive() const override {
+            return !numa_stealing_;
+        }
+
+        bool has_thread_stealing(std::size_t) const override {
+            return core_stealing_;
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
         }
 
         static std::string get_scheduler_name()
@@ -733,6 +766,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
         void abort_all_suspended_threads() override
         {
             LOG_CUSTOM_MSG("abort_all_suspended_threads");
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
             for (std::size_t d = 0; d < num_domains_; ++d)
             {
                 for (auto& queue : lp_queues_[d].queues_)
@@ -749,6 +783,12 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                 {
                     queue->abort_all_suspended_threads();
                 }
+=======
+            for (std::size_t d = 0; d < num_domains_; ++d) {
+                np_queues_[d].abort_all_suspended_threads();
+                hp_queues_[d].abort_all_suspended_threads();
+                lp_queues_[d].abort_all_suspended_threads();
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
             }
         }
 
@@ -758,6 +798,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
             //            LOG_CUSTOM_MSG("cleanup_terminated with delete_all "
             //                << delete_all);
             bool empty = true;
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
             //
             for (std::size_t d = 0; d < num_domains_; ++d)
             {
@@ -775,11 +816,21 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                 {
                     empty = queue->cleanup_terminated(delete_all) && empty;
                 }
-            }
+=======
 
+            for (std::size_t d=0; d<num_domains_; ++d) {
+                empty = empty &&
+                    np_queues_[d].cleanup_terminated(delete_all);
+                if (cores_per_queue_.high_priority>0) empty = empty &&
+                    hp_queues_[d].cleanup_terminated(delete_all);
+                if (cores_per_queue_.low_priority>0) empty = empty &&
+                    lp_queues_[d].cleanup_terminated(delete_all);
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
+            }
             return empty;
         }
 
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
         bool cleanup_terminated(
             std::size_t thread_num, bool delete_all) override
         {
@@ -790,12 +841,17 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                     "terminated",
                     "Invalid thread number: " + std::to_string(thread_num));
             }
+=======
+        // ------------------------------------------------------------
+        bool cleanup_terminated(std::size_t thread_num, bool delete_all) override
+        {
+            HPX_ASSERT(thread_num>=0);
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
             bool empty = true;
-
             // find the numa domain from the local thread index
             std::size_t domain_num = d_lookup_[thread_num];
-
             // cleanup the queues assigned to this thread
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
             empty = hp_queues_[domain_num]
                         .queues_[hp_lookup_[thread_num]]
                         ->cleanup_terminated(delete_all) &&
@@ -808,10 +864,20 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                         .queues_[lp_lookup_[thread_num]]
                         ->cleanup_terminated(delete_all) &&
                 empty;
+=======
+            empty = empty && np_queues_[domain_num].queues_[np_lookup_[thread_num]]->
+                    cleanup_terminated(delete_all);
+            if (cores_per_queue_.high_priority>0)
+                empty = empty && hp_queues_[domain_num].queues_[hp_lookup_[thread_num]]->
+                    cleanup_terminated(delete_all);
+            if (cores_per_queue_.low_priority>0)
+                empty = empty && lp_queues_[domain_num].queues_[lp_lookup_[thread_num]]->
+                    cleanup_terminated(delete_all);
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
             return empty;
         }
 
-        ///////////////////////////////////////////////////////////////////////
+        // ------------------------------------------------------------
         // create a new thread and schedule it if the initial state
         // is equal to pending
         void create_thread(thread_init_data& data, thread_id_type* thrd,
@@ -833,9 +899,13 @@ namespace hpx { namespace threads { namespace policies { namespace example {
             std::unique_lock<pu_mutex_type> l;
 
             using threads::thread_schedule_hint_mode;
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
 
             switch (data.schedulehint.mode)
             {
+=======
+            switch (data.schedulehint.mode) {
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
             case thread_schedule_hint_mode::thread_schedule_hint_mode_none:
             {
                 // Create thread on this worker thread if possible
@@ -844,15 +914,28 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                     threads::detail::get_thread_num_tss();
                 thread_num =
                     this->global_to_local_thread_index(global_thread_num);
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
                 if (thread_num >= num_workers_)
                 {
+=======
+                if (thread_num>=num_workers_) {
+                    LOG_ERROR_MSG("thread numbering overflow xPool injection " << thread_num);
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
                     // This is a task being injected from a thread on another pool.
                     // Reset thread_num to first queue.
-                    thread_num = 0;
+                    thread_num = fast_mod(core_counters_[thread_num].next_queue++, num_workers_);
+                }
+                if (work_policy_ == assign_work_round_robin) {
+                    thread_num = fast_mod(core_counters_[thread_num].next_queue++, num_workers_);
+                    LOG_CUSTOM_MSG("round robin assignment " << thread_num);
                 }
                 thread_num = select_active_pu(l, thread_num);
                 domain_num = d_lookup_[thread_num];
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
                 q_index = q_lookup_[thread_num];
+=======
+                q_index    = q_lookup_[thread_num];
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
                 break;
             }
             case thread_schedule_hint_mode::thread_schedule_hint_mode_thread:
@@ -870,7 +953,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
 
                 // TODO: This case does not handle suspended PUs.
                 LOG_CUSTOM_VAR(msg = msgs[1]);
-                domain_num = data.schedulehint.hint % num_domains_;
+                domain_num = fast_mod(data.schedulehint.hint, num_domains_);
                 // if the thread creating the new task is on the domain
                 // assigned to the new task - try to reuse the core as well
                 std::size_t global_thread_num =
@@ -889,7 +972,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
             }
             default:
                 HPX_THROW_EXCEPTION(bad_parameter,
-                    "shared_priority_queue_scheduler_example::create_thread",
+                    "shared_priority_queue_scheduler::create_thread",
                     "Invalid schedule hint mode: " +
                         std::to_string(data.schedulehint.mode));
             }
@@ -900,9 +983,10 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                 << decnumber(domain_num) << "qindex " << decnumber(q_index));
 
             // create the thread using priority to select queue
-            if (data.priority == thread_priority_high ||
-                data.priority == thread_priority_high_recursive ||
-                data.priority == thread_priority_boost)
+            if ((cores_per_queue_.high_priority>0) &&
+                (data.priority == thread_priority_high ||
+                 data.priority == thread_priority_high_recursive ||
+                 data.priority == thread_priority_boost))
             {
                 // boosted threads return to normal after being queued
                 if (data.priority == thread_priority_boost)
@@ -910,10 +994,16 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                     data.priority = thread_priority_normal;
                 }
 
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
                 hp_queues_[domain_num]
                     .queues_[hp_lookup_[q_index %
                         hp_queues_[domain_num].num_cores]]
                     ->create_thread(data, thrd, initial_state, run_now, ec);
+=======
+                hp_queues_[domain_num].queues_[hp_lookup_[
+                    fast_mod(q_index, hp_queues_[domain_num].num_cores)]]->
+                    create_thread(data, thrd, initial_state, run_now, ec);
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
 
                 LOG_CUSTOM_MSG("create_thread thread_priority_high "
                     << "queue " << decnumber(q_index) << "domain "
@@ -923,12 +1013,19 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                 return;
             }
 
-            if (data.priority == thread_priority_low)
+            if ((cores_per_queue_.low_priority>0) &&
+                (data.priority == thread_priority_low))
             {
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
                 lp_queues_[domain_num]
                     .queues_[lp_lookup_[q_index %
                         lp_queues_[domain_num].num_cores]]
                     ->create_thread(data, thrd, initial_state, run_now, ec);
+=======
+                lp_queues_[domain_num].queues_[lp_lookup_[
+                    fast_mod(q_index, lp_queues_[domain_num].num_cores)]]->
+                    create_thread(data, thrd, initial_state, run_now, ec);
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
 
                 LOG_CUSTOM_MSG("create_thread thread_priority_low "
                     << "queue " << decnumber(q_index) << "domain "
@@ -938,10 +1035,17 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                 return;
             }
 
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
             // normal priority
             np_queues_[domain_num]
                 .queues_[np_lookup_[q_index % np_queues_[domain_num].num_cores]]
                 ->create_thread(data, thrd, initial_state, run_now, ec);
+=======
+            // normal priority + anything unassigned above (no hp queues etc)
+            np_queues_[domain_num].queues_[np_lookup_[
+                fast_mod(q_index, np_queues_[domain_num].num_cores)]]->
+                create_thread(data, thrd, initial_state, run_now, ec);
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
 
             LOG_CUSTOM_MSG2("create_thread thread_priority_normal "
                 << "queue " << decnumber(q_index) << "domain "
@@ -953,20 +1057,25 @@ namespace hpx { namespace threads { namespace policies { namespace example {
         virtual bool get_next_thread(std::size_t thread_num, bool running,
             threads::thread_data*& thrd, bool /*enable_stealing*/) override
         {
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
             //                LOG_CUSTOM_MSG("get_next_thread " << " queue "
             //                                                  << decnumber(thread_num));
+=======
+            // LOG_CUSTOM_MSG("get_next_thread " << decnumber(thread_num));
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
             bool result = false;
 
             if (thread_num == std::size_t(-1))
             {
                 HPX_THROW_EXCEPTION(bad_parameter,
-                    "shared_priority_queue_scheduler_example::get_next_thread",
+                    "shared_priority_queue_scheduler::get_next_thread",
                     "Invalid thread number: " + std::to_string(thread_num));
             }
 
             // find the numa domain from the local thread index
             std::size_t domain_num = d_lookup_[thread_num];
 
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
             // is there a high priority task, take first from our numa domain
             // and then try to steal from others
             for (std::size_t d = 0; d < num_domains_; ++d)
@@ -1019,17 +1128,65 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                 if (result)
                 {
                     spin_for_time(1000, "LP task");
+=======
+            // High priority task
+            if (cores_per_queue_.high_priority>0) {
+                for (std::size_t d=0; d<num_domains_; ++d) {
+                    std::size_t dom = fast_mod((domain_num+d), num_domains_);
+                    // set the preferred queue for this domain, if applicable
+                    std::size_t q_index = q_lookup_[thread_num];
+                    // get next task, steal if from another domain
+                    result = hp_queues_[dom].get_next_thread(q_index, thrd, core_stealing_);
+                    if (result) {
+                        LOG_CUSTOM_MSG("got HP thread "
+                           << "queue " << decnumber(thread_num)
+                           << "domain " << decnumber(domain_num)
+                           << "desc " << THREAD_DESC(thrd));
+                        return result;
+                    }
+                    if (!numa_stealing_) break;
                 }
-#endif
             }
+
+            // try a normal priority task
+            for (std::size_t d=0; d<num_domains_; ++d) {
+                std::size_t dom = fast_mod((domain_num+d), num_domains_);
+                // set the preferred queue for this domain, if applicable
+                std::size_t q_index = q_lookup_[thread_num];
+                // get next task, steal if from another domain
+                result = np_queues_[dom].get_next_thread(q_index, thrd, core_stealing_);
+                if (result) {
+                    LOG_CUSTOM_MSG("got NP thread "
+                        << "queue " << decnumber(thread_num)
+                        << "domain " << decnumber(domain_num)
+                        << "desc " << THREAD_DESC(thrd));
+                    return result;
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
+                }
+                if (!numa_stealing_) break;
+            }
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
             if (result)
             {
                 HPX_ASSERT(thrd->get_scheduler_base() == this);
                 LOG_CUSTOM_MSG("got next thread "
                     << "queue " << decnumber(thread_num) << "domain "
                     << decnumber(domain_num) << "desc " << THREAD_DESC(thrd));
+=======
+
+            // low priority task, x-numa stealing never happens
+            if (cores_per_queue_.low_priority>0) {
+                result = lp_queues_[domain_num].get_next_thread(0, thrd, core_stealing_);
+                if (result) {
+                    LOG_CUSTOM_MSG("got LP thread 1 "
+                        << "queue " << decnumber(thread_num)
+                        << "domain " << decnumber(domain_num)
+                        << "desc " << THREAD_DESC(thrd));
+                    return result;
+                }
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
             }
-            return result;
+            return false;
         }
 
         /// Schedule the passed thread
@@ -1070,7 +1227,11 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                 }
                 thread_num = select_active_pu(l, thread_num, allow_fallback);
                 domain_num = d_lookup_[thread_num];
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
                 q_index = q_lookup_[thread_num];
+=======
+                q_index    = q_lookup_[thread_num];
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
                 break;
             }
             case thread_schedule_hint_mode::thread_schedule_hint_mode_thread:
@@ -1089,7 +1250,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
 
                 // TODO: This case does not handle suspended PUs.
                 LOG_CUSTOM_VAR(msg = msgs[1]);
-                domain_num = schedulehint.hint % num_domains_;
+                domain_num = fast_mod(schedulehint.hint, num_domains_);
                 // if the thread creating the new task is on the domain
                 // assigned to the new task - try to reuse the core as well
                 std::size_t global_thread_num =
@@ -1108,7 +1269,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
             }
             default:
                 HPX_THROW_EXCEPTION(bad_parameter,
-                    "shared_priority_queue_scheduler_example::schedule_thread",
+                    "shared_priority_queue_scheduler::schedule_thread",
                     "Invalid schedule hint mode: " +
                         std::to_string(schedulehint.mode));
             }
@@ -1117,17 +1278,26 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                 << "queue " << decnumber(thread_num) << "domain "
                 << decnumber(domain_num) << "qindex " << decnumber(q_index));
 
-            if (priority == thread_priority_high ||
-                priority == thread_priority_high_recursive ||
-                priority == thread_priority_boost)
+            if ((cores_per_queue_.high_priority>0) &&
+                (priority == thread_priority_high ||
+                 priority == thread_priority_high_recursive ||
+                 priority == thread_priority_boost))
             {
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
                 hp_queues_[domain_num]
                     .queues_[hp_lookup_[q_index %
                         hp_queues_[domain_num].num_cores]]
                     ->schedule_thread(thrd, false);
+=======
+                hp_queues_[domain_num].queues_[hp_lookup_[
+                    fast_mod(q_index, hp_queues_[domain_num].num_cores)]]->
+                    schedule_thread(thrd, false);
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
             }
-            else if (priority == thread_priority_low)
+            else if ((cores_per_queue_.low_priority>0) &&
+                     (priority == thread_priority_low))
             {
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
                 lp_queues_[domain_num]
                     .queues_[lp_lookup_[q_index %
                         lp_queues_[domain_num].num_cores]]
@@ -1139,14 +1309,27 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                     .queues_[np_lookup_[q_index %
                         np_queues_[domain_num].num_cores]]
                     ->schedule_thread(thrd, false);
+=======
+                lp_queues_[domain_num].queues_[lp_lookup_[
+                    fast_mod(q_index, lp_queues_[domain_num].num_cores)]]->
+                    schedule_thread(thrd, false);
+            }
+            else
+            {
+                np_queues_[domain_num].queues_[np_lookup_[
+                    fast_mod(q_index, np_queues_[domain_num].num_cores)]]->
+                    schedule_thread(thrd, false);
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
             }
         }
 
-        /// Put task on the back of the queue
+        /// Put task on the back of the queue : not yet implemented
+        /// just put it on the normal queue for now
         void schedule_thread_last(threads::thread_data* thrd,
             threads::thread_schedule_hint schedulehint, bool allow_fallback,
             thread_priority priority = thread_priority_normal) override
         {
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
             HPX_ASSERT(thrd->get_scheduler_base() == this);
 
             std::size_t thread_num = 0;
@@ -1251,6 +1434,10 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                         np_queues_[domain_num].num_cores]]
                     ->schedule_thread(thrd, true);
             }
+=======
+            LOG_CUSTOM_MSG("schedule_thread_last ");
+            schedule_thread(thrd, schedulehint, allow_fallback, priority);
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
         }
 
         //---------------------------------------------------------------------
@@ -1274,6 +1461,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
             LOG_CUSTOM_MSG("get_queue_length"
                 << "thread_num " << decnumber(thread_num));
 
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
             std::int64_t count = 0;
             for (std::size_t d = 0; d < num_domains_; ++d)
             {
@@ -1300,7 +1488,33 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                 return lp_queues_[domain]
                     .queues_[lp_lookup_[thread_num]]
                     ->get_queue_length();
+=======
+            HPX_ASSERT(thread_num != std::size_t(-1));
+
+            std::int64_t count = 0;
+            if (thread_num != std::size_t(-1)) {
+                // find the numa domain from the local thread index
+                std::size_t domain = d_lookup_[thread_num];
+                count += np_queues_[domain].queues_[np_lookup_[thread_num]]->
+                        get_queue_length();
+
+                if (cores_per_queue_.high_priority>0)
+                    count += hp_queues_[domain].queues_[hp_lookup_[thread_num]]->
+                        get_queue_length();
+
+                if (cores_per_queue_.low_priority>0)
+                    count += lp_queues_[domain].queues_[lp_lookup_[thread_num]]->
+                        get_queue_length();
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
             }
+            else {
+                for (std::size_t d=0; d<num_domains_; ++d) {
+                    count += np_queues_[d].get_queue_length();
+                    count += hp_queues_[d].get_queue_length();
+                    count += lp_queues_[d].get_queue_length();
+                }
+            }
+
             return count;
         }
 
@@ -1318,6 +1532,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
             std::int64_t count = 0;
 
             // if a specific worker id was requested
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
             if (thread_num != std::size_t(-1))
             {
                 std::size_t domain_num = d_lookup_[thread_num];
@@ -1335,35 +1550,70 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                     count += lp_queues_[domain_num]
                                  .queues_[lp_lookup_[thread_num]]
                                  ->get_thread_count(state);
+=======
+            if (thread_num != std::size_t(-1)) {
+                std::size_t domain = d_lookup_[thread_num];
+                //
+                switch (priority) {
+                case thread_priority_default: {
+                    count += np_queues_[domain].queues_[np_lookup_[thread_num]]->
+                            get_thread_count(state);
+                    if (cores_per_queue_.high_priority>0)
+                        count += hp_queues_[domain].queues_[hp_lookup_[thread_num]]->
+                            get_thread_count();
+                    if (cores_per_queue_.low_priority>0)
+                        count += lp_queues_[domain].queues_[lp_lookup_[thread_num]]->
+                            get_thread_count();
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
                     LOG_CUSTOM_MSG("default get_thread_count thread_num "
                         << hexnumber(thread_num) << decnumber(count));
                     return count;
                 }
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
                 case thread_priority_low:
                 {
                     count += lp_queues_[domain_num]
                                  .queues_[lp_lookup_[thread_num]]
                                  ->get_thread_count(state);
+=======
+                case thread_priority_low: {
+                    if (cores_per_queue_.low_priority>0)
+                        count += lp_queues_[domain].queues_[lp_lookup_[thread_num]]->
+                            get_thread_count();
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
                     LOG_CUSTOM_MSG("low get_thread_count thread_num "
                         << hexnumber(thread_num) << decnumber(count));
                     return count;
                 }
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
                 case thread_priority_normal:
                 {
                     count += np_queues_[domain_num]
                                  .queues_[np_lookup_[thread_num]]
                                  ->get_thread_count(state);
+=======
+                case thread_priority_normal: {
+                    count += np_queues_[domain].queues_[np_lookup_[thread_num]]->
+                        get_thread_count(state);
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
                     LOG_CUSTOM_MSG("normal get_thread_count thread_num "
                         << hexnumber(thread_num) << decnumber(count));
                     return count;
                 }
                 case thread_priority_boost:
                 case thread_priority_high:
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
                 case thread_priority_high_recursive:
                 {
                     count += hp_queues_[domain_num]
                                  .queues_[hp_lookup_[thread_num]]
                                  ->get_thread_count(state);
+=======
+                case thread_priority_high_recursive: {
+                    if (cores_per_queue_.high_priority>0)
+                        count += hp_queues_[domain].queues_[hp_lookup_[thread_num]]->
+                            get_thread_count();
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
                     return count;
                 }
                 default:
@@ -1385,8 +1635,13 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                     count += np_queues_[d].get_thread_count(state);
                     count += lp_queues_[d].get_thread_count(state);
                 }
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
                 // LOG_CUSTOM_MSG("default get_thread_count thread_num "
                 // << decnumber(thread_num) << decnumber(count));
+=======
+                    LOG_CUSTOM_MSG("default get_thread_count thread_num "
+                        << decnumber(thread_num) << decnumber(count));
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
                 return count;
             }
             case thread_priority_low:
@@ -1442,11 +1697,21 @@ namespace hpx { namespace threads { namespace policies { namespace example {
 
             LOG_CUSTOM_MSG("enumerate_threads");
 
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
             for (std::size_t d = 0; d < num_domains_; ++d)
             {
                 result = result && hp_queues_[d].enumerate_threads(f, state);
                 result = result && np_queues_[d].enumerate_threads(f, state);
                 result = result && lp_queues_[d].enumerate_threads(f, state);
+=======
+            for (std::size_t d=0; d<num_domains_; ++d) {
+                result = result &&
+                    np_queues_[d].enumerate_threads(f, state);
+                result = result &&
+                    hp_queues_[d].enumerate_threads(f, state);
+                result = result &&
+                    lp_queues_[d].enumerate_threads(f, state);
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
             }
             return result;
         }
@@ -1459,22 +1724,28 @@ namespace hpx { namespace threads { namespace policies { namespace example {
             std::int64_t& idle_loop_count, bool /*enable_stealing*/,
             std::size_t& added) override
         {
-            bool result = true;
-
             added = 0;
+            bool result = false;
 
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
             if (thread_num == std::size_t(-1))
             {
                 HPX_THROW_EXCEPTION(bad_parameter,
                     "shared_priority_queue_scheduler_example::wait_or_add_new",
                     "Invalid thread number: " + std::to_string(thread_num));
             }
+=======
+            HPX_ASSERT(thread_num != std::size_t(-1));
+
+            LOG_CUSTOM_MSG("wait_or_add_new thread num " << decnumber(thread_num));
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
 
             // find the numa domain from the local thread index
             std::size_t domain_num = d_lookup_[thread_num];
 
             // is there a high priority task, take first from our numa domain
             // and then try to steal from others
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
             for (std::size_t d = 0; d < num_domains_; ++d)
             {
                 std::size_t dom = (domain_num + d) % num_domains_;
@@ -1526,6 +1797,40 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                 return result;
 #endif
 
+=======
+            if (cores_per_queue_.high_priority>0) {
+                for (std::size_t d=0; d<num_domains_; ++d) {
+                    std::size_t dom = fast_mod((domain_num+d), num_domains_);
+                    // set the preferred queue for this domain, if applicable
+                    std::size_t q_index = q_lookup_[thread_num];
+                    // get next task, steal if from another domain
+                    result = hp_queues_[dom].wait_or_add_new(q_index, running,
+                        added, core_stealing_);
+                    if (0 != added) return result;
+                    if (!numa_stealing_) break;
+                }
+            }
+
+            // try a normal priority task
+            for (std::size_t d=0; d<num_domains_; ++d) {
+                std::size_t dom = fast_mod((domain_num+d), num_domains_);
+                // set the preferred queue for this domain, if applicable
+                std::size_t q_index = q_lookup_[thread_num];
+                // get next task, steal if from another domain
+                result = np_queues_[dom].wait_or_add_new(q_index, running,
+                    idle_loop_count, added, core_stealing_);
+                if (0 != added) return result;
+                if (!numa_stealing_) break;
+            }
+
+            // low priority task
+            // no cross domain stealing for LP queues
+            if (cores_per_queue_.low_priority>0) {
+                result = lp_queues_[domain_num].wait_or_add_new(0, running,
+                    idle_loop_count, added, core_stealing_);
+                if (0 != added) return result;
+            }
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
             return result;
         }
 
@@ -1552,6 +1857,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                 std::fill(q_lookup_.begin(), q_lookup_.end(), 0);
                 std::fill(q_counts_.begin(), q_counts_.end(), 0);
                 std::fill(counters_.begin(), counters_.end(), 0);
+                std::fill(core_counters_.begin(), core_counters_.end(), per_core_counters());
 
                 for (std::size_t local_id = 0; local_id != num_workers_;
                      ++local_id)
@@ -1560,9 +1866,6 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                         local_to_global_thread_index(local_id);
                     std::size_t pu_num = rp.get_pu_num(global_id);
                     std::size_t domain = topo.get_numa_node_number(pu_num);
-#ifdef DEBUG_FORCE_2_NUMA_DOMAINS
-                    domain = std::rand() % 2;
-#endif
                     d_lookup_[local_id] = domain;
                     num_domains_ = (std::max)(num_domains_, domain + 1);
                 }
@@ -1576,11 +1879,18 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                 }
 
                 // create queue sets for each numa domain
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
                 for (std::size_t i = 0; i < num_domains_; ++i)
                 {
                     std::size_t queues = (std::max)(
                         q_counts_[i] / cores_per_queue_.high_priority,
                         std::size_t(1));
+=======
+                for (std::size_t i=0; i<num_domains_; ++i) {
+                    std::size_t queues = cores_per_queue_.high_priority>0 ?
+                        (std::max)(q_counts_[i] / cores_per_queue_.high_priority,
+                        std::size_t(1)) : 0;
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
                     hp_queues_[i].init(
                         q_counts_[i], queues, thread_queue_init_);
                     LOG_CUSTOM_MSG2("Created HP queue for numa "
@@ -1596,9 +1906,15 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                         << i << " cores " << q_counts_[i] << " queues "
                         << queues);
 
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
                     queues =
                         (std::max)(q_counts_[i] / cores_per_queue_.low_priority,
                             std::size_t(1));
+=======
+                    queues = cores_per_queue_.low_priority>0 ?
+                        (std::max)(q_counts_[i] / cores_per_queue_.low_priority,
+                            std::size_t(1)) : 0;
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
                     lp_queues_[i].init(
                         q_counts_[i], queues, thread_queue_init_);
                     LOG_CUSTOM_MSG2("Created LP queue for numa "
@@ -1643,17 +1959,29 @@ namespace hpx { namespace threads { namespace policies { namespace example {
 
             // NOTE: This may call on_start_thread multiple times for a single
             // thread_queue.
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
             lp_queues_[domain_num]
                 .queues_[lp_lookup_[thread_num]]
                 ->on_start_thread(thread_num);
+=======
+            if (cores_per_queue_.high_priority>0)
+                hp_queues_[domain_num].queues_[hp_lookup_[thread_num]]->
+                    on_start_thread(thread_num);
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
 
             np_queues_[domain_num]
                 .queues_[np_lookup_[thread_num]]
                 ->on_start_thread(thread_num);
 
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
             hp_queues_[domain_num]
                 .queues_[hp_lookup_[thread_num]]
                 ->on_start_thread(thread_num);
+=======
+            if (cores_per_queue_.low_priority>0)
+                lp_queues_[domain_num].queues_[lp_lookup_[thread_num]]->
+                    on_start_thread(thread_num);
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
         }
 
         void on_stop_thread(std::size_t thread_num) override
@@ -1664,7 +1992,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
             if (thread_num > num_workers_)
             {
                 HPX_THROW_EXCEPTION(bad_parameter,
-                    "shared_priority_queue_scheduler_example::on_stop_thread",
+                    "shared_priority_queue_scheduler::on_stop_thread",
                     "Invalid thread number: " + std::to_string(thread_num));
             }
 
@@ -1672,17 +2000,29 @@ namespace hpx { namespace threads { namespace policies { namespace example {
 
             // NOTE: This may call on_stop_thread multiple times for a single
             // thread_queue.
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
             lp_queues_[domain_num]
                 .queues_[lp_lookup_[thread_num]]
                 ->on_stop_thread(thread_num);
+=======
+            if (cores_per_queue_.high_priority>0)
+                hp_queues_[domain_num].queues_[hp_lookup_[thread_num]]->
+                    on_stop_thread(thread_num);
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
 
             np_queues_[domain_num]
                 .queues_[np_lookup_[thread_num]]
                 ->on_stop_thread(thread_num);
 
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
             hp_queues_[domain_num]
                 .queues_[hp_lookup_[thread_num]]
                 ->on_stop_thread(thread_num);
+=======
+            if (cores_per_queue_.low_priority>0)
+                lp_queues_[domain_num].queues_[lp_lookup_[thread_num]]->
+                    on_stop_thread(thread_num);
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
         }
 
         void on_error(
@@ -1694,7 +2034,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
             if (thread_num > num_workers_)
             {
                 HPX_THROW_EXCEPTION(bad_parameter,
-                    "shared_priority_queue_scheduler_example::on_error",
+                    "shared_priority_queue_scheduler::on_error",
                     "Invalid thread number: " + std::to_string(thread_num));
             }
 
@@ -1702,14 +2042,27 @@ namespace hpx { namespace threads { namespace policies { namespace example {
 
             // NOTE: This may call on_error multiple times for a single
             // thread_queue.
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
             lp_queues_[domain_num].queues_[lp_lookup_[thread_num]]->on_error(
                 thread_num, e);
+=======
+            if (cores_per_queue_.high_priority>0)
+                hp_queues_[domain_num].queues_[hp_lookup_[thread_num]]->
+                    on_error(thread_num, e);
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
 
             np_queues_[domain_num].queues_[np_lookup_[thread_num]]->on_error(
                 thread_num, e);
 
+<<<<<<< HEAD:libs/resource_partitioner/examples/shared_priority_queue_scheduler.hpp
             hp_queues_[domain_num].queues_[hp_lookup_[thread_num]]->on_error(
                 thread_num, e);
+=======
+            if (cores_per_queue_.low_priority>0)
+                lp_queues_[domain_num].queues_[lp_lookup_[thread_num]]->
+                    on_error(thread_num, e);
+
+>>>>>>> f74c683d637c... Improve numa/core stealing and task affinity/management in shared-priority-scheduler:examples/resource_partitioner/shared_priority_queue_scheduler.hpp
         }
 
         void reset_thread_distribution() override
@@ -1735,9 +2088,20 @@ namespace hpx { namespace threads { namespace policies { namespace example {
 
         // lookup sub domain queue index from local worker index
         std::array<std::size_t, HPX_HAVE_MAX_CPU_COUNT> q_lookup_;
+        std::array<per_core_counters, HPX_HAVE_MAX_CPU_COUNT> core_counters_;
 
         // number of cores per queue for HP, NP, LP queues
         core_ratios cores_per_queue_;
+
+        // when true, numa_stealing permits stealing across numa domains,
+        // when false, no stealing takes place across numa domains,
+        bool numa_stealing_;
+
+        // when true, core_stealing permits stealing between cores(queues),
+        // when false, no stealing takes place between any cores(queues)
+        bool core_stealing_;
+
+        work_assignment_policy work_policy_;
 
         // number of worker threads assigned to this pool
         std::size_t num_workers_;
