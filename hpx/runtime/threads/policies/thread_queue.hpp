@@ -519,21 +519,8 @@ namespace hpx { namespace threads { namespace policies
             if (terminated_items_count_ == 0)
                 return true;
 
-            if (delete_all) {
-                // do not lock mutex while deleting all threads, do it piece-wise
-                while (true)
-                {
-                    std::lock_guard<mutex_type> lk(mtx_);
-                    if (cleanup_terminated_locked(false))
-                    {
-                        return true;
-                    }
-                }
-                return false;
-            }
-
             std::lock_guard<mutex_type> lk(mtx_);
-            return cleanup_terminated_locked(false);
+            return cleanup_terminated_locked(delete_all);
         }
 
         // The maximum number of active threads this thread manager should
