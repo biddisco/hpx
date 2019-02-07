@@ -133,7 +133,6 @@ namespace hpx { namespace threads
             util::deferred_call(std::forward<F>(f), std::forward<Ts>(ts)...),
             "hpx::parallel::execution::post",
             threads::pending,
-            true,
             exec.get_stacksize(),
             std::forward<Hint>(hint),
             throws);
