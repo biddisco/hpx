@@ -991,6 +991,18 @@ namespace hpx { namespace threads { namespace policies
         util::block_profiler<add_new_tag> add_new_logger_;
     };
 
+    ///////////////////////////////////////////////////////////////////////////
+    template <typename Mutex, typename PendingQueuing, typename StagedQueuing,
+        typename TerminatedQueuing>
+    util::internal_allocator<threads::thread_data> thread_queue<Mutex,
+        PendingQueuing, StagedQueuing, TerminatedQueuing>::thread_alloc_;
+
+    template <typename Mutex, typename PendingQueuing, typename StagedQueuing,
+        typename TerminatedQueuing>
+    util::internal_allocator<typename thread_queue<Mutex, PendingQueuing,
+            StagedQueuing, TerminatedQueuing>::task_description>
+        thread_queue<Mutex, PendingQueuing, StagedQueuing,
+            TerminatedQueuing>::task_description_alloc_;
 }}}
 
 #endif
