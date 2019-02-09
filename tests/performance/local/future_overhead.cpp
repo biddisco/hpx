@@ -20,6 +20,13 @@
 #include <hpx/util/lightweight_test.hpp>
 
 #include <cstddef>
+//
+#include <hpx/include/parallel_execution.hpp>
+#include <hpx/runtime/threads/executors/pool_executor.hpp>
+//#include <hpx/runtime/threads/executors/signalling_executor.hpp>
+//
+#include <hpx/lcos/local/sliding_semaphore.hpp>
+//
 #include <cstdint>
 #include <stdexcept>
 #include <vector>
@@ -45,6 +52,22 @@ using hpx::cout;
 using hpx::flush;
 
 ///////////////////////////////////////////////////////////////////////////////
+void print_stats(const char *title, std::int64_t count, double duration, bool csv)
+{
+    double us = 1e6*duration/count;
+    if (csv)
+        hpx::util::format_to(cout,
+            "{1},{2},{3},{4}\n",
+           count, title, duration, us) << flush;
+    else
+        hpx::util::format_to(cout,
+            "invoked {1} futures {:30} in \t{3} seconds \t: {4} us per future \n",
+            count, title, duration, us) << flush;
+    // CDash graph plotting
+    //hpx::util::print_cdash_timing(title, duration);
+}
+
+///////////////////////////////////////////////////////////////////////////////
 // we use globals here to prevent the delay from being optimized away
 double global_scratch = 0;
 std::uint64_t num_iterations = 0;
@@ -52,10 +75,17 @@ std::uint64_t num_iterations = 0;
 ///////////////////////////////////////////////////////////////////////////////
 double null_function()
 {
-    double d = 0.;
-    for (std::uint64_t i = 0; i < num_iterations; ++i)
-        d += 1. / (2. * i + 1.);
-    return d;
+    if (num_iterations>0) {
+        const int array_size = 4096;
+        std::array<double, array_size> dummy;
+        for (std::uint64_t i = 0; i < num_iterations; ++i) {
+            for (std::uint64_t j = 0; j < array_size; ++j) {
+                dummy[j] = 1.0 / (2.0 * i * j + 1.0);
+            }
+        }
+        return dummy[0];
+    }
+    return 0.0;
 }
 
 HPX_PLAIN_ACTION(null_function, null_action)
@@ -68,114 +98,111 @@ struct scratcher
     }
 };
 
+// Time async action execution using wait each on futures vector
 void measure_action_futures(std::uint64_t count, bool csv)
 {
     const id_type here = find_here();
-
     std::vector<future<double> > futures;
     futures.reserve(count);
 
     // start the clock
     high_resolution_timer walltime;
-
     for (std::uint64_t i = 0; i < count; ++i)
         futures.push_back(async<null_action>(here));
-
     wait_each(scratcher(), futures);
 
     // stop the clock
     const double duration = walltime.elapsed();
-
-    if (csv)
-        hpx::util::format_to(cout,
-            "{1},{2}\n",
-            count,
-            duration) << flush;
-    else
-        hpx::util::format_to(cout,
-            "invoked {1} futures (actions) in {2} seconds\n",
-            count,
-            duration) << flush;
-    // CDash graph plotting
-    hpx::util::print_cdash_timing("FutureOverheadActions", duration);
+    print_stats("ActionsWaitEach", count, duration, csv);
 }
 
+// Time async execution using wait each on futures vector
 void measure_function_futures_wait_each(std::uint64_t count, bool csv)
 {
     std::vector<future<double> > futures;
-
     futures.reserve(count);
 
     // start the clock
     high_resolution_timer walltime;
-
     for (std::uint64_t i = 0; i < count; ++i)
         futures.push_back(async(&null_function));
-
     wait_each(scratcher(), futures);
 
     // stop the clock
     const double duration = walltime.elapsed();
+    print_stats("AsyncWaitEach", count, duration, csv);
+}
 
-    if (csv)
-        hpx::util::format_to(cout,
-            "{1},{2}\n",
-            count,
-            duration) << flush;
-    else
-        hpx::util::format_to(cout,
-            "invoked {1} futures (functions, wait_each) in {2} seconds\n",
-            count,
-            duration) << flush;
-    // CDash graph plotting
-    hpx::util::print_cdash_timing("FutureOverheadWaitEach", duration);
+void measure_function_futures_wait_each_executor1(std::uint64_t count, bool csv)
+{
+    std::vector<future<double> > futures;
+    futures.reserve(count);
+
+    hpx::parallel::execution::parallel_executor exec;
+    // start the clock
+    high_resolution_timer walltime;
+    for (std::uint64_t i = 0; i < count; ++i) {
+        futures.push_back(async(exec, &null_function));
+    }
+    wait_each(scratcher(), futures);
+
+    // stop the clock
+    const double duration = walltime.elapsed();
+    print_stats("ParallelExecutorWaitEach", count, duration, csv);
+}
+
+void measure_function_futures_wait_each_executor2(std::uint64_t count, bool csv)
+{
+    std::vector<future<double> > futures;
+    futures.reserve(count);
+
+    using namespace hpx::parallel::execution;
+    default_executor exec = default_executor(
+          hpx::threads::thread_priority_normal);
+
+    // start the clock
+    high_resolution_timer walltime;
+    for (std::uint64_t i = 0; i < count; ++i) {
+        futures.push_back(async(exec, &null_function));
+    }
+    wait_each(scratcher(), futures);
+
+    // stop the clock
+    const double duration = walltime.elapsed();
+    print_stats("DefaultExecutorWaitEach", count, duration, csv);
 }
 
 void measure_function_futures_wait_all(std::uint64_t count, bool csv)
 {
     std::vector<future<double> > futures;
-
     futures.reserve(count);
 
     // start the clock
     high_resolution_timer walltime;
-
     for (std::uint64_t i = 0; i < count; ++i)
         futures.push_back(async(&null_function));
-
     wait_all(futures);
 
-    // stop the clock
     const double duration = walltime.elapsed();
-
-    if (csv)
-        hpx::util::format_to(cout,
-            "{1},{2}\n",
-           count,
-           duration) << flush;
-    else
-        hpx::util::format_to(cout,
-            "invoked {1} futures (functions, wait_all) in {2} seconds\n",
-            count,
-            duration) << flush;
-    // CDash graph plotting
-    hpx::util::print_cdash_timing("FutureOverheadFuturesWait", duration);
+    print_stats("AsyncWaitAll", count, duration, csv);
 }
 
 void measure_function_futures_thread_count(std::uint64_t count, bool csv)
 {
     std::vector<future<double> > futures;
-
     futures.reserve(count);
 
+    std::atomic<std::uint64_t> sanity_check(count);
+
+    hpx::parallel::execution::parallel_executor exec;
+    auto this_pool = hpx::this_thread::get_pool();
     // start the clock
     high_resolution_timer walltime;
-
-    for (std::uint64_t i = 0; i < count; ++i)
-        apply(&null_function);
+    for (std::uint64_t i = 0; i < count; ++i) {
+        hpx::apply(exec, [&](){ sanity_check--; });
+    }
 
     // Yield until there is only this and background threads left.
-    auto this_pool = hpx::this_thread::get_pool();
     hpx::util::yield_while([this_pool]()
         {
             return this_pool->get_thread_count_unknown(std::size_t(-1), false) >
@@ -185,41 +212,82 @@ void measure_function_futures_thread_count(std::uint64_t count, bool csv)
     // stop the clock
     const double duration = walltime.elapsed();
 
-    if (csv)
-        hpx::util::format_to(cout,
-            "{1},{2}\n",
-            count,
-            duration) << flush;
-    else
-        hpx::util::format_to(cout,
-            "invoked {1} futures (functions, thread count) in {2} seconds\n",
-            count,
-            duration) << flush;
-    // CDash graph plotting
-    hpx::util::print_cdash_timing("FutureOverheadThreadCount", duration);
+    if (sanity_check!=0) {
+        throw std::runtime_error("This test is faulty");
+    }
+
+    print_stats("ApplyThreadCount", count, duration, csv);
+}
+/*
+void measure_function_futures_signalling_executor(std::uint64_t count, bool csv)
+{
+    using namespace hpx::parallel::execution;
+    hpx::parallel::execution::parallel_executor exec;
+    std::uint64_t const num_threads = hpx::get_num_worker_threads();
+    // start the clock
+    high_resolution_timer walltime;
+    {
+        hpx::threads::executors::signalling_executor<parallel_executor> signal_exec(exec, num_threads*5000);
+        for (std::uint64_t i = 0; i < count; ++i) {
+            hpx::apply(signal_exec, &null_function);
+            if (i % 1000 == 0) {
+                signal_exec.wait_unsafe();
+            }
+        }
+    }
+    // stop the clock
+    const double duration = walltime.elapsed();
+    print_stats("SignallingExecutor", count, duration, csv);
+}
+*/
+void measure_function_futures_sliding_semaphore(std::uint64_t count, bool csv)
+{
+    std::vector<future<double> > futures;
+    futures.reserve(count);
+    hpx::parallel::execution::parallel_executor exec;
+
+    // start the clock
+    high_resolution_timer walltime;
+    const int sem_count = 5000;
+    hpx::lcos::local::sliding_semaphore sem(sem_count);
+    for (std::uint64_t i = 0; i < count; ++i) {
+        hpx::async(exec, [i,&sem](){
+            null_function();
+            sem.signal(i);
+        });
+        sem.wait(i);
+    }
+    sem.wait(count);
+
+    // stop the clock
+    const double duration = walltime.elapsed();
+    print_stats("SlidingSemaphore", count, duration, csv);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-int hpx_main(
-    variables_map& vm
-    )
+int hpx_main(variables_map& vm)
 {
     {
         num_iterations = vm["delay-iterations"].as<std::uint64_t>();
 
         const std::uint64_t count = vm["futures"].as<std::uint64_t>();
-
+        bool csv = vm.count("csv") != 0;
         if (HPX_UNLIKELY(0 == count))
             throw std::logic_error("error: count of 0 futures specified\n");
-
-        measure_action_futures(count, vm.count("csv") != 0);
-        measure_function_futures_wait_each(count, vm.count("csv") != 0);
-        measure_function_futures_wait_all(count, vm.count("csv") != 0);
-        measure_function_futures_thread_count(count, vm.count("csv") != 0);
+        const int nl = 1;
+        for (int i=0; i<nl; i++) {
+//          measure_function_futures_signalling_executor(count, csv);
+//          measure_function_futures_wait_each_executor1(count, csv);
+//          measure_function_futures_wait_each_executor2(count, csv);
+//          measure_action_futures(count, csv);
+//          measure_function_futures_wait_all(count, csv);
+//          measure_function_futures_wait_each(count, csv);
+          measure_function_futures_thread_count(count, csv);
+//        measure_function_futures_sliding_semaphore(count, csv);
+        }
     }
 
-    finalize();
-    return 0;
+    return hpx::finalize();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
