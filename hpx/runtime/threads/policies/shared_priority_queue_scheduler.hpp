@@ -12,7 +12,7 @@
 #include <hpx/runtime/threads/policies/lockfree_queue_backends.hpp>
 #include <hpx/runtime/threads/policies/queue_helpers.hpp>
 #include <hpx/runtime/threads/policies/scheduler_base.hpp>
-#include <hpx/runtime/threads/policies/thread_queue.hpp>
+#include <hpx/runtime/threads/policies/new_thread_queue.hpp>
 #include <hpx/runtime/threads/thread_data.hpp>
 #include <hpx/runtime/threads/topology.hpp>
 #include <hpx/runtime/threads_fwd.hpp>
@@ -43,8 +43,7 @@ namespace policies {
     /// high priority queue, the next 4 will share another one and so on. In
     /// addition, the shared_priority_queue_scheduler is NUMA-aware and takes
     /// NUMA scheduling hints into account when creating and scheduling work.
-    template <typename Mutex = compat::mutex,
-        typename PendingQueuing = lockfree_fifo,
+    template <
         typename StagedQueuing = lockfree_fifo,
         typename TerminatedQueuing = lockfree_lifo>
     class shared_priority_queue_scheduler : public scheduler_base
@@ -55,7 +54,7 @@ namespace policies {
         // items queue is not empty. Otherwise the number of active threads
         // will be incremented in steps equal to the \a min_add_new_count
         // specified above.
-        // FIXME: this is specified both here, and in thread_queue.
+        // FIXME: this is specified both here, and in new_thread_queue.
         enum
         {
             max_thread_count = 1000
@@ -64,9 +63,8 @@ namespace policies {
     public:
         typedef std::false_type has_periodic_maintenance;
 
-        typedef thread_queue<Mutex, PendingQueuing, StagedQueuing,
-            TerminatedQueuing>
-            thread_queue_type;
+        typedef new_thread_queue<StagedQueuing, TerminatedQueuing>
+            new_thread_queue_type;
 
         shared_priority_queue_scheduler(
             std::size_t num_worker_threads,
@@ -917,7 +915,7 @@ namespace policies {
             threads::thread_data* thrd, std::int64_t& busy_count) override
         {
             HPX_ASSERT(thrd->get_scheduler_base() == this);
-            thrd->get_queue<thread_queue_type>().destroy_thread(thrd, busy_count);
+            thrd->get_queue<new_thread_queue_type>().destroy_thread(thrd, busy_count);
         }
 
         ///////////////////////////////////////////////////////////////////////
@@ -1137,7 +1135,7 @@ namespace policies {
             std::size_t domain_num = d_lookup_[thread_num];
 
             // NOTE: This may call on_start_thread multiple times for a single
-            // thread_queue.
+            // new_thread_queue.
             lp_queues_[domain_num].queues_[lp_lookup_[thread_num]]->
                 on_start_thread(thread_num);
 
@@ -1159,7 +1157,7 @@ namespace policies {
             std::size_t domain_num = d_lookup_[thread_num];
 
             // NOTE: This may call on_stop_thread multiple times for a single
-            // thread_queue.
+            // new_thread_queue.
             lp_queues_[domain_num].queues_[lp_lookup_[thread_num]]->
                 on_stop_thread(thread_num);
 
@@ -1182,7 +1180,7 @@ namespace policies {
             std::size_t domain_num = d_lookup_[thread_num];
 
             // NOTE: This may call on_error multiple times for a single
-            // thread_queue.
+            // new_thread_queue.
             lp_queues_[domain_num].queues_[lp_lookup_[thread_num]]->
                 on_error(thread_num, e);
 
@@ -1199,7 +1197,7 @@ namespace policies {
         }
 
     protected:
-        typedef queue_holder<thread_queue_type> numa_queues;
+        typedef queue_holder<new_thread_queue_type> numa_queues;
 
         std::array<numa_queues, HPX_HAVE_MAX_NUMA_DOMAIN_COUNT> np_queues_;
         std::array<numa_queues, HPX_HAVE_MAX_NUMA_DOMAIN_COUNT> hp_queues_;

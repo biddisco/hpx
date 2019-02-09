@@ -585,7 +585,7 @@ namespace hpx { namespace threads
                 // instantiate the scheduler
                 typedef hpx::threads::policies::shared_priority_queue_scheduler<>
                     local_sched_type;
-                hpx::threads::policies::core_ratios ratios(4, 4, 64);
+                hpx::threads::policies::core_ratios ratios(1, 1, 64);
                 std::unique_ptr<local_sched_type> sched(
                     new local_sched_type(num_threads_in_pool, ratios,
                         "core-shared_priority_queue_scheduler"));
