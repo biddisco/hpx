@@ -283,6 +283,15 @@ else()
 endif()
 
 target_link_libraries(hpx ${HPX_TLL_PUBLIC} ${HPX_LIBRARIES})
+
+target_include_directories(hpx PRIVATE
+    ${PROJECT_SOURCE_DIR}/hpx/concurrent/junction
+    ${PROJECT_BINARY_DIR}/hpx/concurrent/junction/include
+    ${PROJECT_SOURCE_DIR}/hpx/concurrent/turf
+    ${PROJECT_BINARY_DIR}/hpx/concurrent/junction/turf/include
+    )
+  target_link_libraries(hpx PRIVATE junction turf)
+
 if(HPX_ADDITIONAL_RUNTIME_DEPENDENCIES)
   target_link_libraries(hpx ${HPX_TLL_PUBLIC} ${HPX_ADDITIONAL_RUNTIME_DEPENDENCIES})
 endif()
@@ -415,6 +424,7 @@ if(HPX_WITH_DEFAULT_TARGETS)
   set(_optional OPTIONAL)
 endif()
 
+message("Targets for install are ${hpx_targets}")
 install(
   TARGETS
     ${hpx_targets}
@@ -426,6 +436,7 @@ install(
   ${_optional}
 )
 
+set(hpx_targets ${hpx_targets} junction)
 hpx_export_targets(${hpx_targets})
 
 foreach(target ${hpx_targets})
