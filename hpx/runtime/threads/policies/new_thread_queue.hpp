@@ -170,6 +170,8 @@ namespace hpx { namespace threads { namespace policies
             HPX_ASSERT(lk.owns_lock());
             HPX_ASSERT(data.stacksize != 0);
 
+            thread_total_count_++;
+
             std::ptrdiff_t stacksize = data.stacksize;
 
             thread_heap_type* heap = nullptr;
@@ -234,6 +236,7 @@ namespace hpx { namespace threads { namespace policies
                 threads::thread_data* p = thread_alloc_.allocate(1);
                 new (p) threads::thread_data(data, this, state);
                 thrd = thread_id_type(p);
+                thread_alloc_count_++;
             }
         }
 
@@ -519,6 +522,8 @@ namespace hpx { namespace threads { namespace policies
             new_tasks_wait_(0),
             new_tasks_wait_count_(0),
 #endif
+            thread_alloc_count_(0),
+            thread_total_count_(0),
             thread_heap_small_(),
             thread_heap_medium_(),
             thread_heap_large_(),
@@ -567,6 +572,11 @@ namespace hpx { namespace threads { namespace policies
                 thread_heap_huge_.pop(t);
                 deallocate(t.get());
             }
+
+            std::cout << "thread_alloc_count_ " << thread_alloc_count_
+                      << " thread_total_count_ " << thread_total_count_
+                      << " difference " << (thread_total_count_ - thread_alloc_count_)
+                      << std::endl;
         }
 
         void set_max_count(std::size_t max_count = max_thread_count)
@@ -1080,6 +1090,9 @@ namespace hpx { namespace threads { namespace policies
         std::atomic<std::int64_t> new_tasks_wait_;  // overall wait time of new tasks
         std::atomic<std::int64_t> new_tasks_wait_count_; // overall number tasks waited
 #endif
+
+        std::atomic<std::int64_t> thread_alloc_count_; // count of new tasks to run
+        std::atomic<std::int64_t> thread_total_count_; // count of new tasks to run
 
         thread_heap_type thread_heap_small_;
         thread_heap_type thread_heap_medium_;

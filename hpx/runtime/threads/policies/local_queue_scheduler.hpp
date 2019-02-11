@@ -14,6 +14,7 @@
 #include <hpx/runtime/threads/policies/lockfree_queue_backends.hpp>
 #include <hpx/runtime/threads/policies/scheduler_base.hpp>
 #include <hpx/runtime/threads/policies/thread_queue.hpp>
+#include <hpx/runtime/threads/policies/new_thread_queue.hpp>
 #include <hpx/runtime/threads/thread_data.hpp>
 #include <hpx/runtime/threads/topology.hpp>
 #include <hpx/runtime/threads_fwd.hpp>
@@ -68,7 +69,7 @@ namespace hpx { namespace threads { namespace policies
     public:
         typedef std::false_type has_periodic_maintenance;
 
-        typedef thread_queue<
+        typedef new_thread_queue<
             Mutex, PendingQueuing, StagedQueuing, TerminatedQueuing
         > thread_queue_type;
 
