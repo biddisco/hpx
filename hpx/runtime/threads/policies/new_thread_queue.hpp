@@ -133,11 +133,7 @@ namespace hpx { namespace threads { namespace policies
         using thread_map_iterator = thread_map_type::Iterator;
 
         using thread_heap_type =
-            boost::lockfree::stack<thread_id_type,
-                boost::lockfree::capacity<256>,
-                boost::lockfree::fixed_sized<true>,
-                util::internal_allocator<thread_id_type>
-            >;
+            std::list<thread_id_type, util::internal_allocator<thread_id_type>>;
 
 #ifdef HPX_HAVE_THREAD_QUEUE_WAITTIME
         typedef
@@ -223,7 +219,8 @@ namespace hpx { namespace threads { namespace policies
             if (!heap->empty())
             {
                 // Take ownership of the thread object and rebind it.
-                heap->pop(thrd);
+                thrd = heap->front();
+                heap->pop_front();
                 thrd->rebind(data, state);
             }
             else
@@ -364,37 +361,37 @@ namespace hpx { namespace threads { namespace policies
 
             if (stacksize == get_stack_size(thread_stacksize_small))
             {
-                thread_heap_small_.push(thrd);
+                thread_heap_small_.push_front(thrd);
             }
             else if (stacksize == get_stack_size(thread_stacksize_medium))
             {
-                thread_heap_medium_.push(thrd);
+                thread_heap_medium_.push_front(thrd);
             }
             else if (stacksize == get_stack_size(thread_stacksize_large))
             {
-                thread_heap_large_.push(thrd);
+                thread_heap_large_.push_front(thrd);
             }
             else if (stacksize == get_stack_size(thread_stacksize_huge))
             {
-                thread_heap_huge_.push(thrd);
+                thread_heap_huge_.push_front(thrd);
             }
             else
             {
                 switch(stacksize) {
                 case thread_stacksize_small:
-                    thread_heap_small_.push(thrd);
+                    thread_heap_small_.push_front(thrd);
                     break;
 
                 case thread_stacksize_medium:
-                    thread_heap_medium_.push(thrd);
+                    thread_heap_medium_.push_front(thrd);
                     break;
 
                 case thread_stacksize_large:
-                    thread_heap_large_.push(thrd);
+                    thread_heap_large_.push_front(thrd);
                     break;
 
                 case thread_stacksize_huge:
-                    thread_heap_huge_.push(thrd);
+                    thread_heap_huge_.push_front(thrd);
                     break;
 
                 default:
@@ -547,26 +544,17 @@ namespace hpx { namespace threads { namespace policies
 
         ~new_thread_queue()
         {
-            while (!thread_heap_small_.empty()) {
-                threads::thread_id_type t;
-                thread_heap_small_.pop(t);
+            for(auto t: thread_heap_small_)
                 deallocate(t.get());
-            }
-            while (!thread_heap_medium_.empty()) {
-                threads::thread_id_type t;
-                thread_heap_medium_.pop(t);
+
+            for(auto t: thread_heap_medium_)
                 deallocate(t.get());
-            }
-            while (!thread_heap_large_.empty()) {
-                threads::thread_id_type t;
-                thread_heap_large_.pop(t);
+
+            for(auto t: thread_heap_large_)
                 deallocate(t.get());
-            }
-            while (!thread_heap_huge_.empty()) {
-                threads::thread_id_type t;
-                thread_heap_huge_.pop(t);
+
+            for(auto t: thread_heap_huge_)
                 deallocate(t.get());
-            }
         }
 
         void set_max_count(std::size_t max_count = max_thread_count)
