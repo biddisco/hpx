@@ -242,7 +242,10 @@ int main(int argc, char* argv[])
           std::string const& pool_name) -> std::unique_ptr<hpx::threads::thread_pool_base>
           {
             std::unique_ptr<numa_scheduler> scheduler(new numa_scheduler(
-                num_threads, {2, 3, 64}, "shared-priority-scheduler"));
+                num_threads, 
+                {2, 3, 64}, true, true, 
+                numa_scheduler::work_assignment_policy::assign_work_round_robin,
+                "shared-priority-scheduler"));
 
             scheduler_mode mode = scheduler_mode(
                 scheduler_mode::do_background_work |
