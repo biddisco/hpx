@@ -196,8 +196,8 @@ namespace hpx { namespace threads { namespace policies
         typedef typename PendingQueuing::template
             apply<thread_description*>::type work_items_type;
 
-        typedef typename StagedQueuing::template
-            apply<task_description*>::type task_items_type;
+        typedef lockfree_fifo::
+            apply<task_description>::type task_items_type;
 
         typedef typename TerminatedQueuing::template
             apply<thread_data*>::type terminated_items_type;
@@ -279,7 +279,6 @@ namespace hpx { namespace threads { namespace policies
         }
 
         static util::internal_allocator<threads::thread_data> thread_alloc_;
-        static util::internal_allocator<task_description> task_description_alloc_;
 
         ///////////////////////////////////////////////////////////////////////
         // add new threads if there is some amount of work available
@@ -292,13 +291,13 @@ namespace hpx { namespace threads { namespace policies
                 return 0;
 
             std::size_t added = 0;
-            task_description* task = nullptr;
+            task_description task;
             while (add_count-- && addfrom->new_tasks_.pop(task, steal))
             {
 #ifdef HPX_HAVE_THREAD_QUEUE_WAITTIME
                 if (maintain_queue_wait_times) {
                     addfrom->new_tasks_wait_ +=
-                        util::high_resolution_clock::now() - util::get<2>(*task);
+                        util::high_resolution_clock::now() - util::get<2>(task);
                     ++addfrom->new_tasks_wait_count_;
                 }
 #endif
@@ -306,14 +305,11 @@ namespace hpx { namespace threads { namespace policies
                 util::block_profiler_wrapper<add_new_tag> bp(add_new_logger_);
 
                 // create the new thread
-                threads::thread_init_data& data = util::get<0>(*task);
-                thread_state_enum state = util::get<1>(*task);
+                threads::thread_init_data& data = util::get<0>(task);
+                thread_state_enum state = util::get<1>(task);
                 threads::thread_id_type thrd;
 
                 create_thread_object(thrd, data, state, lk);
-
-                task->~task_description();
-                task_description_alloc_.deallocate(task, 1);
 
                 // add the new entry to the map of all threads
                 std::pair<thread_map_type::iterator, bool> p =
@@ -782,14 +778,12 @@ namespace hpx { namespace threads { namespace policies
             // later thread creation
             ++new_tasks_count_;
 
-            task_description* td = task_description_alloc_.allocate(1);
 #ifdef HPX_HAVE_THREAD_QUEUE_WAITTIME
-            new (td) task_description(std::move(data), initial_state,
-                util::high_resolution_clock::now());
+            new_tasks_.push(task_description(std::move(data), initial_state,
+                util::high_resolution_clock::now()));
 #else
-            new (td) task_description(std::move(data), initial_state); //-V106
+            new_tasks_.push(task_description(std::move(data), initial_state)); //-V106
 #endif
-            new_tasks_.push(td);
             if (&ec != &throws)
                 ec = make_success_code();
         }
@@ -820,7 +814,7 @@ namespace hpx { namespace threads { namespace policies
         void move_task_items_from(thread_queue *src,
             std::int64_t count)
         {
-            task_description* task;
+            task_description task;
             while (src->new_tasks_.pop(task))
             {
 #ifdef HPX_HAVE_THREAD_QUEUE_WAITTIME
@@ -1169,13 +1163,6 @@ namespace hpx { namespace threads { namespace policies
         typename TerminatedQueuing>
     util::internal_allocator<threads::thread_data> thread_queue<Mutex,
         PendingQueuing, StagedQueuing, TerminatedQueuing>::thread_alloc_;
-
-    template <typename Mutex, typename PendingQueuing, typename StagedQueuing,
-        typename TerminatedQueuing>
-    util::internal_allocator<typename thread_queue<Mutex, PendingQueuing,
-            StagedQueuing, TerminatedQueuing>::task_description>
-        thread_queue<Mutex, PendingQueuing, StagedQueuing,
-            TerminatedQueuing>::task_description_alloc_;
 }}}
 
 #endif

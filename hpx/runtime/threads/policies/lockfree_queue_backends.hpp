@@ -11,9 +11,11 @@
 #include <hpx/config.hpp>
 
 #include <hpx/util/lockfree/deque.hpp>
+#include <hpx/util/lockfree/concurrentqueue.hpp>
 
 #include <cstddef>
 #include <cstdint>
+#include <utility>
 
 namespace hpx { namespace threads { namespace policies
 {
@@ -21,36 +23,42 @@ namespace hpx { namespace threads { namespace policies
 struct lockfree_fifo;
 struct lockfree_lifo;
 
-// FIFO
+// MoodyCamel FIFO
 template <typename T>
-struct lockfree_fifo_backend
+struct moodycamel_fifo_backend
 {
-    typedef boost::lockfree::deque<T> container_type;
+    typedef moodycamel::ConcurrentQueue<T> container_type;
     typedef T value_type;
     typedef T& reference;
     typedef T const& const_reference;
+    typedef T && rval_reference;
     typedef std::uint64_t size_type;
 
-    lockfree_fifo_backend(
+    moodycamel_fifo_backend(
         size_type initial_size = 0
       , size_type num_thread = size_type(-1)
         )
       : queue_(std::size_t(initial_size))
     {}
 
+    bool push(rval_reference val, bool /*other_end*/ = false)
+    {
+        return queue_.enqueue(std::move(val));
+    }
+
     bool push(const_reference val, bool /*other_end*/ = false)
     {
-        return queue_.push_left(val);
+        return queue_.enqueue(val);
     }
 
     bool pop(reference val, bool steal = true)
     {
-        return queue_.pop_right(val);
+        return queue_.try_dequeue(val);
     }
 
     bool empty()
     {
-        return queue_.empty();
+        return (queue_.size_approx()==0);
     }
 
   private:
@@ -62,7 +70,7 @@ struct lockfree_fifo
     template <typename T>
     struct apply
     {
-        typedef lockfree_fifo_backend<T> type;
+        typedef moodycamel_fifo_backend<T> type;
     };
 };
 

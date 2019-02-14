@@ -46,7 +46,7 @@ namespace policies {
     template <typename Mutex = compat::mutex,
         typename PendingQueuing = lockfree_fifo,
         typename StagedQueuing = lockfree_fifo,
-        typename TerminatedQueuing = lockfree_lifo>
+        typename TerminatedQueuing = lockfree_fifo>
     class shared_priority_queue_scheduler : public scheduler_base
     {
     protected:
