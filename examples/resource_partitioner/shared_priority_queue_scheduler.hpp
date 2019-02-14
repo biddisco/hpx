@@ -164,7 +164,6 @@ namespace example {
     /// NUMA scheduling hints into account when creating and scheduling work.
     template <typename Mutex = compat::mutex,
         typename PendingQueuing = lockfree_fifo,
-        typename StagedQueuing = lockfree_fifo,
         typename TerminatedQueuing = lockfree_lifo>
     class shared_priority_queue_scheduler : public scheduler_base
     {
@@ -183,8 +182,7 @@ namespace example {
     public:
         typedef std::false_type has_periodic_maintenance;
 
-        typedef thread_queue<Mutex, PendingQueuing, StagedQueuing,
-            TerminatedQueuing>
+        typedef thread_queue<Mutex, PendingQueuing, TerminatedQueuing>
             thread_queue_type;
 
         shared_priority_queue_scheduler(

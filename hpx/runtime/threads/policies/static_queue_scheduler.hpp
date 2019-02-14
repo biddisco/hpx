@@ -47,16 +47,15 @@ namespace hpx { namespace threads { namespace policies
     /// from.
     template <typename Mutex = compat::mutex,
         typename PendingQueuing = lockfree_fifo,
-        typename StagedQueuing = lockfree_fifo,
         typename TerminatedQueuing = lockfree_lifo>
     class static_queue_scheduler
         : public local_queue_scheduler<
-            Mutex, PendingQueuing, StagedQueuing, TerminatedQueuing
+            Mutex, PendingQueuing, TerminatedQueuing
           >
     {
     public:
         typedef local_queue_scheduler<
-            Mutex, PendingQueuing, StagedQueuing, TerminatedQueuing
+            Mutex, PendingQueuing, TerminatedQueuing
         > base_type;
 
         static_queue_scheduler(

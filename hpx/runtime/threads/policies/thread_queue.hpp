@@ -147,7 +147,6 @@ namespace hpx { namespace threads { namespace policies
     // };
     template <typename Mutex = compat::mutex,
         typename PendingQueuing = lockfree_lifo,
-        typename StagedQueuing = lockfree_lifo,
         typename TerminatedQueuing = lockfree_fifo>
     class thread_queue
     {
@@ -1159,10 +1158,9 @@ namespace hpx { namespace threads { namespace policies
     };
 
     ///////////////////////////////////////////////////////////////////////////
-    template <typename Mutex, typename PendingQueuing, typename StagedQueuing,
-        typename TerminatedQueuing>
+    template <typename Mutex, typename PendingQueuing, typename TerminatedQueuing>
     util::internal_allocator<threads::thread_data> thread_queue<Mutex,
-        PendingQueuing, StagedQueuing, TerminatedQueuing>::thread_alloc_;
+        PendingQueuing, TerminatedQueuing>::thread_alloc_;
 }}}
 
 #endif

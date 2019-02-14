@@ -52,7 +52,6 @@ namespace hpx { namespace threads { namespace policies
     /// from.
     template <typename Mutex = compat::mutex,
         typename PendingQueuing = lockfree_fifo,
-        typename StagedQueuing = lockfree_fifo,
         typename TerminatedQueuing = lockfree_lifo>
     class HPX_EXPORT local_queue_scheduler : public scheduler_base
     {
@@ -69,7 +68,7 @@ namespace hpx { namespace threads { namespace policies
         typedef std::false_type has_periodic_maintenance;
 
         typedef thread_queue<
-            Mutex, PendingQueuing, StagedQueuing, TerminatedQueuing
+            Mutex, PendingQueuing, TerminatedQueuing
         > thread_queue_type;
 
         // the scheduler type takes two initialization parameters:

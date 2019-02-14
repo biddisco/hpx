@@ -37,16 +37,15 @@ namespace hpx { namespace threads { namespace policies
     /// This scheduler does not do any work stealing.
     template <typename Mutex = compat::mutex,
         typename PendingQueuing = lockfree_fifo,
-        typename StagedQueuing = lockfree_fifo,
         typename TerminatedQueuing = lockfree_lifo>
     class HPX_EXPORT static_priority_queue_scheduler
         : public local_priority_queue_scheduler<
-            Mutex, PendingQueuing, StagedQueuing, TerminatedQueuing
+            Mutex, PendingQueuing, TerminatedQueuing
           >
     {
     public:
         typedef local_priority_queue_scheduler<
-            Mutex, PendingQueuing, StagedQueuing, TerminatedQueuing
+            Mutex, PendingQueuing, TerminatedQueuing
         > base_type;
 
         typedef typename base_type::init_parameter_type
