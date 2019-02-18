@@ -280,6 +280,7 @@ int main(int argc, char* argv[])
                     hpx::threads::policies::core_ratios(4, 4, 64),
                     true,
                     true,
+                    high_priority_sched::work_assignment_policy::assign_work_round_robin,
                     "shared-priority-scheduler"));
 
             auto mode = scheduler_mode(scheduler_mode::do_background_work |
@@ -314,8 +315,8 @@ int main(int argc, char* argv[])
                     new high_priority_sched(
                         num_threads,
                         hpx::threads::policies::core_ratios(4, 4, 64),
-                        true,
-                        true,
+                        true, true,
+                        high_priority_sched::work_assignment_policy::assign_work_round_robin,
                         "shared-priority-scheduler"));
 
                 auto mode = scheduler_mode(scheduler_mode::delay_exit);

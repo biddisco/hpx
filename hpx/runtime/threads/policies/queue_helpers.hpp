@@ -56,7 +56,7 @@ namespace hpx { namespace threads { namespace policies
             num_cores  = cores;
             num_queues = queues;
             scale      = num_cores==1 || queues==0 ? 0
-                         : static_cast<double>(num_queues-1)/(num_cores-1);
+                         : static_cast<float>(num_queues-1)/(num_cores-1);
             //
             queues_.resize(num_queues);
             for (std::size_t i = 0; i < num_queues; ++i) {
@@ -159,7 +159,7 @@ namespace hpx { namespace threads { namespace policies
         // ----------------------------------------------------------------
         std::size_t             num_cores;
         std::size_t             num_queues;
-        double                  scale;
+        float                   scale;
         std::vector<QueueType*> queues_;
     };
 

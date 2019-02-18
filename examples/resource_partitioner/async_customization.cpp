@@ -502,7 +502,11 @@ int main(int argc, char** argv)
           {
             std::cout << "User defined scheduler creation callback " << std::endl;
             std::unique_ptr<high_priority_sched> scheduler(new high_priority_sched(
-                num_threads, {6, 6, 64}, "shared-priority-scheduler"));
+                num_threads,
+                hpx::threads::policies::core_ratios(4, 4, 64), 
+                true, true,
+                high_priority_sched::work_assignment_policy::assign_work_round_robin,
+                "shared-priority-scheduler"));
 
             scheduler_mode mode = scheduler_mode(
                 scheduler_mode::do_background_work |

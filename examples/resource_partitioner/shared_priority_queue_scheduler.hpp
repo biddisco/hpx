@@ -16,6 +16,7 @@
 #include <hpx/runtime/threads/thread_data.hpp>
 #include <hpx/runtime/threads/topology.hpp>
 #include <hpx/runtime/threads_fwd.hpp>
+#include <hpx/runtime/threads/detail/thread_num_tss.hpp>
 #include <hpx/throw_exception.hpp>
 #include <hpx/util/assert.hpp>
 #include <hpx/util/logging.hpp>
@@ -99,7 +100,7 @@ static std::chrono::high_resolution_clock::time_point log_t_start =
 #define LOG_CUSTOM_MSG2(x)
 #endif
 
-//
+// ------------------------------------------------------------
 namespace hpx { namespace debug {
 #ifdef SHARED_PRIORITY_SCHEDULER_MINIMAL_DEBUG
     template<typename T>
@@ -142,7 +143,7 @@ namespace hpx { namespace debug {
 
 #include <hpx/config/warnings_prefix.hpp>
 
-///////////////////////////////////////////////////////////////////////////////
+// ------------------------------------------------------------
 namespace hpx {
 namespace threads {
 namespace policies {
@@ -171,7 +172,7 @@ namespace example {
     /// NUMA scheduling hints into account when creating and scheduling work.
     template <typename Mutex = compat::mutex,
         typename PendingQueuing = lockfree_fifo,
-        typename TerminatedQueuing = lockfree_lifo>
+        typename TerminatedQueuing = lockfree_fifo>
     class shared_priority_queue_scheduler : public scheduler_base
     {
     protected:
@@ -740,7 +741,7 @@ namespace example {
                 if (work_policy_ == assign_work_round_robin) {
                     thread_num = fast_mod(core_counters_[thread_num].next_queue++, num_workers_);
                     LOG_CUSTOM_MSG("round robin assignment " << thread_num);
-                }
+                                    }
                 thread_num = select_active_pu(l, thread_num);
                 domain_num = d_lookup_[thread_num];
                 q_index    = q_lookup_[thread_num];
@@ -1273,7 +1274,8 @@ namespace example {
                 std::fill(q_lookup_.begin(), q_lookup_.end(), 0);
                 std::fill(q_counts_.begin(), q_counts_.end(), 0);
                 std::fill(counters_.begin(), counters_.end(), 0);
-                std::fill(core_counters_.begin(), core_counters_.end(), per_core_counters());
+                std::fill(core_counters_.begin(), core_counters_.end(),
+                          per_core_counters());
 
                 for (std::size_t local_id=0; local_id!=num_workers_; ++local_id)
                 {
@@ -1286,6 +1288,26 @@ namespace example {
 
                 HPX_ASSERT(num_domains_ <= HPX_HAVE_MAX_NUMA_DOMAIN_COUNT);
 
+                // if we have zero cores on a numa domain, then reindex the domains to be
+                // sequential otherwise it messes up counting as an indexing operation
+                {
+                    std::vector<std::size_t> d_inx(d_lookup_.begin(), d_lookup_.end());
+                    // reduce list of all used domains to simple unique sort list
+                    std::sort(d_inx.begin(), d_inx.end(), std::less<std::size_t>());
+                    auto last = std::unique(d_inx.begin(), d_inx.end());
+                    d_inx.erase(last, d_inx.end());
+                    num_domains_ = d_inx.size();
+                    // turn list into a map
+                    std::map<std::size_t, std::size_t> domain_map;
+                    std::size_t index = 0;
+                    for (auto d : d_inx) domain_map.emplace(d, index++);
+                    // replace old domain number with new one
+                    for (std::size_t d=0; d<d_lookup_.size(); ++d) {
+                        d_lookup_[d] = domain_map[d_lookup_[d]];
+                    }
+                }
+
+                // count cores per domain and assign queues accordingly
                 for (std::size_t local_id=0; local_id!=num_workers_; ++local_id)
                 {
                     q_lookup_[local_id] = q_counts_[d_lookup_[local_id]]++;
@@ -1295,17 +1317,16 @@ namespace example {
                 for (std::size_t i = 0; i < num_domains_; ++i)
                 {
                     std::size_t queues = cores_per_queue_.high_priority>0 ?
-                    (std::max)(q_counts_[i] / cores_per_queue_.high_priority,
-                               std::size_t(1)) : 0;
+                        (std::max)(1l, std::lround(q_counts_[i] /
+                            static_cast<float>(cores_per_queue_.high_priority))) : 0;
                     hp_queues_[i].init(
                         q_counts_[i], queues, max_queue_thread_count_);
                     LOG_CUSTOM_MSG2("Created HP queue for numa " << i
                                     << " cores " << q_counts_[i]
                                     << " queues " << queues);
 
-                    queues = (std::max)(
-                        q_counts_[i] / cores_per_queue_.normal_priority,
-                        std::size_t(1));
+                    queues = (std::max)(1l, std::lround(q_counts_[i] /
+                            static_cast<float>(cores_per_queue_.normal_priority)));
                     np_queues_[i].init(
                         q_counts_[i], queues, max_queue_thread_count_);
                     LOG_CUSTOM_MSG2("Created NP queue for numa " << i
@@ -1313,8 +1334,8 @@ namespace example {
                                     << " queues " << queues);
 
                     queues = cores_per_queue_.low_priority>0 ?
-                        (std::max)(q_counts_[i] / cores_per_queue_.low_priority,
-                            std::size_t(1)) : 0;
+                        (std::max)(1l, std::lround(q_counts_[i] /
+                            static_cast<float>(cores_per_queue_.low_priority))) : 0;
                     lp_queues_[i].init(
                         q_counts_[i], queues, max_queue_thread_count_);
                     LOG_CUSTOM_MSG2("Created LP queue for numa " << i
