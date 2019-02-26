@@ -25,8 +25,21 @@
 #include <hpx/util/deferred_call.hpp>
 #include <hpx/util/pack_traversal.hpp>
 #include <hpx/util/debug/demangle_helper.hpp>
+// ------------------------------------------------------------------------
+// Scheduler that honours numa placement hints for tasks
+// ------------------------------------------------------------------------
 //
-#include "shared_priority_queue_scheduler.hpp"
+//#define USE_EXAMPLE_SCHEDULER
+//
+#ifdef USE_EXAMPLE_SCHEDULER
+# include "shared_priority_queue_scheduler.hpp"
+    using numa_scheduler =
+        hpx::threads::policies::example::shared_priority_queue_scheduler<>;
+#else
+# include "hpx/runtime/threads/policies/shared_priority_queue_scheduler.hpp"
+    using numa_scheduler =
+        hpx::threads::policies::shared_priority_queue_scheduler<>;
+#endif
 //
 #include <cstddef>
 #include <cstdint>
@@ -404,16 +417,16 @@ int test(Executor &exec)
     future<std::uint16_t> f1 = make_ready_future(std::uint16_t(255));
     future<double>        f2 = make_ready_future(127.890);
     //
-    auto fd = dataflow(exec,
-        [](future<std::uint16_t> && f1, future<double> && f2)
-        {
-            auto cmplx = std::complex<std::uint64_t>(f1.get(), f2.get());
-            std::cout << "Inside dataflow : " << cmplx << std::endl;
-            return cmplx;
-        }
-        , f1, f2
-    );
-    fd.get();
+//    auto fd = dataflow(exec,
+//        [](future<std::uint16_t> && f1, future<double> && f2)
+//        {
+//            auto cmplx = std::complex<std::uint64_t>(f1.get(), f2.get());
+//            std::cout << "Inside dataflow : " << cmplx << std::endl;
+//            return cmplx;
+//        }
+//        , f1, f2
+//    );
+//    fd.get();
     std::cout << std::endl;
 
     // test 4b
@@ -422,16 +435,16 @@ int test(Executor &exec)
     future<std::uint16_t>      fs1 = make_ready_future(std::uint16_t(255));
     shared_future<double> fs2 = make_ready_future(127.890).share();
     //
-    auto fds = dataflow(exec,
-        [](future<std::uint16_t> && f1, shared_future<double> && f2)
-        {
-            auto cmplx = std::complex<std::uint64_t>(f1.get(), f2.get());
-            std::cout << "Inside dataflow(shared) : " << cmplx << std::endl;
-            return cmplx;
-        }
-        , fs1, fs2
-    );
-    fds.get();
+//    auto fds = dataflow(exec,
+//        [](future<std::uint16_t> && f1, shared_future<double> && f2)
+//        {
+//            auto cmplx = std::complex<std::uint64_t>(f1.get(), f2.get());
+//            std::cout << "Inside dataflow(shared) : " << cmplx << std::endl;
+//            return cmplx;
+//        }
+//        , fs1, fs2
+//    );
+//    fds.get();
     std::cout << "============================" << std::endl;
     std::cout << "Complete" << std::endl;
     std::cout << "============================" << std::endl;
@@ -490,8 +503,6 @@ int main(int argc, char** argv)
     hpx::resource::partitioner rp(argc, argv);
 
     // declare the high priority scheduler type we'll use
-    using high_priority_sched =
-        hpx::threads::policies::example::shared_priority_queue_scheduler<>;
     using hpx::threads::policies::scheduler_mode;
     // setup the default pool with our custom priority scheduler
     rp.create_thread_pool(
@@ -501,11 +512,11 @@ int main(int argc, char** argv)
           std::string const& pool_name) -> std::unique_ptr<hpx::threads::thread_pool_base>
           {
             std::cout << "User defined scheduler creation callback " << std::endl;
-            std::unique_ptr<high_priority_sched> scheduler(new high_priority_sched(
+            std::unique_ptr<numa_scheduler> scheduler(new numa_scheduler(
                 num_threads,
-                hpx::threads::policies::core_ratios(4, 4, 64), 
+                hpx::threads::policies::core_ratios(4, 4, 64),
                 true, true,
-                high_priority_sched::work_assignment_policy::assign_work_round_robin,
+                numa_scheduler::work_assignment_policy::assign_work_round_robin,
                 "shared-priority-scheduler"));
 
             scheduler_mode mode = scheduler_mode(
@@ -513,7 +524,7 @@ int main(int argc, char** argv)
                 scheduler_mode::delay_exit);
 
             std::unique_ptr<hpx::threads::thread_pool_base> pool(
-              new hpx::threads::detail::scheduled_thread_pool<high_priority_sched>(
+              new hpx::threads::detail::scheduled_thread_pool<numa_scheduler>(
                   std::move(scheduler), notifier, pool_index, pool_name,
                   mode, thread_offset)
             );
