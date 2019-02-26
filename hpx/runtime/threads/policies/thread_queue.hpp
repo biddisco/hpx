@@ -43,6 +43,74 @@
 #include <utility>
 #include <vector>
 
+#include <atomic>
+#include <mutex>
+#include <exception>
+#include <functional>
+#include <memory>
+#include <string>
+#include <utility>
+
+// ------------------------------------------------------------////////
+// ------------------------------------------------------------////////
+// ------------------------------------------------------------////////
+#define SHARED_PRIORITY_SCHEDULER_DEBUG 1
+
+#if !defined(HPX_MSVC) && defined(SHARED_PRIORITY_SCHEDULER_DEBUG)
+#include <plugins/parcelport/parcelport_logging.hpp>
+
+static std::chrono::high_resolution_clock::time_point log_t_start =
+    std::chrono::high_resolution_clock::now();
+
+#define COMMA ,
+#define LOG_CUSTOM_VAR(x) x
+
+#define LOG_CUSTOM_WORKER(x)                                                   \
+    dummy << "<CUSTOM> " << THREAD_ID << " time " << decimal(16) << nowt       \
+          << ' ';                                                              \
+        dummy << "pool (unset) " << x << std::endl;                            \
+    std::cout << dummy.str().c_str();
+
+#define LOG_CUSTOM_MSG(x)                                                      \
+    std::stringstream dummy;                                                   \
+    auto now = std::chrono::high_resolution_clock::now();                      \
+    auto nowt = std::chrono::duration_cast<std::chrono::microseconds>(         \
+        now - log_t_start)                                                     \
+                    .count();                                                  \
+    LOG_CUSTOM_WORKER(x);
+
+#define LOG_CUSTOM_MSG2(x)                                                     \
+    dummy.str(std::string());                                                  \
+    LOG_CUSTOM_WORKER(x);
+
+#define THREAD_DESC(thrd)                                                      \
+    "Desc: \"" << (thrd ? thrd->get_description().get_description() : "") << "\" "
+
+#if defined(HPX_HAVE_THREAD_DESCRIPTION)
+#define THREAD_DESC2(data, thrd)                                               \
+    "Desc: \"" << data.description.get_description() << "\""
+#else
+#define THREAD_DESC2(data, thrd)                                               \
+    hexpointer(thrd ? thrd : 0)
+#endif
+
+#else
+#define LOG_CUSTOM_VAR(x)
+#define LOG_CUSTOM_MSG(x)
+#define LOG_CUSTOM_MSG2(x)
+#endif
+
+#if defined(HPX_MSVC)
+#undef SHARED_PRIORITY_SCHEDULER_DEBUG
+#undef LOG_CUSTOM_MSG
+#undef LOG_CUSTOM_MSG2
+#define LOG_CUSTOM_MSG(x)
+#define LOG_CUSTOM_MSG2(x)
+#endif
+// ------------------------------------------------------------////////
+// ------------------------------------------------------------////////
+// ------------------------------------------------------------////////
+
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx { namespace threads { namespace policies
 {
@@ -328,6 +396,13 @@ namespace hpx { namespace threads { namespace policies
                 // Decrement only after thread_map_count_ has been incremented
                 --addfrom->new_tasks_count_;
 
+                LOG_CUSTOM_MSG("add_new   "
+                               << " new " << dec4(new_tasks_count_)
+                               << " work " << dec4(work_items_count_)
+                               << " map " << dec4(thread_map_count_)
+                               << " terminated " << dec4(terminated_items_count_)
+                               << THREAD_DESC(thrd.get())
+                               );
                 // only insert the thread into the work-items queue if it is in
                 // pending state
                 if (state == pending) {
@@ -468,6 +543,13 @@ namespace hpx { namespace threads { namespace policies
                         deallocate(todelete);
                         --thread_map_count_;
                         HPX_ASSERT(thread_map_count_ >= 0);
+                        LOG_CUSTOM_MSG("deallocate"
+                                       << " new " << dec4(new_tasks_count_)
+                                       << " work " << dec4(work_items_count_)
+                                       << " map " << dec4(thread_map_count_)
+                                       << " terminated " << dec4(terminated_items_count_)
+                                       << THREAD_DESC(todelete)
+                                       );
                     }
                 }
             }
@@ -490,14 +572,22 @@ namespace hpx { namespace threads { namespace policies
                     HPX_ASSERT(it != thread_map_.end());
 
                     recycle_thread(*it);
-
                     thread_map_.erase(it);
                     --thread_map_count_;
                     HPX_ASSERT(thread_map_count_ >= 0);
 
+                    LOG_CUSTOM_MSG("recycle   "
+                                   << " new " << dec4(new_tasks_count_)
+                                   << " work " << dec4(work_items_count_)
+                                   << " map " << dec4(thread_map_count_)
+                                   << " terminated " << dec4(terminated_items_count_)
+                                   << THREAD_DESC(todelete)
+                                   );
+
                     --delete_count;
                 }
             }
+
             return terminated_items_count_ == 0;
         }
 
@@ -760,6 +850,14 @@ namespace hpx { namespace threads { namespace policies
                     HPX_ASSERT(thread_map_.find(thrd) != thread_map_.end());
                     HPX_ASSERT(&thrd->get_queue<thread_queue>() == this);
 
+                    LOG_CUSTOM_MSG("create run"
+                                   << " new " << dec4(new_tasks_count_)
+                                   << " work " << dec4(work_items_count_)
+                                   << " map " << dec4(thread_map_count_)
+                                   << " terminated " << dec4(terminated_items_count_)
+                                   << THREAD_DESC(thrd.get())
+                                   );
+
                     // push the new thread in the pending queue thread
                     if (initial_state == pending)
                         schedule_thread(thrd.get());
@@ -785,6 +883,15 @@ namespace hpx { namespace threads { namespace policies
 #endif
             if (&ec != &throws)
                 ec = make_success_code();
+
+            threads::thread_data* thrd = nullptr;
+            LOG_CUSTOM_MSG("create    "
+                           << " new " << dec4(new_tasks_count_)
+                           << " work " << dec4(work_items_count_)
+                           << " map " << dec4(thread_map_count_)
+                           << " terminated " << dec4(terminated_items_count_)
+                           << THREAD_DESC(thrd)
+                           );
         }
 
         void move_work_items_from(thread_queue *src, std::int64_t count)
@@ -808,6 +915,13 @@ namespace hpx { namespace threads { namespace policies
                 if (finished)
                     break;
             }
+            std::unique_lock<mutex_type> lk(mtx_);
+            LOG_CUSTOM_MSG("move_work_items_from "
+                           << " new " << dec4(new_tasks_count_)
+                           << " work " << dec4(work_items_count_)
+                           << " map " << dec4(thread_map_count_)
+                           << " terminated " << dec4(terminated_items_count_)
+                           );
         }
 
         void move_task_items_from(thread_queue *src,
@@ -841,6 +955,13 @@ namespace hpx { namespace threads { namespace policies
                     --new_tasks_count_;
                 }
             }
+            std::unique_lock<mutex_type> lk(mtx_);
+            LOG_CUSTOM_MSG("move_task_items_from "
+                           << " new " << dec4(new_tasks_count_)
+                           << " work " << dec4(work_items_count_)
+                           << " map " << dec4(thread_map_count_)
+                           << " terminated " << dec4(terminated_items_count_)
+                           );
         }
 
         /// Return the next thread to be executed, return false if none is
@@ -877,6 +998,13 @@ namespace hpx { namespace threads { namespace policies
             if (0 != work_items_count && work_items_.pop(thrd, steal))
             {
                 --work_items_count_;
+                LOG_CUSTOM_MSG("get       "
+                               << " new " << dec4(new_tasks_count_)
+                               << " work " << dec4(work_items_count_)
+                               << " map " << dec4(thread_map_count_)
+                               << " terminated " << dec4(terminated_items_count_)
+                               << THREAD_DESC(thrd)
+                               );
                 return true;
             }
 #endif
@@ -886,13 +1014,21 @@ namespace hpx { namespace threads { namespace policies
         /// Schedule the passed thread
         void schedule_thread(threads::thread_data* thrd, bool other_end = false)
         {
-            ++work_items_count_;
+            int t = ++work_items_count_;
 #ifdef HPX_HAVE_THREAD_QUEUE_WAITTIME
             work_items_.push(new thread_description(
                 thrd, util::high_resolution_clock::now()), other_end);
 #else
             work_items_.push(thrd, other_end);
 #endif
+            LOG_CUSTOM_MSG("schedule  "
+                           << " new " << dec4(new_tasks_count_)
+                           << " work " << dec4(t)
+                           << " map " << dec4(thread_map_count_)
+                           << " terminated " << dec4(terminated_items_count_)
+                           << THREAD_DESC(thrd)
+                           );
+            debug_queue(work_items_);
         }
 
         /// Destroy the passed thread as it has been terminated
@@ -906,6 +1042,13 @@ namespace hpx { namespace threads { namespace policies
             {
                 cleanup_terminated(true);   // clean up all terminated threads
             }
+            LOG_CUSTOM_MSG("destroy   "
+                           << " new " << dec4(new_tasks_count_)
+                           << " work " << dec4(work_items_count_)
+                           << " map " << dec4(thread_map_count_)
+                           << " terminated " << dec4(terminated_items_count_)
+                           << THREAD_DESC(thrd)
+                           );
         }
 
         ///////////////////////////////////////////////////////////////////////
@@ -1011,6 +1154,12 @@ namespace hpx { namespace threads { namespace policies
             std::int64_t& idle_loop_count, std::size_t& added,
             thread_queue* addfrom = nullptr, bool steal = false) HPX_HOT
         {
+//            LOG_CUSTOM_MSG("wait_or_add_new           \t"
+//                           << " new " << dec4(new_tasks_count_)
+//                           << " work " << dec4(work_items_count_)
+//                           << " map " << dec4(thread_map_count_)
+//                           << " terminated " << dec4(terminated_items_count_)
+//                           );
             // try to generate new threads from task lists, but only if our
             // own list of threads is empty
             if (0 == work_items_count_.load(std::memory_order_relaxed))
@@ -1101,6 +1250,20 @@ namespace hpx { namespace threads { namespace policies
         void on_stop_thread(std::size_t num_thread) {}
         void on_error(std::size_t num_thread, std::exception_ptr const& e) {}
 
+        void debug_queue(work_items_type &q) {
+            std::unique_lock<std::mutex> Lock(special_mtx_);
+            //
+            int x= 0;
+            thread_description *thrd;
+            while (q.pop(thrd)) {
+                std::cout << "\t" << x++ << " " << THREAD_DESC(thrd) << "\n";
+                work_items_copy_.push(thrd);
+            }
+            while (work_items_copy_.pop(thrd)) {
+                q.push(thrd);
+            }
+        }
+
     private:
         mutable mutex_type mtx_;            // mutex protecting the members
 
@@ -1153,6 +1316,8 @@ namespace hpx { namespace threads { namespace policies
         // count of new_tasks stolen to this queue from other queues
         std::atomic<std::int64_t> stolen_to_staged_;
 #endif
+        std::mutex special_mtx_;
+        work_items_type work_items_copy_;        // list of active work items
 
         util::block_profiler<add_new_tag> add_new_logger_;
     };
