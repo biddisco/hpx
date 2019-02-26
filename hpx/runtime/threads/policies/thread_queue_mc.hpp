@@ -89,7 +89,7 @@ namespace hpx { namespace threads { namespace policies
     //     };
     // };
     template <typename Mutex = compat::mutex,
-              typename PendingQueuing = lockfree_lifo,
+              typename PendingQueuing = lockfree_fifo,
               typename StagedQueuing = lockfree_lifo,
               typename TerminatedQueuing = lockfree_fifo>
     class thread_queue_mc
