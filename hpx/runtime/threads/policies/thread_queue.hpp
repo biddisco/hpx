@@ -23,6 +23,7 @@
 #include <hpx/thread_support/unlock_guard.hpp>
 #include <hpx/timing/high_resolution_clock.hpp>
 #include <hpx/util/get_and_reset_value.hpp>
+#include <hpx/runtime/config_entry.hpp>
 
 #ifdef HPX_HAVE_THREAD_CREATION_AND_CLEANUP_RATES
 #include <hpx/util/tick_counter.hpp>
@@ -60,6 +61,7 @@ namespace hpx { namespace threads { namespace policies {
     // startup code
     extern bool minimal_deadlock_detection;
 #endif
+
 
     ///////////////////////////////////////////////////////////////////////////
     // // Queue back-end interface:
