@@ -27,7 +27,7 @@
 #include <string>
 #include <utility>
 //
-#include "shared_priority_queue_scheduler.hpp"
+#include <hpx/runtime/threads/policies/shared_priority_queue_scheduler.hpp>
 #include "system_characteristics.hpp"
 
 // ------------------------------------------------------------------------
@@ -38,8 +38,8 @@ static int pool_threads = 1;
 // ------------------------------------------------------------------------
 // this is our custom scheduler type
 using high_priority_sched =
-    hpx::threads::policies::example::shared_priority_queue_scheduler<>;
-using namespace hpx::threads::policies::example;
+    hpx::threads::policies::shared_priority_queue_scheduler<>;
+using namespace hpx::threads::policies;
 using hpx::threads::policies::scheduler_mode;
 
 // ------------------------------------------------------------------------
@@ -271,8 +271,13 @@ int main(int argc, char* argv[])
                       << std::endl;
 
             high_priority_sched::init_parameter_type scheduler_init(
-                init.num_threads_, 
-                {4, 4, 64}, true, true
+                init.num_threads_,
+                {1, 1, 64},
+#if SHARED_PRIORITY_QUEUE_SCHEDULER_API==2
+                true,       // NUMA stealing
+                true,       // Core Stealing
+                high_priority_sched::work_assignment_policy::assign_work_round_robin,
+#endif
                 init.affinity_data_,
                 thread_queue_init, "shared-priority-scheduler");
             std::unique_ptr<high_priority_sched> scheduler(
@@ -305,8 +310,14 @@ int main(int argc, char* argv[])
                           << std::endl;
 
                 high_priority_sched::init_parameter_type scheduler_init(
-                    init.num_threads_, {4, 4, 64}, 
-                    true, true, init.affinity_data_,
+                    init.num_threads_,
+                    {1, 1, 64},
+#if SHARED_PRIORITY_QUEUE_SCHEDULER_API==2
+                    true,       // NUMA stealing
+                    true,       // Core Stealing
+                    high_priority_sched::work_assignment_policy::assign_work_round_robin,
+#endif
+                    init.affinity_data_,
                     thread_queue_init, "shared-priority-scheduler");
                 std::unique_ptr<high_priority_sched> scheduler(
                     new high_priority_sched(scheduler_init));
