@@ -44,6 +44,12 @@ static_assert(false,
     "include \"all\" or \"shared-priority\"");
 #else
 
+#undef LOG_CUSTOM_MSG
+#undef LOG_CUSTOM_MSG2
+#define LOG_CUSTOM_MSG(a)
+#define LOG_CUSTOM_MSG2(a)
+#define LOG_CUSTOM_VAR(a)
+
 namespace hpx { namespace threads { namespace policies {
 
     ///////////////////////////////////////////////////////////////////////////
@@ -133,8 +139,9 @@ namespace hpx { namespace threads { namespace policies {
         typedef init_parameter init_parameter_type;
 
         explicit shared_priority_queue_scheduler(init_parameter const& init)
-          : scheduler_base(init.num_worker_threads_, init.description_,
-                init.thread_queue_init_)
+          : scheduler_base(init.num_worker_threads_,
+                           init.description_,
+                           init.thread_queue_init_)
           , cores_per_queue_(init.cores_per_queue_)
           , numa_stealing_(init.numa_stealing_)
           , core_stealing_(init.core_stealing_)
@@ -609,13 +616,13 @@ namespace hpx { namespace threads { namespace policies {
             // find the numa domain from the local thread index
             std::size_t domain_num = d_lookup_[thread_num];
             // cleanup the queues assigned to this thread
-            empty = empty && np_queues_[domain_num].queues_[np_lookup_[thread_num]]->
+            empty = empty && np_queues_[domain_num].
                     cleanup_terminated(delete_all);
             if (cores_per_queue_.high_priority>0)
-                empty = empty && hp_queues_[domain_num].queues_[hp_lookup_[thread_num]]->
+                empty = empty && hp_queues_[domain_num].
                     cleanup_terminated(delete_all);
             if (cores_per_queue_.low_priority>0)
-                empty = empty && lp_queues_[domain_num].queues_[lp_lookup_[thread_num]]->
+                empty = empty && lp_queues_[domain_num].
                     cleanup_terminated(delete_all);
             return empty;
         }
@@ -632,6 +639,10 @@ namespace hpx { namespace threads { namespace policies {
             std::size_t thread_num = 0;
             std::size_t domain_num = 0;
             std::size_t q_index = std::size_t(-1);
+
+            LOG_CUSTOM_VAR(const char* const msgs[] =
+                {"HINT_NONE" COMMA "HINT....." COMMA "ERROR...." COMMA  "NORMAL..."});
+            LOG_CUSTOM_VAR(const char *msg = nullptr);
 
             std::unique_lock<pu_mutex_type> l;
 
@@ -692,6 +703,8 @@ namespace hpx { namespace threads { namespace policies {
                     std::to_string(data.schedulehint.mode));
             }
 
+            LOG_CUSTOM_MSG("create_thread " << THREAD_DESC2(data,thrd));
+
             // create the thread using priority to select queue
             if ((cores_per_queue_.high_priority>0) &&
                 (data.priority == thread_priority_high ||
@@ -723,12 +736,19 @@ namespace hpx { namespace threads { namespace policies {
             np_queues_[domain_num].queues_[np_lookup_[
                 fast_mod(q_index, np_queues_[domain_num].num_cores)]]->
                 create_thread(data, thrd, initial_state, run_now, ec);
+
+            LOG_CUSTOM_MSG2("create_thread thread_priority_normal "
+                            << "queue " << decnumber(q_index)
+                            << "domain " << decnumber(domain_num)
+                            << THREAD_DESC2(data, thrd)
+                            << "scheduler " << hexpointer(data.scheduler_base));
         }
 
         /// Return the next thread to be executed, return false if none available
         virtual bool get_next_thread(std::size_t thread_num, bool running,
             threads::thread_data*& thrd, bool /*enable_stealing*/) override
         {
+            // LOG_CUSTOM_MSG("get_next_thread " << decnumber(thread_num));
             bool result = false;
 
             if (thread_num == std::size_t(-1)) {
@@ -763,6 +783,8 @@ namespace hpx { namespace threads { namespace policies {
                 // get next task, steal if from another domain
                 result = np_queues_[dom].get_next_thread(q_index, thrd, core_stealing_);
                 if (result) {
+                    LOG_CUSTOM_MSG("get_next_thread thread_priority_normal "
+                                    << THREAD_DESC(thrd));
                     return result;
                 }
                 if (!numa_stealing_) break;
@@ -790,6 +812,10 @@ namespace hpx { namespace threads { namespace policies {
             std::size_t domain_num = 0;
             std::size_t q_index = std::size_t(-1);
 
+            LOG_CUSTOM_VAR(const char* const msgs[] =
+                {"HINT_NONE" COMMA "HINT....." COMMA "ERROR...." COMMA  "NORMAL..."});
+            LOG_CUSTOM_VAR(const char *msg = nullptr);
+
             std::unique_lock<pu_mutex_type> l;
 
             using threads::thread_schedule_hint_mode;
@@ -798,6 +824,7 @@ namespace hpx { namespace threads { namespace policies {
             case thread_schedule_hint_mode::thread_schedule_hint_mode_none:
             {
                 // Create thread on this worker thread if possible
+                LOG_CUSTOM_VAR(msg = msgs[0]);
                 std::size_t global_thread_num =
                     threads::detail::get_thread_num_tss();
                 thread_num =
@@ -815,6 +842,7 @@ namespace hpx { namespace threads { namespace policies {
             case thread_schedule_hint_mode::thread_schedule_hint_mode_thread:
             {
                 // Create thread on requested worker thread
+                LOG_CUSTOM_VAR(msg = msgs[3]);
                 thread_num = select_active_pu(l, schedulehint.hint,
                     allow_fallback);
                 domain_num = d_lookup_[thread_num];
@@ -826,6 +854,7 @@ namespace hpx { namespace threads { namespace policies {
                 // Create thread on requested NUMA domain
 
                 // TODO: This case does not handle suspended PUs.
+                LOG_CUSTOM_VAR(msg = msgs[1]);
                 domain_num = fast_mod(schedulehint.hint, num_domains_);
                 // if the thread creating the new task is on the domain
                 // assigned to the new task - try to reuse the core as well
@@ -847,6 +876,12 @@ namespace hpx { namespace threads { namespace policies {
                     "Invalid schedule hint mode: " +
                     std::to_string(schedulehint.mode));
             }
+
+            LOG_CUSTOM_MSG("thread scheduled "
+                          << "queue " << decnumber(thread_num)
+                          << "domain " << decnumber(domain_num)
+                          << "qindex " << decnumber(q_index)
+                          << THREAD_DESC(thrd));
 
             if ((cores_per_queue_.high_priority>0) &&
                 (priority == thread_priority_high ||
@@ -879,6 +914,7 @@ namespace hpx { namespace threads { namespace policies {
             bool allow_fallback,
             thread_priority priority = thread_priority_normal) override
         {
+            LOG_CUSTOM_MSG("schedule_thread_last ");
             schedule_thread(thrd, schedulehint, allow_fallback, priority);
         }
 
@@ -889,16 +925,20 @@ namespace hpx { namespace threads { namespace policies {
             threads::thread_data* thrd, std::int64_t& busy_count) override
         {
             HPX_ASSERT(thrd->get_scheduler_base() == this);
-            thrd->get_queue<thread_queue_type>().destroy_thread(thrd, busy_count);
+            LOG_CUSTOM_MSG("destroy_thread " << THREAD_DESC(thrd));
+            thrd->get_queue<queue_holder<thread_queue_mc<>>>().destroy_thread(thrd, busy_count);
         }
 
-        ///////////////////////////////////////////////////////////////////////
+        //---------------------------------------------------------------------
         // This returns the current length of the queues (work items and new
         // items)
         //---------------------------------------------------------------------
         std::int64_t get_queue_length(
             std::size_t thread_num = std::size_t(-1)) const override
         {
+            LOG_CUSTOM_MSG("get_queue_length"
+                << "thread_num " << decnumber(thread_num));
+
             HPX_ASSERT(thread_num != std::size_t(-1));
 
             std::int64_t count = 0;
@@ -935,6 +975,9 @@ namespace hpx { namespace threads { namespace policies {
             std::size_t thread_num = std::size_t(-1),
             bool reset = false) const override
         {
+            LOG_CUSTOM_MSG("get_thread_count thread_num "
+                << hexnumber(thread_num));
+
             std::int64_t count = 0;
 
             // if a specific worker id was requested
@@ -943,33 +986,27 @@ namespace hpx { namespace threads { namespace policies {
                 //
                 switch (priority) {
                 case thread_priority_default: {
-                    count += np_queues_[domain].queues_[np_lookup_[thread_num]]->
-                            get_thread_count(state);
+                    count += np_queues_[domain].get_thread_count(state);
                     if (cores_per_queue_.high_priority>0)
-                        count += hp_queues_[domain].queues_[hp_lookup_[thread_num]]->
-                            get_thread_count();
+                        count += hp_queues_[domain].get_thread_count();
                     if (cores_per_queue_.low_priority>0)
-                        count += lp_queues_[domain].queues_[lp_lookup_[thread_num]]->
-                            get_thread_count();
+                        count += lp_queues_[domain].get_thread_count();
                     return count;
                 }
                 case thread_priority_low: {
                     if (cores_per_queue_.low_priority>0)
-                        count += lp_queues_[domain].queues_[lp_lookup_[thread_num]]->
-                            get_thread_count();
+                        count += lp_queues_[domain].get_thread_count();
                     return count;
                 }
                 case thread_priority_normal: {
-                    count += np_queues_[domain].queues_[np_lookup_[thread_num]]->
-                        get_thread_count(state);
+                    count += np_queues_[domain].get_thread_count(state);
                     return count;
                 }
                 case thread_priority_boost:
                 case thread_priority_high:
                 case thread_priority_high_recursive: {
                     if (cores_per_queue_.high_priority>0)
-                        count += hp_queues_[domain].queues_[hp_lookup_[thread_num]]->
-                            get_thread_count();
+                        count += hp_queues_[domain].get_thread_count();
                     return count;
                 }
                 default:
@@ -1029,6 +1066,8 @@ namespace hpx { namespace threads { namespace policies {
         {
             bool result = true;
 
+            LOG_CUSTOM_MSG("enumerate_threads");
+
             for (std::size_t d=0; d<num_domains_; ++d) {
                 result = result &&
                     np_queues_[d].enumerate_threads(f, state);
@@ -1053,20 +1092,22 @@ namespace hpx { namespace threads { namespace policies {
 
             HPX_ASSERT(thread_num != std::size_t(-1));
 
+//            LOG_CUSTOM_MSG("wait_or_add_new thread num " << decnumber(thread_num));
+
             // find the numa domain from the local thread index
             std::size_t domain_num = d_lookup_[thread_num];
 
             // is there a high priority task, take first from our numa domain
             // and then try to steal from others
             if (cores_per_queue_.high_priority>0) {
-            for (std::size_t d=0; d<num_domains_; ++d) {
+                for (std::size_t d=0; d<num_domains_; ++d) {
                     std::size_t dom = fast_mod((domain_num+d), num_domains_);
-                // set the preferred queue for this domain, if applicable
-                std::size_t q_index = q_lookup_[thread_num];
-                // get next task, steal if from another domain
+                    // set the preferred queue for this domain, if applicable
+                    std::size_t q_index = q_lookup_[thread_num];
+                    // get next task, steal if from another domain
                     result = hp_queues_[dom].wait_or_add_new(q_index, running,
                         added, core_stealing_) && result;
-                if (0 != added) return result;
+                    if (0 != added) return result;
                     if (!numa_stealing_) break;
                 }
             }
