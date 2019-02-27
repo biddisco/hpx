@@ -53,7 +53,7 @@
 // ------------------------------------------------------------////////
 // ------------------------------------------------------------////////
 // ------------------------------------------------------------////////
-#define SHARED_PRIORITY_SCHEDULER_DEBUG 1
+//#define SHARED_PRIORITY_SCHEDULER_DEBUG 1
 
 #if !defined(HPX_MSVC) && defined(SHARED_PRIORITY_SCHEDULER_DEBUG)
 #include <plugins/parcelport/parcelport_logging.hpp>
@@ -97,6 +97,7 @@ static std::chrono::high_resolution_clock::time_point log_t_start =
 #define LOG_CUSTOM_VAR(x)
 #define LOG_CUSTOM_MSG(x)
 #define LOG_CUSTOM_MSG2(x)
+#define THREAD_DESC(x)
 #endif
 
 #if defined(HPX_MSVC)
@@ -579,6 +580,7 @@ namespace hpx { namespace threads { namespace policies
                     HPX_ASSERT(it != thread_map_.end());
 
                     recycle_thread(*it);
+
                     thread_map_.erase(it);
                     --thread_map_count_;
                     HPX_ASSERT(thread_map_count_ >= 0);
@@ -594,7 +596,6 @@ namespace hpx { namespace threads { namespace policies
                     --delete_count;
                 }
             }
-
             return terminated_items_count_ == 0;
         }
 
@@ -922,7 +923,6 @@ namespace hpx { namespace threads { namespace policies
                 if (finished)
                     break;
             }
-            std::unique_lock<mutex_type> lk(mtx_);
             LOG_CUSTOM_MSG("move_work_items_from "
                            << " new " << dec4(new_tasks_count_)
                            << " work " << dec4(work_items_count_)
@@ -962,7 +962,6 @@ namespace hpx { namespace threads { namespace policies
                     --new_tasks_count_;
                 }
             }
-            std::unique_lock<mutex_type> lk(mtx_);
             LOG_CUSTOM_MSG("move_task_items_from "
                            << " new " << dec4(new_tasks_count_)
                            << " work " << dec4(work_items_count_)
@@ -1035,7 +1034,9 @@ namespace hpx { namespace threads { namespace policies
                            << " terminated " << dec4(terminated_items_count_)
                            << THREAD_DESC(thrd)
                            );
+#ifdef SHARED_PRIORITY_SCHEDULER_DEBUG
             debug_queue(work_items_);
+#endif
         }
 
         /// Destroy the passed thread as it has been terminated
@@ -1257,19 +1258,21 @@ namespace hpx { namespace threads { namespace policies
         void on_stop_thread(std::size_t num_thread) {}
         void on_error(std::size_t num_thread, std::exception_ptr const& e) {}
 
+#ifdef SHARED_PRIORITY_SCHEDULER_DEBUG
         void debug_queue(work_items_type &q) {
             std::unique_lock<std::mutex> Lock(special_mtx_);
             //
             int x= 0;
             thread_description *thrd;
             while (q.pop(thrd)) {
-                std::cout << "\t" << x++ << " " << THREAD_DESC(thrd) << "\n";
+                LOG_CUSTOM_MSG("\t" << x++ << " " << THREAD_DESC(thrd));
                 work_items_copy_.push(thrd);
             }
             while (work_items_copy_.pop(thrd)) {
                 q.push(thrd);
             }
         }
+#endif
 
     private:
         mutable mutex_type mtx_;            // mutex protecting the members
@@ -1323,8 +1326,11 @@ namespace hpx { namespace threads { namespace policies
         // count of new_tasks stolen to this queue from other queues
         std::atomic<std::int64_t> stolen_to_staged_;
 #endif
+
+#ifdef SHARED_PRIORITY_SCHEDULER_DEBUG
         std::mutex special_mtx_;
         work_items_type work_items_copy_;        // list of active work items
+#endif
 
         util::block_profiler<add_new_tag> add_new_logger_;
     };
