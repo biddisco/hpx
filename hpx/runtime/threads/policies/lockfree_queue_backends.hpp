@@ -74,6 +74,51 @@ struct lockfree_fifo
     };
 };
 
+// FIFO
+template <typename T>
+struct lockfree_fifo_backend
+{
+    typedef boost::lockfree::deque<T> container_type;
+    typedef T value_type;
+    typedef T& reference;
+    typedef T const& const_reference;
+    typedef std::uint64_t size_type;
+
+    lockfree_fifo_backend(
+        size_type initial_size = 0
+      , size_type num_thread = size_type(-1)
+        )
+      : queue_(std::size_t(initial_size))
+    {}
+
+    bool push(const_reference val, bool /*other_end*/ = false)
+    {
+        return queue_.push_left(val);
+    }
+
+    bool pop(reference val, bool steal = true)
+    {
+        return queue_.pop_right(val);
+    }
+
+    bool empty()
+    {
+        return queue_.empty();
+    }
+
+  private:
+    container_type queue_;
+};
+
+struct boost_lockfree_fifo
+{
+    template <typename T>
+    struct apply
+    {
+        typedef lockfree_fifo_backend<T> type;
+    };
+};
+
 // LIFO
 template <typename T>
 struct lockfree_lifo_backend
