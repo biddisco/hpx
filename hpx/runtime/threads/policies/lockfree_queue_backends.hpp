@@ -66,6 +66,15 @@ struct lockfree_fifo
     };
 };
 
+struct boost_lockfree_fifo
+{
+    template <typename T>
+    struct apply
+    {
+        typedef lockfree_fifo_backend<T> type;
+    };
+};
+
 // LIFO
 template <typename T>
 struct lockfree_lifo_backend
