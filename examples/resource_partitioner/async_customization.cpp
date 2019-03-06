@@ -28,7 +28,7 @@
 #include <hpx/util/pack_traversal.hpp>
 #include <hpx/debugging/demangle_helper.hpp>
 //
-#include "shared_priority_queue_scheduler.hpp"
+#include <hpx/runtime/threads/policies/shared_priority_queue_scheduler.hpp>
 //
 #include <cstddef>
 #include <cstdint>
