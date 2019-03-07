@@ -52,18 +52,23 @@ using hpx::util::high_resolution_timer;
 using hpx::cout;
 using hpx::flush;
 
+// global vars we stick here to make printouts eacy for plotting
+std::string queuing = "";
+std::size_t numa_sensitive = 0;
+std::uint64_t num_threads = 1;
+
 ///////////////////////////////////////////////////////////////////////////////
 void print_stats(const char *title, const char *wait, const char *exec, std::int64_t count, double duration, bool csv)
 {
     double us = 1e6*duration/count;
     if (csv)
         hpx::util::format_to(cout,
-            "{1},{2},{3},{4},{5},{6},\n",
-           count, title, duration, us) << flush;
+            "{1},{2},{3},{4},{5},{6},{7},{8},{9}\n",
+           count, title, wait, exec, duration, us, queuing, numa_sensitive, num_threads) << flush;
     else
         hpx::util::format_to(cout,
             "invoked {1}, futures {:10} {:15} {:20} in \t{5} seconds \t: {6} us per future \n",
-            count, title, wait, exec, duration, us) << flush;
+            count, title, wait, exec, duration, us, queuing, numa_sensitive, num_threads) << flush;
     // CDash graph plotting
     //hpx::util::print_cdash_timing(title, duration);
 }
@@ -197,15 +202,13 @@ void measure_function_futures_thread_count(std::uint64_t count, bool csv, Execut
 
     // Yield until there is only this and background threads left.
     hpx::util::yield_while([this_pool, &sanity_check]()
-        {
-            return (sanity_check>0);
-//        auto u = this_pool->get_thread_count_unknown(std::size_t(-1), false);
-//        auto b = this_pool->get_background_thread_count() + 1;
-////        std::cout << "Unknown " << u << " background " << b << std::endl;
-//        return u>b;
+    {
+        auto u = this_pool->get_thread_count_unknown(std::size_t(-1), false);
+        auto b = this_pool->get_background_thread_count() + 1;
+        return u>b;
 //            return this_pool->get_thread_count_unknown(std::size_t(-1), false) >
 //                this_pool->get_background_thread_count() + 1;
-        });
+    });
 
     // stop the clock
     const double duration = walltime.elapsed();
@@ -268,13 +271,21 @@ void measure_function_futures_sliding_semaphore(std::uint64_t count, bool csv, E
 
     // stop the clock
     const double duration = walltime.elapsed();
-    print_stats("Apply", "Sliding-Sem", ExecName(exec), count, duration, csv);
+    print_stats("apply", "Sliding-Sem", ExecName(exec), count, duration, csv);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 int hpx_main(variables_map& vm)
 {
     {
+        if (vm.count("hpx:queuing"))
+            queuing = vm["hpx:queuing"].as<std::string>();
+
+        if (vm.count("hpx:numa-sensitive"))
+            numa_sensitive = vm["hpx:numa-sensitive"].as<std::size_t>();
+
+        num_threads = hpx::get_num_worker_threads();
+
         num_iterations = vm["delay-iterations"].as<std::uint64_t>();
 
         const std::uint64_t count = vm["futures"].as<std::uint64_t>();
@@ -298,6 +309,7 @@ int hpx_main(variables_map& vm)
             measure_function_futures_limiting_executor(count, csv, def);
             measure_function_futures_limiting_executor(count, csv, par);
             measure_function_futures_sliding_semaphore(count, csv, def);
+            measure_function_futures_sliding_semaphore(count, csv, par);
         }
     }
 
