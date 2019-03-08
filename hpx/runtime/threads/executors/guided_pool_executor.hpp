@@ -260,6 +260,7 @@ namespace hpx { namespace threads { namespace executors
                 ),
                 std::forward<F>(f), std::forward<Ts>(ts)...
             );
+            return hpx::make_ready_future<result_type>();
         }
 
         // --------------------------------------------------------------------

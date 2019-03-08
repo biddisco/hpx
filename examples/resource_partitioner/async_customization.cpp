@@ -417,16 +417,16 @@ int test(Executor &exec)
     future<std::uint16_t> f1 = make_ready_future(std::uint16_t(255));
     future<double>        f2 = make_ready_future(127.890);
     //
-//    auto fd = dataflow(exec,
-//        [](future<std::uint16_t> && f1, future<double> && f2)
-//        {
-//            auto cmplx = std::complex<std::uint64_t>(f1.get(), f2.get());
-//            std::cout << "Inside dataflow : " << cmplx << std::endl;
-//            return cmplx;
-//        }
-//        , f1, f2
-//    );
-//    fd.get();
+    auto fd = dataflow(exec,
+        [](future<std::uint16_t> && f1, future<double> && f2)
+        {
+            auto cmplx = std::complex<std::uint64_t>(f1.get(), f2.get());
+            std::cout << "Inside dataflow : " << cmplx << std::endl;
+            return cmplx;
+        }
+        , f1, f2
+    );
+    fd.get();
     std::cout << std::endl;
 
     // test 4b
@@ -435,16 +435,16 @@ int test(Executor &exec)
     future<std::uint16_t>      fs1 = make_ready_future(std::uint16_t(255));
     shared_future<double> fs2 = make_ready_future(127.890).share();
     //
-//    auto fds = dataflow(exec,
-//        [](future<std::uint16_t> && f1, shared_future<double> && f2)
-//        {
-//            auto cmplx = std::complex<std::uint64_t>(f1.get(), f2.get());
-//            std::cout << "Inside dataflow(shared) : " << cmplx << std::endl;
-//            return cmplx;
-//        }
-//        , fs1, fs2
-//    );
-//    fds.get();
+    auto fds = dataflow(exec,
+        [](future<std::uint16_t> && f1, shared_future<double> && f2)
+        {
+            auto cmplx = std::complex<std::uint64_t>(f1.get(), f2.get());
+            std::cout << "Inside dataflow(shared) : " << cmplx << std::endl;
+            return cmplx;
+        }
+        , fs1, fs2
+    );
+    fds.get();
     std::cout << "============================" << std::endl;
     std::cout << "Complete" << std::endl;
     std::cout << "============================" << std::endl;
