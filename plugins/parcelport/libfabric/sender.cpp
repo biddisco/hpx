@@ -29,7 +29,7 @@ namespace libfabric
 {
     // --------------------------------------------------------------------
     // The main message send routine
-    void sender::async_write_impl()
+    void sender::async_write_impl(unsigned int flags)
     {
         buffer_.data_point_.time_ = util::high_resolution_clock::now();
         HPX_ASSERT(message_region_ == nullptr);
@@ -144,6 +144,12 @@ namespace libfabric
                 << "addr "   << hexpointer(cb.data_.cpos_));
         }
 
+        if ((flags & libfabric::header<HPX_PARCELPORT_LIBFABRIC_MESSAGE_HEADER_SIZE>
+                ::bootstrap_flag) != 0)
+        {
+            header_->set_bootstrap_flag();
+        }
+
         if (header_->message_piggy_back())
         {
             LOG_DEBUG_MSG("Sender " << hexpointer(this)
@@ -209,7 +215,7 @@ namespace libfabric
                     }
                     else if (ret)
                     {
-                        throw fabric_error(ret, "fi_sendv");
+                        throw fabric_error(ret, "fi_send");
                     }
 
                     return false;

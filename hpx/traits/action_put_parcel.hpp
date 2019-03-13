@@ -7,7 +7,7 @@
 #define HPX_TRAITS_ACTION_PUT_PARCEL_AUG_2016
 
 #include <hpx/config.hpp>
-#include <hpx/runtime/threads/thread_enums.hpp>
+#include <hpx/coroutines/thread_enums.hpp>
 #include <hpx/runtime/naming/id_type.hpp>
 #include <hpx/runtime/naming/address.hpp>
 #include <hpx/runtime/parcelset/put_parcel.hpp>

@@ -19,6 +19,7 @@
 #include <cstring>
 #include <utility>
 #include <vector>
+#include <algorithm>
 
 // A generic header structure that can be used by parcelports
 // currently, the libfabric parcelport makes use of it
@@ -83,10 +84,11 @@ namespace libfabric
         static constexpr unsigned int header_block_size = sizeof(detail::header_block);
         static constexpr unsigned int data_size_        = SIZE - header_block_size;
         //
-        static const unsigned int chunk_flag    = 0x01; // chunks piggybacked
-        static const unsigned int message_flag  = 0x02; // message pigybacked
-        static const unsigned int normal_flag   = 0x04; // normal chunks present
-        static const unsigned int zerocopy_flag = 0x08; // zerocopy chunks present
+        static const unsigned int chunk_flag     = 0x01; // chunks piggybacked
+        static const unsigned int message_flag   = 0x02; // message pigybacked
+        static const unsigned int normal_flag    = 0x04; // normal chunks present
+        static const unsigned int zerocopy_flag  = 0x08; // zerocopy chunks present
+        static const unsigned int bootstrap_flag = 0x10; // Bootstrap messsage
 
         typedef serialization::serialization_chunk chunktype;
 
@@ -267,6 +269,17 @@ namespace libfabric
         }
 
         // ------------------------------------------------------------------
+        bool bootstrap()
+        {
+            return ((message_header.flags & bootstrap_flag) != 0);
+        }
+
+        void set_bootstrap_flag()
+        {
+            message_header.flags |= bootstrap_flag;
+        }
+
+        // ------------------------------------------------------------------
         inline uint32_t chunk_data_offset() const
         {
             // just in case we ever add any new stuff
@@ -385,7 +398,9 @@ namespace libfabric
         {
             chunktype *chunks = reinterpret_cast<chunktype *>(chunk_ptr());
             if (!chunks) {
-                throw std::runtime_error("num_zero_copy_chunks without chunk data");
+                return 0;
+//                throw std::runtime_error(
+//                            "num_zero_copy_chunks>0 but chunk data==nullptr");
             }
             return count_if(&chunks[0], &chunks[message_header.num_chunks],
                 [](chunktype &c) {
