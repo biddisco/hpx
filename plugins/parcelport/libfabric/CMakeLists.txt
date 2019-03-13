@@ -19,6 +19,7 @@ if (HPX_WITH_PARCELPORT_LIBFABRIC)
     "${PROJECT_SOURCE_DIR}/plugins/parcelport/libfabric/receiver.cpp"
     "${PROJECT_SOURCE_DIR}/plugins/parcelport/libfabric/rma_receiver.cpp"
     "${PROJECT_SOURCE_DIR}/plugins/parcelport/libfabric/sender.cpp"
+    "${PROJECT_SOURCE_DIR}/plugins/parcelport/libfabric/locality.cpp"
     CACHE INTERNAL "" FORCE)
 
   set(_hpxc_CXX_srcs          "" CACHE INTERNAL "" FORCE)

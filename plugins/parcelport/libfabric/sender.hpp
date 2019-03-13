@@ -101,7 +101,7 @@ namespace libfabric
         // The main message send routine : package the header, send it
         // with an optional extra message region if it cannot be piggybacked
         // send chunk/rma information for all zero copy serialization regions
-        void async_write_impl();
+        void async_write_impl(unsigned int flags=0);
 
         // --------------------------------------------------------------------
         // Called when a send completes
