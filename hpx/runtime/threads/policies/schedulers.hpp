@@ -8,6 +8,7 @@
 
 #include <hpx/config.hpp>
 
+#include <hpx/runtime/threads/policies/simple_scheduler.hpp>
 #if defined(HPX_HAVE_LOCAL_SCHEDULER)
 #include <hpx/runtime/threads/policies/local_queue_scheduler.hpp>
 #endif
@@ -21,4 +22,5 @@
 #if defined(HPX_HAVE_SHARED_PRIORITY_SCHEDULER)
 #include <hpx/runtime/threads/policies/shared_priority_queue_scheduler.hpp>
 #endif
+#include <hpx/runtime/threads/policies/simple_scheduler.hpp>
 #endif

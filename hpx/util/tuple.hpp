@@ -264,7 +264,7 @@ namespace hpx { namespace util
                     ((this->get<Is>() =
                       std::forward<Ts>(other.template get<Is>())), 0)...
                 };
-                (void)_sequencer;
+                (void) _sequencer;
                 return *this;
             }
 

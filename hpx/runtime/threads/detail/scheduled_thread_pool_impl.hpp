@@ -680,7 +680,8 @@ namespace hpx { namespace threads { namespace detail
             sched_.get(), data, id, initial_state, run_now, ec);    //-V601
 
         // update statistics
-        ++tasks_scheduled_;
+        // NOTE: Disable. Not needed and causes unnecessary cache misses.
+        // ++tasks_scheduled_;
     }
 
     template <typename Scheduler>

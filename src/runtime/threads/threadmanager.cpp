@@ -325,6 +325,25 @@ namespace hpx { namespace threads
                     "cannot instantiate a thread-manager if the thread-pool" +
                     name + " has an unspecified scheduler type");
             }
+            case resource::simple:
+            {
+                // instantiate the scheduler
+                typedef hpx::threads::policies::simple_scheduler<>
+                    local_sched_type;
+                local_sched_type::init_parameter_type init(
+                    num_threads_in_pool, "core-simple_scheduler");
+                std::unique_ptr<local_sched_type> sched(
+                    new local_sched_type(init));
+
+                // instantiate the pool
+                std::unique_ptr<thread_pool_base> pool(
+                    new hpx::threads::detail::scheduled_thread_pool<
+                        local_sched_type>(std::move(sched), notifier_, i,
+                        name.c_str(), scheduler_mode, thread_offset));
+                pools_.push_back(std::move(pool));
+
+                break;
+            }
             case resource::local:
             {
 #if defined(HPX_HAVE_LOCAL_SCHEDULER)

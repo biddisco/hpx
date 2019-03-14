@@ -1395,7 +1395,9 @@ namespace hpx { namespace threads
         if (stacksize == threads::thread_stacksize_current)
             return threads::get_self_stacksize();
 
-        return get_runtime().get_config().get_stack_size(stacksize);
+        // NOTE: Different stack sizes are disabled for now.
+        // return get_runtime().get_config().get_stack_size(stacksize);
+        return HPX_SMALL_STACK_SIZE;
     }
 
     HPX_API_EXPORT void reset_thread_distribution()

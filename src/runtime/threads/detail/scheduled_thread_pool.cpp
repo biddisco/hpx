@@ -60,3 +60,8 @@ template class HPX_EXPORT hpx::threads::policies::shared_priority_queue_schedule
 template class HPX_EXPORT hpx::threads::detail::scheduled_thread_pool<
     hpx::threads::policies::shared_priority_queue_scheduler<>>;
 #endif
+
+#include <hpx/runtime/threads/policies/simple_scheduler.hpp>
+template class HPX_EXPORT hpx::threads::policies::simple_scheduler<>;
+template class HPX_EXPORT hpx::threads::detail::scheduled_thread_pool<
+    hpx::threads::policies::simple_scheduler<>>;

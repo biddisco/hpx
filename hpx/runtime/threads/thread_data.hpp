@@ -656,7 +656,8 @@ namespace hpx { namespace threads
             exit_funcs_.clear();
             scheduler_base_ = init_data.scheduler_base;
 
-            HPX_ASSERT(init_data.stacksize == get_stack_size());
+            // NOTE: Different stack sizes are disabled for now.
+            // HPX_ASSERT(init_data.stacksize == get_stack_size());
 
             LTM_(debug) << "thread::thread(" << this << "), description("
                         << get_description() << "), rebind";

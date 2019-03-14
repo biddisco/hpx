@@ -888,10 +888,10 @@ namespace hpx { namespace applier
         threads::thread_stacksize stacksize = threads::thread_stacksize_default,
         error_code& ec = throws)
     {
-        threads::thread_function_type thread_func(
-            detail::thread_function_nullary<typename std::decay<F>::type>{
-                std::forward<F>(func)});
-        return register_thread_plain(std::move(thread_func),
+        return register_thread_plain(
+            threads::thread_function_type(
+                detail::thread_function_nullary<typename std::decay<F>::type>{
+                    std::forward<F>(func)}),
             description, initial_state, run_now, priority, os_thread, stacksize,
             ec);
     }

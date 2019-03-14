@@ -158,6 +158,9 @@ namespace hpx { namespace resource { namespace detail
         case resource::shared_priority:
             sched = "shared_priority";
             break;
+        case resource::simple:
+            sched = "simple";
+            break;
         }
 
         os << "\"" << sched << "\" is running on PUs : \n";
@@ -454,6 +457,10 @@ namespace hpx { namespace resource { namespace detail
         else if (0 == std::string("shared-priority").find(cfg_.queuing_))
         {
             default_scheduler = scheduling_policy::shared_priority;
+        }
+        else if (0 == std::string("simple").find(cfg_.queuing_))
+        {
+            default_scheduler = scheduling_policy::simple;
         }
         else
         {
