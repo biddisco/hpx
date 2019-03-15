@@ -106,6 +106,6 @@ for fig in graphs_to_save:
   png_name = base + "." + fig[1] + ".png"
   print("Writing %s" % svg_name)
   fig[0].savefig(svg_name)
-  #fig[0].savefig(png_name)
+  fig[0].savefig(png_name)
 
 #-------------------------------------------------------------------
