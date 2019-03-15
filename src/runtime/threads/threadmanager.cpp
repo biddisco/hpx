@@ -588,7 +588,7 @@ namespace hpx { namespace threads
 
                 std::unique_ptr<local_sched_type> sched(
                     new local_sched_type(num_threads_in_pool,
-                        hpx::threads::policies::core_ratios(0, 1, 0),
+                        hpx::threads::policies::core_ratios(1, 1, 16),
                         !cfg_.numa_sensitive_,
                         true,
                         local_sched_type::work_assignment_policy::assign_work_round_robin,

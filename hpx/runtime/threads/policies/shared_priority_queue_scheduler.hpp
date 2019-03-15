@@ -698,6 +698,26 @@ namespace policies {
             // @TODO Do we need to do any queue related cleanup here?
         }
 
+#ifdef HPX_HAVE_THREAD_STEALING_COUNTS
+        std::int64_t get_num_pending_misses(std::size_t num, bool reset)
+            override { return 0; }
+
+        std::int64_t get_num_pending_accesses(std::size_t num, bool reset)
+            override { return 0; }
+
+        std::int64_t get_num_stolen_from_pending(std::size_t num, bool reset)
+            override { return 0; }
+
+        std::int64_t get_num_stolen_to_pending(std::size_t num, bool reset)
+            override { return 0; }
+
+        std::int64_t get_num_stolen_from_staged(std::size_t num, bool reset)
+            override { return 0; }
+
+        std::int64_t get_num_stolen_to_staged(std::size_t num, bool reset)
+            override { return 0; }
+#endif
+
     protected:
         typedef queue_holder_numa<thread_queue_type> numa_queues;
 

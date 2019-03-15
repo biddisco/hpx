@@ -63,11 +63,11 @@ void print_stats(const char *title, const char *wait, const char *exec, std::int
     double us = 1e6*duration/count;
     if (csv)
         hpx::util::format_to(cout,
-            "{1},{2},{3},{4},{5},{6},{7},{8},{9}\n",
+            "{:10}, \t{2}, \t{3}, \t{4}, \t{5}, \t{6}, \t{7}, \t{8}, \t{9}\n",
            count, title, wait, exec, duration, us, queuing, numa_sensitive, num_threads) << flush;
     else
         hpx::util::format_to(cout,
-            "invoked {1}, futures {:10} {:15} {:20} in \t{5} seconds \t: {6} us per future \n",
+            "invoked {1}, futures {:10} {:15} {:20} in \t{5} seconds \t: {6} us/future, queue {7} numa {8}, threads {9}\n",
             count, title, wait, exec, duration, us, queuing, numa_sensitive, num_threads) << flush;
     // CDash graph plotting
     //hpx::util::print_cdash_timing(title, duration);
@@ -126,7 +126,7 @@ void measure_action_futures_wait_each(std::uint64_t count, bool csv)
 
     // stop the clock
     const double duration = walltime.elapsed();
-    print_stats("Actions", "WaitEach", "no-executor", count, duration, csv);
+    print_stats("action", "WaitEach", "no-executor", count, duration, csv);
 }
 
 // Time async action execution using wait each on futures vector
@@ -144,7 +144,7 @@ void measure_action_futures_wait_all(std::uint64_t count, bool csv)
 
     // stop the clock
     const double duration = walltime.elapsed();
-    print_stats("Actions", "WaitAll", "no-executor", count, duration, csv);
+    print_stats("action", "WaitAll", "no-executor", count, duration, csv);
 }
 
 // Time async execution using wait each on futures vector

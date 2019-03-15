@@ -688,7 +688,7 @@ namespace hpx { namespace threads { namespace policies
         // ------------------------------------------------------------
         void abort_all_suspended_threads()
         {
-            throw std::runtime_error("This function needs to be reimplemented");
+//            throw std::runtime_error("This function needs to be reimplemented");
             std::lock_guard<mutex_type> lk(mtx_);
             thread_map_type::iterator end =  thread_map_.end();
             for (thread_map_type::iterator it = thread_map_.begin();
