@@ -150,6 +150,7 @@ namespace hpx { namespace compute { namespace host
             : policy_(policy)
             , flags_(flags)
         {
+            pagesize_ = sysconf(_SC_PAGE_SIZE);
             LOG_NUMA_MSG("numa_binding_allocator : no binder function");
             HPX_ASSERT(policy_ != threads::hpx_hwloc_membind_policy::membind_user);
         }
@@ -163,6 +164,7 @@ namespace hpx { namespace compute { namespace host
             , policy_(policy)
             , flags_(flags)
         {
+            pagesize_ = sysconf(_SC_PAGE_SIZE);
             LOG_NUMA_MSG("numa_binding_allocator : allocator");
         }
 
@@ -172,6 +174,7 @@ namespace hpx { namespace compute { namespace host
             , policy_(rhs.policy_)
             , flags_(rhs.flags_)
         {
+            pagesize_ = sysconf(_SC_PAGE_SIZE);
             LOG_NUMA_MSG("numa_binding_allocator : Copy allocator");
         }
 
@@ -182,6 +185,7 @@ namespace hpx { namespace compute { namespace host
             , policy_(rhs.policy_)
             , flags_(rhs.flags_)
         {
+            pagesize_ = sysconf(_SC_PAGE_SIZE);
             LOG_NUMA_MSG("numa_binding_allocator : Copy allocator rebind");
         }
 
@@ -191,7 +195,7 @@ namespace hpx { namespace compute { namespace host
             binding_helper_ = rhs.binding_helper_;
             policy_         = rhs.policy_;
             flags_          = rhs.flags_;
-
+            pagesize_       = rhs.pagesize_;
             LOG_NUMA_MSG("numa_binding_allocator : Assignment operator");
             return *this;
         }
@@ -202,7 +206,7 @@ namespace hpx { namespace compute { namespace host
             binding_helper_ = rhs.binding_helper_;
             policy_         = rhs.policy_;
             flags_          = rhs.flags_;
-
+            pagesize_       = rhs.pagesize_;
             LOG_NUMA_MSG("numa_binding_allocator : Move assignment");
             return *this;
         }
@@ -337,15 +341,14 @@ namespace hpx { namespace compute { namespace host
         {
 #if defined(NUMA_ALLOCATOR_LINUX)
             // @TODO replace with topology::page_size
-            int pagesize = 4096;
-            HPX_ASSERT( (std::size_t(addr) & (pagesize-1)) == 0 );
+            HPX_ASSERT( (std::size_t(addr) & (pagesize_-1)) == 0 );
 
-            std::size_t count = (len + pagesize-1)/pagesize;
+            std::size_t count = (len + pagesize_-1)/pagesize_;
             std::vector<void*> pages(count, nullptr);
             std::vector<int>  status(count, 0);
 
             for (std::size_t i=0; i<count; i++)
-                pages[i] = ((char*)addr) + i*pagesize;
+                pages[i] = ((char*)addr) + i*pagesize_;
 
             if (syscall(__NR_move_pages, 0,
                         count, pages.data(), nullptr, status.data(), 0) < 0) {
@@ -367,7 +370,7 @@ namespace hpx { namespace compute { namespace host
 
         void initialize_pages(pointer p, size_t n) const
         {
-            std::unique_lock<std::mutex> lk(init_mutex);
+            std::unique_lock<std::mutex> lk(init_mutex_);
             //
             threads::hwloc_bitmap_ptr bitmap =
                 threads::get_thread_manager().get_pool_numa_bitmap(binding_helper_->pool_name());
@@ -416,13 +419,13 @@ namespace hpx { namespace compute { namespace host
             std::ostringstream display;
             auto N = helper->array_rank();
             display << helper->description() << "\n";
-            std::size_t pagesize = sysconf(_SC_PAGE_SIZE)/sizeof(T);
+            std::size_t pagesize_ = sysconf(_SC_PAGE_SIZE)/sizeof(T);
             pointer p2 = p;
             if (N==2) {
                 std::size_t Nc = helper->array_size(0);
                 std::size_t Nr = helper->array_size(1);
-                std::size_t xinc = std::min(helper->display_step(0), pagesize);
-                std::size_t yinc = std::min(helper->display_step(1), pagesize);
+                std::size_t xinc = std::min(helper->display_step(0), pagesize_);
+                std::size_t yinc = std::min(helper->display_step(1), pagesize_);
                 std::size_t xoff = helper->memory_step(0);
                 std::size_t yoff = helper->memory_step(1);
                 std::size_t m = helper->memory_bytes();
@@ -495,17 +498,16 @@ namespace hpx { namespace compute { namespace host
                          numa_binding_helper_ptr helper, size_type numa_domain,
                          const std::vector<threads::hwloc_bitmap_ptr> &nodesets) const
         {
-            const size_type pagesize  = sysconf(_SC_PAGE_SIZE);
-            const size_type pageN     = pagesize/sizeof(T);
-            const size_type num_pages = (n*sizeof(T) + pagesize - 1) / pagesize;
+            const size_type pageN     = pagesize_/sizeof(T);
+            const size_type num_pages = (n*sizeof(T) + pagesize_ - 1) / pagesize_;
             pointer page_ptr = p;
             std::intptr_t memory = reinterpret_cast<std::intptr_t>(p);
-            HPX_ASSERT(memory % pagesize == 0);
+            HPX_ASSERT(memory % pagesize_ == 0);
 
             LOG_NUMA_MSG("touch pages for numa " << numa_domain);
             for (size_type i=0; i<num_pages; ++i) {
                 // we pass the base pointer and current page pointer
-                size_type dom = helper->operator()(p, page_ptr, pagesize, nodesets.size());
+                size_type dom = helper->operator()(p, page_ptr, pagesize_, nodesets.size());
                 if (dom==numa_domain) {
                     HPX_ASSERT( (std::size_t(page_ptr) & 4095) ==0 );
                     // trigger a memory read and rewrite without changing contents
@@ -532,29 +534,46 @@ namespace hpx { namespace compute { namespace host
                         numa_binding_helper_ptr helper, size_type numa_domain,
                         const std::vector<threads::hwloc_bitmap_ptr> &nodesets) const
         {
-            const size_type pagesize  = sysconf(_SC_PAGE_SIZE);
-            const size_type pageN     = pagesize/sizeof(T);
-            const size_type num_pages = (n*sizeof(T) + pagesize - 1) / pagesize;
+            const size_type pagesize_  = sysconf(_SC_PAGE_SIZE);
+            const size_type pageN     = pagesize_/sizeof(T);
+            const size_type num_pages = (n*sizeof(T) + pagesize_ - 1) / pagesize_;
             pointer page_ptr = p;
             std::intptr_t memory = reinterpret_cast<std::intptr_t>(p);
-            HPX_ASSERT(memory % pagesize == 0);
+            HPX_ASSERT(memory % pagesize_ == 0);
 
             LOG_NUMA_MSG("bind pages for numa " << numa_domain);
             for (size_type i=0; i<num_pages; ++i) {
                 // we pass the base pointer and current page pointer
-                size_type dom = helper->operator()(p, page_ptr, pagesize, nodesets.size());
+                size_type dom = helper->operator()(p, page_ptr, pagesize_, nodesets.size());
                 if (dom==numa_domain) {
                     threads::topology().
-                        set_area_membind_nodeset(page_ptr, pagesize,
+                        set_area_membind_nodeset(page_ptr, pagesize_,
                                                  nodesets[dom]->get_bmp());
                 }
                 page_ptr += pageN;
             }
         }
 
+    public:
+        // return the binding helper cast to a specific type
+        template <typename Binder>
+        std::shared_ptr<Binder> get_binding_helper_cast() const
+        {
+            return std::dynamic_pointer_cast<Binder>(binding_helper_);
+        }
+
+        // Call the binder to get the numa domain for an address
+        std::size_t numa(const T * const base, const T * const ptr)
+        {
+            return binding_helper_->operator()(
+                base, ptr, pagesize_, nodesets_.size());
+        }
+
     private:
-        hpx::lcos::local::spinlock display_mutex;
-        mutable std::mutex         init_mutex;
+        mutable std::mutex                      init_mutex_;
+        std::vector<threads::hwloc_bitmap_ptr>  nodesets_;
+        size_type                               pagesize_;
+
 
     public:
         std::shared_ptr<numa_binding_helper<T>> binding_helper_;
