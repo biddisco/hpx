@@ -188,18 +188,16 @@ if(HPX_WITH_PARCELPORT_LIBFABRIC AND NOT TARGET Libfabric::libfabric)
 
   # ------------------------------------------------------------------------------
   # Throttling options
-  # ------------------------------------------------------------------------------
-  hpx_option(
-    HPX_PARCELPORT_LIBFABRIC_THROTTLE_SENDS STRING
+  #------------------------------------------------------------------------------
+  hpx_option(HPX_PARCELPORT_LIBFABRIC_MAX_SENDS STRING
     "Threshold of active sends at which throttling is enabled (default: 16)"
     "16" CATEGORY "Parcelport" ADVANCED
   )
 
   hpx_add_config_define_namespace(
-    DEFINE HPX_PARCELPORT_LIBFABRIC_THROTTLE_SENDS
-    VALUE ${HPX_PARCELPORT_LIBFABRIC_THROTTLE_SENDS}
-    NAMESPACE parcelport
-  )
+      DEFINE    HPX_PARCELPORT_LIBFABRIC_MAX_SENDS
+      VALUE     ${HPX_PARCELPORT_LIBFABRIC_MAX_SENDS}
+      NAMESPACE parcelport)
 
   # ------------------------------------------------------------------------------
   # Custom Scheduler options
