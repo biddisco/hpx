@@ -7,11 +7,10 @@
 #define HPX_SERIALIZATION_RMA_OBJECT_HPP
 
 #include <hpx/config.hpp>
-#include <hpx/runtime/serialization/array.hpp>
-#include <hpx/runtime/serialization/serialize.hpp>
-#include <hpx/traits/is_bitwise_serializable.hpp>
-//
-#include <hpx/traits/is_rma_eligible.hpp>
+#include <hpx/serialization/array.hpp>
+#include <hpx/serialization/serialize.hpp>
+#include <hpx/serialization/traits/is_bitwise_serializable.hpp>
+#include <hpx/serialization/traits/is_rma_eligible.hpp>
 #include <hpx/runtime/parcelset/rma/memory_region.hpp>
 #include <hpx/runtime/parcelset/rma/allocator.hpp>
 #include <hpx/runtime/parcelset/rma/rma_object.hpp>

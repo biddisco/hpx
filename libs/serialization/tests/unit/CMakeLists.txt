@@ -35,6 +35,7 @@ set(full_tests
 
 if(HPX_WITH_NETWORKING)
     set(full_tests ${full_tests}
+        serialization_rma_object
         zero_copy_serialization
     )
 endif()
