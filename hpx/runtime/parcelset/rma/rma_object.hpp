@@ -15,10 +15,10 @@
 #include <memory>
 #include <vector>
 #include <type_traits>
-#include <hpx/runtime/serialization/array.hpp>
-#include <hpx/runtime/serialization/serialize.hpp>
-#include <hpx/traits/is_bitwise_serializable.hpp>
-#include <hpx/traits/is_rma_eligible.hpp>
+#include <hpx/serialization/array.hpp>
+#include <hpx/serialization/serialize.hpp>
+#include <hpx/serialization/traits/is_bitwise_serializable.hpp>
+#include <hpx/serialization/traits/is_rma_eligible.hpp>
 #include <hpx/runtime/parcelset/rma/rma_vector.hpp>
 
 using namespace hpx::parcelset;

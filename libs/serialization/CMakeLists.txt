@@ -77,6 +77,7 @@ set(serialization_headers
     hpx/serialization/serialize.hpp
     hpx/serialization/traits/brace_initializable_traits.hpp
     hpx/serialization/traits/is_bitwise_serializable.hpp
+    hpx/serialization/traits/is_rma_eligible.hpp
     hpx/serialization/traits/needs_automatic_registration.hpp
     hpx/serialization/traits/polymorphic_traits.hpp
     hpx/serialization/traits/serialization_access_data.hpp

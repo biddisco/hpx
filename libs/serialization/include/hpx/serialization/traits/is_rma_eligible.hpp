@@ -7,8 +7,8 @@
 #define HPX_TRAITS_IS_RMA_ELIGIBLEE_HPP
 
 #include <hpx/config.hpp>
-#include <hpx/traits/is_bitwise_serializable.hpp>
-#include <hpx/runtime/serialization/vector.hpp>
+#include <hpx/serialization/traits/is_bitwise_serializable.hpp>
+#include <hpx/serialization/vector.hpp>
 #include <hpx/runtime/parcelset/rma/allocator.hpp>
 
 #include <vector>

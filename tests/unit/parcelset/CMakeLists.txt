@@ -6,11 +6,16 @@
 # Distributed under the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-set(tests put_parcels set_parcel_write_handler)
+set(tests
+  put_parcels
+  rma_channel
+  set_parcel_write_handler
+)
 
 set(put_parcels_PARAMETERS LOCALITIES 2)
 set(put_parcels_FLAGS DEPENDENCIES iostreams_component)
 set(set_parcel_write_handler_PARAMETERS LOCALITIES 2)
+set(rma_test_PARAMETERS LOCALITIES 2)
 
 if(HPX_WITH_PARCEL_COALESCING)
   set(tests ${tests} put_parcels_with_coalescing)
