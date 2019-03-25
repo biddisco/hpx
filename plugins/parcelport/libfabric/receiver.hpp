@@ -16,6 +16,7 @@
 //
 #include <plugins/parcelport/libfabric/libfabric_region_provider.hpp>
 #include <plugins/parcelport/libfabric/header.hpp>
+#include <plugins/parcelport/libfabric/rma_base.hpp>
 #include <plugins/parcelport/libfabric/rma_receiver.hpp>
 //
 #include <boost/container/small_vector.hpp>
@@ -38,7 +39,7 @@ namespace libfabric
     //         piggy backed message. If the message is not piggy backed or zero
     //         copy RMA chunks need to be read, a rma_receiver is created to
     //         complete the transfer of the message
-    struct receiver
+    struct receiver : public rma_base
     {
         typedef libfabric_region_provider                        region_provider;
         typedef rma::detail::memory_region_impl<region_provider> region_type;
@@ -83,9 +84,11 @@ namespace libfabric
         // dumping counters
         void cleanup();
 
+        // --------------------------------------------------------------------
+        // Not used, provided for potential/future rma_base compatibility
+        void handle_error(struct fi_cq_err_entry err) {};
+
     private:
-        // libfabric requires some space for it's internal bookkeeping
-        fi_context                         context_reserved_space;
         parcelport                        *parcelport_;
         fid_ep                            *endpoint_;
         region_type                       *header_region_ ;
