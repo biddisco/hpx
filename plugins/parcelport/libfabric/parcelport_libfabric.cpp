@@ -93,6 +93,7 @@ namespace libfabric
     parcelport::parcelport(util::runtime_configuration const& ini,
         threads::policies::callback_notifier const& notifier)
       : base_type(ini, locality(), notifier)
+        , bootstrap_enabled_(false)
         , bootstrap_complete(false)
         , stopped_(false)
         , completions_handled_(0)
@@ -107,7 +108,14 @@ namespace libfabric
 
         bootstrap_enabled_ = ("libfabric" ==
             hpx::util::get_entry_as<std::string>(ini, "hpx.parcel.bootstrap", ""));
-        LOG_DEBUG_MSG("Got bootstrap " << bootstrap_enabled_);
+        LOG_DEBUG_MSG("Libfabric parcelport detects bootstrap : "
+                  << util::get_entry_as<std::string>(ini, "hpx.parcel.bootstrap", "")
+                  << " : bootstrap " << bootstrap_enabled_);
+
+        if (hpx::util::get_entry_as<bool>(ini, "hpx.parcel.mpi.enable", "0")) {
+            LOG_DEBUG_MSG("Libfabric parcelport MPI enabled : disabling bootstrap");
+            bootstrap_enabled_ = false;
+        }
 
         if (!parcelport_enabled_) return;
 
@@ -124,7 +132,7 @@ namespace libfabric
 
         // create our main fabric control structure
         controller_ = std::make_shared<controller>(
-            provider, domain, endpoint, this);
+            provider, domain, endpoint, this, bootstrap_enabled_);
 
         // get 'this' locality from the controller
         LOG_DEBUG_MSG("Getting local locality object");

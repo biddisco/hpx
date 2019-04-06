@@ -155,7 +155,7 @@ namespace libfabric
         controller(
             std::string const &provider,
             std::string const &domain,
-            std::string const &endpoint, parcelport *pp, int port=7910)
+            std::string const &endpoint, parcelport *pp, bool bootstrap, int port=7910)
           : fabric_info_(nullptr)
           , fabric_(nullptr)
           , fabric_domain_(nullptr)
@@ -188,14 +188,19 @@ namespace libfabric
 #endif
 
 #if defined(HPX_PARCELPORT_LIBFABRIC_HAVE_BOOTSTRAPPING)
+            if (bootstrap) {
 #if defined(HPX_PARCELPORT_LIBFABRIC_HAVE_PMI)
-            LOG_DEBUG_MSG("Calling boot PMI");
-            boot_PMI();
+                LOG_DEBUG_MSG("Calling boot PMI");
+                boot_PMI();
 # elif defined(HPX_PARCELPORT_LIBFABRIC_SOCKETS)
-            LOG_DEBUG_MSG("Calling boot SOCKETS");
-            boot_SOCKETS();
+                LOG_DEBUG_MSG("Calling boot SOCKETS");
+                boot_SOCKETS();
 # endif
+                if (agas_ == here_) {
+                    std::cout << "Libfabric Parcelport boot-step complete" << std::endl;
+                }
 #endif
+            }
             FUNC_END_DEBUG_MSG;
         }
 
@@ -865,17 +870,15 @@ namespace libfabric
             }
             else if (ret==0 || ret==-FI_EAGAIN) {
                 // do nothing, we will try again on the next check
-                LOG_TIMED_MSG(poll, DEVEL, 10, "txcq FI_EAGAIN");
+                LOG_TIMED_MSG(poll, DEVEL, 10, "txcq " << (ret==0?"---":"FI_EAGAIN"));
             }
             else if (ret == -FI_EAVAIL) {
                 struct fi_cq_err_entry e = {};
                 int err_sz = fi_cq_readerr(txcq_, &e ,0);
                 HPX_UNUSED(err_sz);
                 // from the manpage 'man 3 fi_cq_readerr'
-                //
                 // On error, a negative value corresponding to
                 // 'fabric errno' is returned
-                //
                 if(e.err == err_sz) {
                     LOG_ERROR_MSG("txcq Error FI_EAVAIL with len " << hexlength(e.len)
                         << "context " << hexpointer(e.op_context));
@@ -955,7 +958,7 @@ namespace libfabric
             }
             else if (ret==0 || ret==-FI_EAGAIN) {
                 // do nothing, we will try again on the next check
-                LOG_TIMED_MSG(poll, DEVEL, 10, "rxcq FI_EAGAIN");
+                LOG_TIMED_MSG(poll, DEVEL, 10, "rxcq " << (ret==0?"---":"FI_EAGAIN"));
             }
             else if (ret == -FI_EAVAIL) {
                 // read the full error status
