@@ -337,7 +337,7 @@ namespace libfabric
                 FUNC_END_DEBUG_MSG;
                 return false;
             }
-            background_work(0);
+            background_work(0, parcelport_background_mode_all);
             return true;
         });
         FUNC_END_DEBUG_MSG;

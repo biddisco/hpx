@@ -17,7 +17,9 @@
 #define hexbyte(p)    p
 #define hexpointer(p) p
 #define hexuint32(p)  p
+#define hexuint64(p)  p
 #define hexlength(p)  p
+#define binary8(p)    p
 #define hexnumber(p)  p
 #define decnumber(p)  p
 #define ipaddress(p)  p
