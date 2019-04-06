@@ -232,9 +232,11 @@ int main()
     std::vector<hpx::id_type>    remotes = hpx::find_remote_localities();
     std::vector<hpx::id_type> localities = hpx::find_all_localities();
     //
+    HPX_UNUSED(nranks);
+    //
     char const* msg = "hello world from OS-thread {} on locality "
         "{} rank {} hostname {}";
-    std::cout << (hpx::util::format(msg) , current , hpx::get_locality_id()
+    std::cout << hpx::util::format(msg , current , hpx::get_locality_id()
         , rank , name.c_str()) << std::endl;
 
     test<char>((std::numeric_limits<char>::min)(),
