@@ -15,7 +15,6 @@
 //
 #include <hpx/config.hpp>
 #include <hpx/config/parcelport_defines.hpp>
-#include <hpx/runtime/threads/thread.hpp>
 #include <hpx/util/detail/pp/stringize.hpp>
 //
 #include <boost/preprocessor.hpp>
@@ -73,6 +72,7 @@
 // include files needed for boost::log
 // ------------------------------------------------------------------
 #ifdef HPX_PARCELPORT_LOGGING_INCLUDE_FILES
+#  include <hpx/runtime/threads/thread.hpp>
 #  include <boost/log/trivial.hpp>
 #  include <boost/log/expressions/formatter.hpp>
 #  include <boost/log/expressions/formatters.hpp>
