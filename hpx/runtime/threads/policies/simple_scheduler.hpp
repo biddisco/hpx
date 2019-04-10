@@ -11,6 +11,7 @@
 #include <hpx/compat/mutex.hpp>
 #include <hpx/runtime/threads/policies/lockfree_queue_backends.hpp>
 #include <hpx/runtime/threads/policies/scheduler_base.hpp>
+#include <hpx/util/lockfree/concurrentqueue.hpp>
 #include <hpx/runtime/threads/thread_data.hpp>
 #include <hpx/runtime/threads/topology.hpp>
 #include <hpx/runtime/threads_fwd.hpp>
@@ -36,7 +37,6 @@
 #include <hpx/error_code.hpp>
 #include <hpx/runtime/config_entry.hpp>
 #include <hpx/runtime/threads/policies/lockfree_queue_backends.hpp>
-#include <hpx/runtime/threads/policies/queue_helpers.hpp>
 #include <hpx/runtime/threads/thread_data.hpp>
 #include <hpx/throw_exception.hpp>
 #include <hpx/util/assert.hpp>
@@ -45,7 +45,6 @@
 #include <hpx/util/high_resolution_clock.hpp>
 #include <hpx/util/internal_allocator.hpp>
 #include <hpx/util/unlock_guard.hpp>
-#include <hpx/concurrentqueue/concurrentqueue.h>
 
 #include <boost/lexical_cast.hpp>
 
@@ -446,6 +445,26 @@ namespace hpx { namespace threads { namespace policies {
         {
             return "simple_scheduler";
         }
+
+ #ifdef HPX_HAVE_THREAD_STEALING_COUNTS
+         std::int64_t get_num_pending_misses(std::size_t num, bool reset)
+             override { return 0; }
+ 
+         std::int64_t get_num_pending_accesses(std::size_t num, bool reset)
+             override { return 0; }
+ 
+         std::int64_t get_num_stolen_from_pending(std::size_t num, bool reset)
+             override { return 0; }
+ 
+         std::int64_t get_num_stolen_to_pending(std::size_t num, bool reset)
+             override { return 0; }
+ 
+         std::int64_t get_num_stolen_from_staged(std::size_t num, bool reset)
+             override { return 0; }
+ 
+         std::int64_t get_num_stolen_to_staged(std::size_t num, bool reset)
+             override { return 0; }
+ #endif
 
         ///////////////////////////////////////////////////////////////////////
         void abort_all_suspended_threads() override {}
