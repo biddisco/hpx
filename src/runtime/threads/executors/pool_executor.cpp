@@ -163,6 +163,12 @@ namespace hpx { namespace threads { namespace executors
         {
             pool_.reset_thread_distribution();
         }
+
+        hwloc_bitmap_ptr pool_executor::get_pool_numa_bitmap() const
+        {
+            return pool_.get_numa_domain_bitmap();
+        }
+
     }
 }}}
 
@@ -185,4 +191,18 @@ namespace hpx { namespace threads { namespace executors
             new detail::pool_executor(pool_name, priority, stacksize))
     {
     }
+
+    hwloc_bitmap_ptr pool_executor::get_numa_bitmap() const
+    {
+        return static_cast<detail::pool_executor*>
+                (executor_data_.get())->get_pool_numa_bitmap();
+    }
+
+    // returns only the first numa domain if the pool exceeds one
+    std::size_t pool_executor::get_numa_domain() const
+    {
+        auto nodesets = get_numa_bitmap();
+        return hwloc_bitmap_first(nodesets->get_bmp());
+    }
+
 }}}

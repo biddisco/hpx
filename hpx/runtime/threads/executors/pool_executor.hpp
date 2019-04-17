@@ -70,6 +70,8 @@ namespace hpx { namespace threads { namespace executors
             // Reset internal (round robin) thread distribution scheme
             void reset_thread_distribution() override;
 
+            hwloc_bitmap_ptr get_pool_numa_bitmap() const;
+
         protected:
             // Return the requested policy element
             std::size_t get_policy_element(
@@ -104,6 +106,12 @@ namespace hpx { namespace threads { namespace executors
         pool_executor(std::string const& pool_name,
                 thread_priority priority,
                 thread_stacksize stacksize = thread_stacksize_default);
+
+        hwloc_bitmap_ptr get_numa_bitmap() const;
+
+        // returns only the first numa domain if the pool exceeds one
+        std::size_t get_numa_domain() const;
+
     };
 }}}
 
