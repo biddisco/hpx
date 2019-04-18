@@ -1074,7 +1074,8 @@ namespace policies {
                 std::fill(q_lookup_.begin(), q_lookup_.end(), 0);
                 std::fill(q_counts_.begin(), q_counts_.end(), 0);
                 std::fill(counters_.begin(), counters_.end(), 0);
-                std::fill(core_counters_.begin(), core_counters_.end(), per_core_counters());
+                std::fill(core_counters_.begin(), core_counters_.end(),
+                          per_core_counters());
 
                 for (std::size_t local_id=0; local_id!=num_workers_; ++local_id)
                 {
@@ -1088,7 +1089,7 @@ namespace policies {
                 HPX_ASSERT(num_domains_ <= HPX_HAVE_MAX_NUMA_DOMAIN_COUNT);
 
                 // if we have zero cores on a numa domain, then reindex the domains to be
-                // sequential otherwise it messes up counting as a simple indexing operation
+                // sequential otherwise it messes up counting as an indexing operation
                 {
                     std::vector<std::size_t> d_inx(d_lookup_.begin(), d_lookup_.end());
                     // reduce list of all used domains to simple unique sort list
@@ -1116,23 +1117,19 @@ namespace policies {
                 for (std::size_t i = 0; i < num_domains_; ++i)
                 {
                     std::size_t queues = cores_per_queue_.high_priority>0 ?
-                        (std::max)(static_cast<std::size_t>(0.5 + q_counts_[i] /
-                            static_cast<double>(cores_per_queue_.high_priority)),
-                        std::size_t(1)) : 0;
+                        (std::max)(1l, std::lround(q_counts_[i] /
+                            static_cast<float>(cores_per_queue_.high_priority))) : 0;
                     hp_queues_[i].init(
                         q_counts_[i], queues, max_queue_thread_count_);
 
-                    queues = (std::max)(
-                        static_cast<std::size_t>(0.5 + q_counts_[i] /
-                            static_cast<double>(cores_per_queue_.normal_priority)),
-                        std::size_t(1));
+                    queues = (std::max)(1l, std::lround(q_counts_[i] /
+                            static_cast<float>(cores_per_queue_.normal_priority)));
                     np_queues_[i].init(
                         q_counts_[i], queues, max_queue_thread_count_);
 
                     queues = cores_per_queue_.low_priority>0 ?
-                        (std::max)(static_cast<std::size_t>(0.5 + q_counts_[i] /
-                            static_cast<double>(cores_per_queue_.low_priority)),
-                        std::size_t(1)) : 0;
+                        (std::max)(1l, std::lround(q_counts_[i] /
+                            static_cast<float>(cores_per_queue_.low_priority))) : 0;
                     lp_queues_[i].init(
                         q_counts_[i], queues, max_queue_thread_count_);
                 }
