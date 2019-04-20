@@ -13,15 +13,16 @@
 #include <hpx/runtime/config_entry.hpp>
 #include <hpx/runtime/threads/policies/lockfree_queue_backends.hpp>
 #include <hpx/runtime/threads/thread_data.hpp>
+#include <hpx/runtime/threads/policies/thread_queue.hpp>
 #include <hpx/throw_exception.hpp>
 #include <hpx/util/assert.hpp>
 #include <hpx/util/block_profiler.hpp>
+#include <hpx/util/cache_aligned_data.hpp>
 #include <hpx/util/function.hpp>
 #include <hpx/util/get_and_reset_value.hpp>
 #include <hpx/util/high_resolution_clock.hpp>
 #include <hpx/util/internal_allocator.hpp>
 #include <hpx/util/unlock_guard.hpp>
-#include <hpx/util/cache_aligned_data.hpp>
 
 #include <boost/lexical_cast.hpp>
 
@@ -89,6 +90,7 @@ namespace hpx { namespace threads { namespace policies
     // };
     template <typename Mutex = compat::mutex,
               typename PendingQueuing = lockfree_lifo,
+              typename StagedQueuing = lockfree_lifo,
               typename TerminatedQueuing = lockfree_fifo>
     class thread_queue_mc
     {
@@ -122,8 +124,8 @@ namespace hpx { namespace threads { namespace policies
         typedef typename PendingQueuing::template
             apply<thread_description*>::type work_items_type;
 
-        typedef lockfree_fifo::
-            apply<task_description>::type task_items_type;
+        typedef typename StagedQueuing::template
+            apply<task_description*>::type task_items_type;
 
     protected:
         ///////////////////////////////////////////////////////////////////////
@@ -137,12 +139,12 @@ namespace hpx { namespace threads { namespace policies
                 return 0;
 
             std::size_t added = 0;
-            task_description task;
+            task_description* task = nullptr;
             while (add_count-- && addfrom->new_tasks_.pop(task, steal))
             {
                 // create the new thread
-                threads::thread_init_data& data = util::get<0>(task);
-                thread_state_enum state = util::get<1>(task);
+                threads::thread_init_data& data = util::get<0>(*task);
+                thread_state_enum state = util::get<1>(*task);
                 threads::thread_id_type thrd;
 
                 holder_->create_thread_object(thrd, data, state, lk);
@@ -233,8 +235,8 @@ namespace hpx { namespace threads { namespace policies
                       : size_),
             new_tasks_(128)
         {
-            work_items_count_.data_ = 0;
             new_tasks_count_.data_ = 0;
+            work_items_count_.data_ = 0;
         }
 
         ~thread_queue_mc()
@@ -313,9 +315,9 @@ namespace hpx { namespace threads { namespace policies
             // later thread creation
             ++new_tasks_count_.data_;
 
-//            new_tasks_.push(task_description(std::move(data), initial_state)
-            new_tasks_.push(task_description(data, initial_state)); //-V106
-
+            task_description* td = new task_description();
+            new (td) task_description(std::move(data), initial_state); //-V106
+            new_tasks_.push(td);
             if (&ec != &throws)
                 ec = make_success_code();
 
@@ -339,7 +341,7 @@ namespace hpx { namespace threads { namespace policies
         void move_task_items_from(thread_queue_mc *src,
             std::int64_t count)
         {
-            task_description task;
+            task_description* task;
             while (src->new_tasks_.pop(task))
             {
                 bool finish = count == ++new_tasks_count_.data_;
@@ -460,8 +462,6 @@ namespace hpx { namespace threads { namespace policies
 
         // list of active work items
         work_items_type work_items_;
-        // count of active work items
-        util::cache_line_data<std::atomic<std::int64_t>> work_items_count_;
 
         std::size_t max_count_;     // maximum number of existing HPX-threads
         task_items_type new_tasks_; // list of new tasks to run
@@ -469,6 +469,9 @@ namespace hpx { namespace threads { namespace policies
         // count of new tasks to run, separate to new cache line to avoid false
         // sharing
         util::cache_line_data<std::atomic<std::int64_t>> new_tasks_count_;
+
+        // count of active work items
+        util::cache_line_data<std::atomic<std::int64_t>> work_items_count_;
 
         std::mutex special_mtx_;
         work_items_type work_items_copy_;        // list of active work items
