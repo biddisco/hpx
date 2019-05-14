@@ -994,7 +994,7 @@ int hpx_main(hpx::program_options::variables_map& vm)
         std::cout << s << std::endl;
     }
 
-    std::terminate(); //
+//    std::terminate(); //
 
     if (rank==0) {
         DEBUG_OUTPUT(2, "Calling finalize " << rank);
