@@ -1004,7 +1004,7 @@ endif()
 # Set basic search paths for HPX
 ################################################################################
 include_directories("${PROJECT_SOURCE_DIR}")
-link_directories(${CMAKE_BINARY_DIR}/lib)
+link_directories(${PROJECT_BINARY_DIR}/lib)
 
 ################################################################################
 # Check for compiler compatibility
@@ -1598,7 +1598,7 @@ include_directories(${HWLOC_INCLUDE_DIR})
 ################################################################################
 # Set search paths for generated headers.
 ################################################################################
-include_directories("${CMAKE_BINARY_DIR}")
+include_directories("${PROJECT_BINARY_DIR}")
 
 ################################################################################
 # Enable integration with Intel Amplifier
@@ -1775,7 +1775,7 @@ if("${HPX_PLATFORM_UC}" STREQUAL "ANDROID")
   set(HPX_BUILD_PREFIX "lib")
 else()
   set(HPX_PREFIX "${CMAKE_INSTALL_PREFIX}")
-  set(HPX_BUILD_PREFIX "${CMAKE_BINARY_DIR}")
+  set(HPX_BUILD_PREFIX "${PROJECT_BINARY_DIR}")
 endif()
 
 
@@ -1916,36 +1916,36 @@ add_plugin_modules()
 ################################################################################
 # Generate config headers and helpers
 ################################################################################
-generate_config_defines_header(${CMAKE_BINARY_DIR})
+generate_config_defines_header(${PROJECT_BINARY_DIR})
 
 # Generate a defines.hpp to be used in the install directory ...
 set(HPX_DEFINES_PREFIX ${HPX_PREFIX})
 write_config_defines_file(
   TEMPLATE "${PROJECT_SOURCE_DIR}/cmake/templates/config_defines.hpp.in"
   NAMESPACE default
-  FILENAME "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx/config/defines.hpp")
+  FILENAME "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx/config/defines.hpp")
 
 # Configure version.hpp for build tree and install directory
 configure_file(
     "${PROJECT_SOURCE_DIR}/cmake/templates/config_version.hpp.in"
-    "${CMAKE_BINARY_DIR}/hpx/config/version.hpp"
+    "${PROJECT_BINARY_DIR}/hpx/config/version.hpp"
     @ONLY)
 
 configure_file(
     "${PROJECT_SOURCE_DIR}/cmake/templates/config_version.hpp.in"
-    "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx/config/version.hpp"
+    "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx/config/version.hpp"
     @ONLY)
 
 # Configure hpxrun.py
 configure_file("${PROJECT_SOURCE_DIR}/cmake/templates/hpxrun.py.in"
-               "${CMAKE_BINARY_DIR}/bin/hpxrun.py"
+  "${PROJECT_BINARY_DIR}/bin/hpxrun.py"
                @ONLY)
 
 ################################################################################
 # installation instructions
 ################################################################################
 install(
-  FILES "${CMAKE_BINARY_DIR}/bin/hpxrun.py"
+  FILES "${PROJECT_BINARY_DIR}/bin/hpxrun.py"
   DESTINATION ${CMAKE_INSTALL_BINDIR}
   COMPONENT core
   PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
@@ -1964,7 +1964,7 @@ install( # install all hpx header files
 # Install all HPX header that have been configured using various
 # cmake options
 install(
-  DIRECTORY "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx/"
+  DIRECTORY "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx/"
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/hpx
   COMPONENT core
   FILES_MATCHING PATTERN "*.hpp"
@@ -1993,21 +1993,21 @@ install( # Install HPX Python scripts
 #   if(UNIX)
 #     file(GLOB scripts "${PROJECT_SOURCE_DIR}/python/scripts/*.py")
 #     execute_process(COMMAND "${CMAKE_COMMAND}" -E make_directory
-#       "${CMAKE_BINARY_DIR}/python/scripts" )
+#       "${PROJECT_BINARY_DIR}/python/scripts" )
 #     foreach(script ${scripts})
 #       get_filename_component(script_name ${script} NAME)
 #       get_filename_component(script_name_we ${script} NAME_WE)
 #
-#       #make copy, so that we have intact symlink in CMAKE_BINARY_DIR
+#       #make copy, so that we have intact symlink in PROJECT_BINARY_DIR
 #       execute_process(
 #         COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${script}" "${script_name}"
-#   WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/python/scripts")
+#   WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/python/scripts")
 #
 #       execute_process(
 #         COMMAND "${CMAKE_COMMAND}" -E create_symlink "${script_name}" "${script_name_we}"
-#   WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/python/scripts")
+#   WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/python/scripts")
 #
-#       install(FILES "${CMAKE_BINARY_DIR}/python/scripts/${script_name_we}" DESTINATION "${CMAKE_INSTALL_BINDIR}")
+#       install(FILES "${PROJECT_BINARY_DIR}/python/scripts/${script_name_we}" DESTINATION "${CMAKE_INSTALL_BINDIR}")
 #     endforeach()
 #   endif()
 #
@@ -2018,13 +2018,13 @@ install( # Install HPX Python scripts
 #     FILES_MATCHING PATTERN "*.py"
 #     PATTERN ".git" EXCLUDE)
 #
-#   execute_process(COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_BINARY_DIR}/python" )
-#   #make symlink, so that we have intact hpx symlink in CMAKE_BINARY_DIR
+#   execute_process(COMMAND "${CMAKE_COMMAND}" -E make_directory "${PROJECT_BINARY_DIR}/python" )
+#   #make symlink, so that we have intact hpx symlink in PROJECT_BINARY_DIR
 #   execute_process(COMMAND "${CMAKE_COMMAND}" -E create_symlink "${PROJECT_SOURCE_DIR}/python/hpx"
-#     "hpx-${HPX_VERSION}" WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/python")
+#     "hpx-${HPX_VERSION}" WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/python")
 #   # create a symlink in share pointing to the latest HPX installation
-#   execute_process(COMMAND "${CMAKE_COMMAND}" -E create_symlink "hpx-${HPX_VERSION}" "hpx" WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/python")
-#   install(DIRECTORY "${CMAKE_BINARY_DIR}/python/hpx" DESTINATION "${CMAKE_INSTALL_DATADIR}")
+#   execute_process(COMMAND "${CMAKE_COMMAND}" -E create_symlink "hpx-${HPX_VERSION}" "hpx" WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/python")
+#   install(DIRECTORY "${PROJECT_BINARY_DIR}/python/hpx" DESTINATION "${CMAKE_INSTALL_DATADIR}")
 
 if("${HPX_PLATFORM_UC}" STREQUAL "XEONPHI")
   # FIXME: push changes upstream
@@ -2049,7 +2049,7 @@ if(HPX_WITH_DOCUMENTATION)
 
   if("html" IN_LIST HPX_WITH_DOCUMENTATION_OUTPUT_FORMATS)
     install(
-      DIRECTORY "${CMAKE_BINARY_DIR}/share/hpx/docs/html/"
+      DIRECTORY "${PROJECT_BINARY_DIR}/share/hpx/docs/html/"
       DESTINATION ${CMAKE_INSTALL_DATADIR}/hpx/docs/html
       COMPONENT docs
       PATTERN "*.buildinfo" EXCLUDE)
@@ -2057,7 +2057,7 @@ if(HPX_WITH_DOCUMENTATION)
 
   if("singlehtml" IN_LIST HPX_WITH_DOCUMENTATION_OUTPUT_FORMATS)
     install(
-      DIRECTORY "${CMAKE_BINARY_DIR}/share/hpx/docs/singlehtml/"
+      DIRECTORY "${PROJECT_BINARY_DIR}/share/hpx/docs/singlehtml/"
       DESTINATION ${CMAKE_INSTALL_DATADIR}/hpx/docs/singlehtml
       COMPONENT docs
       PATTERN "*.buildinfo" EXCLUDE)
@@ -2065,21 +2065,21 @@ if(HPX_WITH_DOCUMENTATION)
 
   if("latexpdf" IN_LIST HPX_WITH_DOCUMENTATION_OUTPUT_FORMATS)
     install(
-      FILES "${CMAKE_BINARY_DIR}/share/hpx/docs/latexpdf/latex/HPX.pdf"
+      FILES "${PROJECT_BINARY_DIR}/share/hpx/docs/latexpdf/latex/HPX.pdf"
       DESTINATION ${CMAKE_INSTALL_DATADIR}/hpx/docs/pdf/
       COMPONENT docs)
   endif()
 
   if("man" IN_LIST HPX_WITH_DOCUMENTATION_OUTPUT_FORMATS)
     install(
-      FILES "${CMAKE_BINARY_DIR}/share/hpx/docs/man/hpx.1"
+      FILES "${PROJECT_BINARY_DIR}/share/hpx/docs/man/hpx.1"
       DESTINATION ${CMAKE_INSTALL_MANDIR}/
       COMPONENT docs)
   endif()
 endif()
 
 if(HPX_WITH_VIM_YCM)
-  set(build_dir_file ${CMAKE_BINARY_DIR}/.ycm_extra_conf.py)
+  set(build_dir_file ${PROJECT_BINARY_DIR}/.ycm_extra_conf.py)
   set(source_dir_file ${CMAKE_SOURCE_DIR}/.ycm_extra_conf.py)
   configure_file(${CMAKE_SOURCE_DIR}/tools/vim/.ycm_extra_conf.py
                ${build_dir_file} @ONLY)

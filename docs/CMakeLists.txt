@@ -376,7 +376,7 @@ set(SPHINX_DOCS_MAN_OUTPUT_FILE "hpx.1")
 foreach(output_format ${HPX_WITH_DOCUMENTATION_OUTPUT_FORMATS})
   string(TOUPPER ${output_format} output_format_upper_case)
   set(SPHINX_DOCS_OUTPUT_DIR
-      "${CMAKE_BINARY_DIR}/share/hpx/docs/${output_format}")
+      "${PROJECT_BINARY_DIR}/share/hpx/docs/${output_format}")
   set(SPHINX_DOCS_OUTPUT_FILE
       "${SPHINX_DOCS_OUTPUT_DIR}/${SPHINX_DOCS_${output_format_upper_case}_OUTPUT_FILE}")
 
@@ -412,7 +412,7 @@ endforeach()
 add_custom_target(git_docs
   COMMAND "${CMAKE_COMMAND}"
     -DHPX_SOURCE_DIR:PATH=${CMAKE_SOURCE_DIR}
-    -DHPX_BINARY_DIR:PATH=${CMAKE_BINARY_DIR}
+    -DHPX_BINARY_DIR:PATH=${PROJECT_BINARY_DIR}
     -DHPX_VERSION:STRING=${HPX_VERSION}
     -DHPX_WITH_GIT_BRANCH=${HPX_WITH_GIT_BRANCH}
     -DHPX_WITH_GIT_TAG=${HPX_WITH_GIT_TAG}

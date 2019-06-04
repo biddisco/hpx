@@ -116,7 +116,7 @@ function(add_parcelport_modules)
   endif()
 
   configure_file("${PROJECT_SOURCE_DIR}/cmake/templates/static_parcelports.hpp.in"
-                 "${CMAKE_BINARY_DIR}/hpx/runtime/parcelset/static_parcelports.hpp"
+                 "${PROJECT_BINARY_DIR}/hpx/runtime/parcelset/static_parcelports.hpp"
                  @ONLY)
 endfunction()
 
@@ -127,12 +127,12 @@ endfunction()
 write_config_defines_file(
   TEMPLATE ""
   NAMESPACE "parcelport"
-  FILENAME "${CMAKE_BINARY_DIR}/hpx/config/parcelport_defines.hpp")
+  FILENAME "${PROJECT_BINARY_DIR}/hpx/config/parcelport_defines.hpp")
 
 # write config to install dir
 write_config_defines_file(
   TEMPLATE ""
   NAMESPACE "parcelport"
   FILENAME
-  "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx/config/parcelport_defines.hpp")
+  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx/config/parcelport_defines.hpp")
 

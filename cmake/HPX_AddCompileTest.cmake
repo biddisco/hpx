@@ -27,10 +27,10 @@ function(add_hpx_compile_test category name)
 
   add_test(NAME "${category}.${name}"
     COMMAND ${CMAKE_COMMAND}
-    --build ${CMAKE_BINARY_DIR}
+    --build ${PROJECT_BINARY_DIR}
       --target ${name}
       --config $<CONFIGURATION>
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 
   if(expected)
     set_tests_properties("${category}.${name}" PROPERTIES WILL_FAIL TRUE)
@@ -86,10 +86,10 @@ function(add_hpx_lib_header_tests lib)
 
       add_test(NAME "tests.headers.${lib}.${test_name}"
         COMMAND ${CMAKE_COMMAND}
-        --build ${CMAKE_BINARY_DIR}
+        --build ${PROJECT_BINARY_DIR}
           --target tests.headers.${lib}.${test_name}
           --config $<CONFIGURATION>
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
     endif()
   endforeach()
 
@@ -107,8 +107,8 @@ function(add_hpx_lib_header_tests lib)
 
   add_test(NAME "tests.headers.${lib}.${test_name}"
     COMMAND ${CMAKE_COMMAND}
-    --build ${CMAKE_BINARY_DIR}
+    --build ${PROJECT_BINARY_DIR}
       --target tests.headers.${lib}.${test_name}
       --config $<CONFIGURATION>
-    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
 endfunction()

@@ -7,7 +7,7 @@
 import os
 import re
 
-compilation_database_dir = "@CMAKE_BINARY_DIR@"
+compilation_database_dir = "@PROJECT_BINARY_DIR@"
 
 def FlagsForFile(filename, **kwargs):
 

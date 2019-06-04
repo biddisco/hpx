@@ -97,7 +97,7 @@ get_directory_property(_INCLUDE_DIRS INCLUDE_DIRECTORIES)
 
 # replace all characters with special regex meaning
 set(special_chars "^;+;*;?;$;.;-;|;(;);]")
-set(binarydir_escaped ${CMAKE_BINARY_DIR})
+set(binarydir_escaped ${PROJECT_BINARY_DIR})
 set(sourcedir_escaped ${PROJECT_SOURCE_DIR})
 foreach(special_char ${special_chars})
   string(REPLACE "${special_char}" "\\${special_char}" binarydir_escaped ${binarydir_escaped})
@@ -142,36 +142,36 @@ set(HPX_CONF_INCLUDEDIR "${CMAKE_INSTALL_INCLUDEDIR}")
 set(HPX_CONF_LIBRARY_DIR ${HPX_LIBRARY_DIR})
 
 configure_file(cmake/templates/${HPX_PACKAGE_NAME}Config.cmake.in
-  "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/${HPX_PACKAGE_NAME}Config.cmake"
+  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/${HPX_PACKAGE_NAME}Config.cmake"
   ESCAPE_QUOTES @ONLY)
 configure_file(cmake/templates/hpx_application.pc.in
-  "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx_application.pc"
+  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx_application.pc"
   ESCAPE_QUOTES @ONLY)
 configure_file(cmake/templates/hpx_application_debug.pc.in
-  "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx_application_debug.pc"
+  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx_application_debug.pc"
   ESCAPE_QUOTES @ONLY)
 configure_file(cmake/templates/hpx_component.pc.in
-  "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx_component.pc"
+  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx_component.pc"
   ESCAPE_QUOTES @ONLY)
 configure_file(cmake/templates/hpx_component_debug.pc.in
-  "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx_component_debug.pc"
+  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx_component_debug.pc"
   ESCAPE_QUOTES @ONLY)
 # Configure hpxcxx
 configure_file(cmake/templates/hpxcxx.in
-  "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpxcxx"
+  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpxcxx"
   @ONLY)
 
 # Configure bazel file
 configure_file(${hpx_bazel_file}
-  "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx_bazel_defs.bzl"
+  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx_bazel_defs.bzl"
   ESCAPE_QUOTES @ONLY)
 
 # ... and the build dir
-set(HPX_CONF_PREFIX "${CMAKE_BINARY_DIR}")
+set(HPX_CONF_PREFIX "${PROJECT_BINARY_DIR}")
 set(HPX_CONF_LIBDIR "lib")
 set(HPX_CONF_INCLUDEDIR "include")
 set(HPX_CONF_INCLUDE_DIRS
-  "${_NEEDED_BUILD_DIR_INCLUDE_DIRS} ${_NEEDED_INCLUDE_DIRS} -I${CMAKE_BINARY_DIR}/include"
+  "${_NEEDED_BUILD_DIR_INCLUDE_DIRS} ${_NEEDED_INCLUDE_DIRS} -I${PROJECT_BINARY_DIR}/include"
 )
 foreach(lib ${HPX_LIBS})
   set(HPX_CONF_INCLUDE_DIRS
@@ -209,7 +209,7 @@ configure_file(${hpx_bazel_file}
 # Configure macros for the install dir ...
 set(HPX_CMAKE_MODULE_PATH "${CMAKE_INSTALL_FULL_LIBDIR}/cmake/${HPX_PACKAGE_NAME}")
 configure_file(cmake/templates/HPXMacros.cmake.in
-  "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/HPXMacros.cmake"
+  "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/HPXMacros.cmake"
   ESCAPE_QUOTES @ONLY)
 # ... and the build dir
 set(HPX_CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
@@ -226,8 +226,8 @@ install(
 
 install(
   FILES
-    "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/${HPX_PACKAGE_NAME}Config.cmake"
-    "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/HPXMacros.cmake"
+    "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/${HPX_PACKAGE_NAME}Config.cmake"
+    "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/HPXMacros.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/lib/cmake/${HPX_PACKAGE_NAME}/${HPX_PACKAGE_NAME}ConfigVersion.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${HPX_PACKAGE_NAME}
   COMPONENT cmake
@@ -235,17 +235,17 @@ install(
 
 install(
   FILES
-    "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx_application.pc"
-    "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx_application_debug.pc"
-    "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx_component.pc"
-    "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx_component_debug.pc"
+    "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx_application.pc"
+    "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx_application_debug.pc"
+    "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx_component.pc"
+    "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx_component_debug.pc"
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
   COMPONENT pkgconfig
 )
 
 install(
   FILES
-    "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpxcxx"
+    "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpxcxx"
   DESTINATION ${CMAKE_INSTALL_BINDIR}
   COMPONENT compiler_wrapper
   PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
@@ -255,7 +255,7 @@ install(
 
 install(
   FILES
-    "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx_bazel_defs.bzl"
+    "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx_bazel_defs.bzl"
   DESTINATION ${CMAKE_INSTALL_LIBDIR}/bazel
   COMPONENT bazel
 )

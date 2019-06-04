@@ -462,7 +462,7 @@ Here is a list of the important tickets we closed for this release.
 * :hpx-pr:`1594` - Fixing preprocessor constant used to enable C++11 chrono
 * :hpx-pr:`1593` - Adding operator|() for hpx::launch
 * :hpx-issue:`1592` - Error (typo) in the docs
-* :hpx-issue:`1590` - CMake fails when CMAKE_BINARY_DIR contains '+'.
+* :hpx-issue:`1590` - CMake fails when PROJECT_BINARY_DIR contains '+'.
 * :hpx-issue:`1589` - Disconnecting a locality results in segfault using
   heartbeat example
 * :hpx-pr:`1588` - Fix doc string for config option HPX_WITH_EXAMPLES

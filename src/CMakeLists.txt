@@ -282,7 +282,7 @@ else()
     FOLDER "Core")
 endif()
 
-target_include_directories(hpx PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>
+target_include_directories(hpx PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/hpx>)
 target_link_libraries(hpx PUBLIC ${HPX_LIBRARIES})
 if(HPX_ADDITIONAL_RUNTIME_DEPENDENCIES)
@@ -352,7 +352,7 @@ if(NOT HPX_WITH_STATIC_LINKING)
         ${hpx_init_SOURCES} ${hpx_init_HEADERS})
     endif()
   endif()
-  target_include_directories(hpx_init PRIVATE $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>)
+  target_include_directories(hpx_init PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>)
 
   foreach(_module ${HPX_LIBS})
     # add module include directories as PRIVATE to the hpx_init library to
@@ -399,7 +399,7 @@ if(HPX_WITH_DYNAMIC_HPX_MAIN AND (("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux") OR (
       "HPX_APPLICATION_EXPORTS"
       "HPX_ENABLE_ASSERT_HANDLER")
 
-    target_include_directories(hpx_wrap PRIVATE $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}>)
+    target_include_directories(hpx_wrap PRIVATE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>)
 
     foreach(_module ${HPX_LIBS})
       # add module include directories as PRIVATE to the hpx_wrap library to

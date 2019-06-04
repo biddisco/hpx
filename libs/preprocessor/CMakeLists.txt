@@ -124,10 +124,10 @@ add_subdirectory(tests)
 
 write_config_defines_file(
   NAMESPACE PREPROCESSOR
-  FILENAME "${CMAKE_BINARY_DIR}/hpx/preprocessor/config/defines.hpp")
+  FILENAME "${PROJECT_BINARY_DIR}/hpx/preprocessor/config/defines.hpp")
 
 write_config_defines_file(
   NAMESPACE PREPROCESSOR
-  FILENAME "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx/preprocessor/config/defines.hpp")
+  FILENAME "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/hpx/preprocessor/config/defines.hpp")
 
 message(STATUS "preprocessor: Configuring done")
