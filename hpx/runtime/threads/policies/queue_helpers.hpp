@@ -58,7 +58,7 @@ namespace hpx { namespace threads { namespace policies
         return input >= ceil ? input % ceil : input;
     }
 
-    enum { max_thread_count = 1000 };
+    enum : std::size_t { max_thread_count = 1000 };
 
     // ----------------------------------------------------------------
     // Helper class to hold a set of queues.
@@ -178,7 +178,7 @@ namespace hpx { namespace threads { namespace policies
         inline std::size_t get_new_tasks_queue_length() const
         {
             std::size_t len = 0;
-            for (auto &q : queues_) len += q->new_tasks_count_.data_;
+            for (auto &q : queues_) len += q->get_staged_queue_length();
             return len;
         }
 
@@ -494,8 +494,8 @@ namespace hpx { namespace threads { namespace policies
                     --terminated_items_count_;
                     remove_from_thread_map(tid, true);
                     debug("deallocate",
-                          queues_[0]->new_tasks_count_.data_,
-                          queues_[0]->work_items_count_.data_,
+                          queues_[0]->get_staged_queue_length(),  // new_tasks_count_
+                          queues_[0]->get_pending_queue_length(), // work_items_count_
                           nullptr);
                 }
             }
@@ -514,8 +514,8 @@ namespace hpx { namespace threads { namespace policies
                     remove_from_thread_map(tid, false);
                     recycle_thread(tid);
                     debug("recycle   ",
-                          queues_[0]->new_tasks_count_.data_,
-                          queues_[0]->work_items_count_.data_,
+                          queues_[0]->get_staged_queue_length(),  // new_tasks_count_
+                          queues_[0]->get_pending_queue_length(), // work_items_count_
                           todelete);
 
                     --delete_count;
