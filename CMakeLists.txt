@@ -1924,7 +1924,7 @@ add_plugin_modules()
 ################################################################################
 # Generate config headers and helpers
 ################################################################################
-generate_config_defines_header(${CMAKE_BINARY_DIR})
+generate_config_defines_header(${PROJECT_BINARY_DIR})
 
 # Generate a defines.hpp to be used in the install directory ...
 set(HPX_DEFINES_PREFIX ${HPX_PREFIX})
