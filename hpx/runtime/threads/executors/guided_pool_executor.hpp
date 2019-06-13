@@ -425,11 +425,13 @@ namespace hpx { namespace threads { namespace executors
                       << "dataflow      : unwrapped   : "
                       << util::debug::print_type<
 #ifdef GUIDED_POOL_EXECUTOR_FAKE_NOOP
-                         int>(" | ")
+                             int>(" | ")
 #else
                          decltype(unwrapped_futures_tuple)>(" | ")
 #endif
-                      << "\n";
+                      << "\n"
+                      << "dataflow-frame: Result      : "
+                      << util::debug::print_type<result_type>() << "\n";
 
             std::cout << "dataflow hint returning " << domain << "\n";
 #endif
