@@ -381,7 +381,8 @@ namespace hpx { namespace threads { namespace policies
             int t = ++work_items_count_.data_;
             holder_->debug("schedule  ", new_tasks_count_.data_, t, thrd);
             work_items_.push(thrd, other_end);
-            debug_queue(work_items_);
+            // caution, can cause a lot of output
+            //debug_queue(work_items_);
         }
 
         ///////////////////////////////////////////////////////////////////////
@@ -434,6 +435,8 @@ namespace hpx { namespace threads { namespace policies
         void on_stop_thread(std::size_t num_thread) {}
         void on_error(std::size_t num_thread, std::exception_ptr const& e) {}
 
+        // pops all tasks off the queue, prints info and pushes them back on
+        // just because we can't iterate over the queue/stack in general
         void debug_queue(work_items_type &q) {
             std::unique_lock<std::mutex> Lock(special_mtx_);
             //
