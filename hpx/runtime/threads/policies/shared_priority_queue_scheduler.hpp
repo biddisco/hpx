@@ -50,6 +50,8 @@ static_assert(false,
 #define LOG_CUSTOM_MSG2(a)
 #define LOG_CUSTOM_VAR(a)
 
+#define SHARED_PRIORITY_QUEUE_SCHEDULER_API 2
+
 // ------------------------------------------------------------
 namespace hpx {
 namespace threads {
@@ -885,7 +887,7 @@ namespace policies {
         {
             HPX_ASSERT(thrd->get_scheduler_base() == this);
             LOG_CUSTOM_MSG("destroy_thread " << THREAD_DESC(thrd));
-            thrd->get_queue<queue_holder<thread_queue_mc<>>>().destroy_thread(thrd, busy_count);
+            thrd->get_queue<queue_holder<thread_queue_type>>().destroy_thread(thrd, busy_count);
         }
 
         //---------------------------------------------------------------------

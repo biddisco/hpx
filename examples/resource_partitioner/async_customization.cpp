@@ -498,8 +498,8 @@ int main(int argc, char** argv)
     hpx::resource::partitioner rp(argc, argv);
 
     // declare the high priority scheduler type we'll use
-    using high_priority_sched =
-        hpx::threads::policies::example::shared_priority_queue_scheduler<>;
+    using numa_sched =
+        hpx::threads::policies::shared_priority_queue_scheduler<>;
     using hpx::threads::policies::scheduler_mode;
     // setup the default pool with our custom priority scheduler
     rp.create_thread_pool(
@@ -509,15 +509,23 @@ int main(int argc, char** argv)
           std::string const& pool_name) -> std::unique_ptr<hpx::threads::thread_pool_base>
           {
             std::cout << "User defined scheduler creation callback " << std::endl;
-            std::unique_ptr<high_priority_sched> scheduler(new high_priority_sched(
-                num_threads, {6, 6, 64}, "shared-priority-scheduler"));
+            std::unique_ptr<numa_sched> scheduler(
+                new numa_sched(
+                    num_threads,
+                    {1, 1, 64}, // HP, NP, LP : cores per queue
+    #if SHARED_PRIORITY_QUEUE_SCHEDULER_API==2
+                    true,       // NUMA stealing
+                    true,       // Core Stealing
+                    numa_sched::work_assignment_policy::assign_work_round_robin,
+    #endif
+                    "shared-priority-scheduler"));
 
             scheduler_mode mode = scheduler_mode(
                 scheduler_mode::do_background_work |
                 scheduler_mode::delay_exit);
 
             std::unique_ptr<hpx::threads::thread_pool_base> pool(
-              new hpx::threads::detail::scheduled_thread_pool<high_priority_sched>(
+              new hpx::threads::detail::scheduled_thread_pool<numa_sched>(
                   std::move(scheduler), notifier, pool_index, pool_name,
                   mode, thread_offset)
             );

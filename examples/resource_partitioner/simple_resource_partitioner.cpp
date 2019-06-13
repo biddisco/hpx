@@ -26,7 +26,7 @@
 #include <string>
 #include <utility>
 //
-#include "shared_priority_queue_scheduler.hpp"
+#include <hpx/runtime/threads/policies/shared_priority_queue_scheduler.hpp>
 #include "system_characteristics.hpp"
 
 // ------------------------------------------------------------------------
@@ -37,7 +37,7 @@ static int pool_threads = 1;
 // ------------------------------------------------------------------------
 // this is our custom scheduler type
 using high_priority_sched =
-    hpx::threads::policies::example::shared_priority_queue_scheduler<>;
+    hpx::threads::policies::shared_priority_queue_scheduler<>;
 using namespace hpx::threads::policies::example;
 using hpx::threads::policies::scheduler_mode;
 

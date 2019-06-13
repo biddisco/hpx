@@ -1248,7 +1248,7 @@ namespace example {
                 std::size_t q_index = q_lookup_[thread_num];
                 // get next task, steal if from another domain
                 result = np_queues_[dom].wait_or_add_new(q_index, running,
-                    idle_loop_count, added, core_stealing_);
+                    added, core_stealing_);
                 if (0 != added) return result;
                 if (!numa_stealing_) break;
             }
@@ -1257,7 +1257,7 @@ namespace example {
             // no cross domain stealing for LP queues
             if (cores_per_queue_.low_priority>0) {
                 result = lp_queues_[domain_num].wait_or_add_new(0, running,
-                    idle_loop_count, added, core_stealing_);
+                    added, core_stealing_);
                 if (0 != added) return result;
             }
             return result;

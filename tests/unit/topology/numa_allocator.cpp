@@ -33,7 +33,7 @@
 #include "allocator_binder_linear.hpp"
 #include "allocator_binder_matrix.hpp"
 // Scheduler that honours numa placement hints for tasks
-#include "examples/resource_partitioner/shared_priority_queue_scheduler.hpp"
+#include <hpx/runtime/threads/policies/shared_priority_queue_scheduler.hpp>
 
 // ------------------------------------------------------------------------
 // allocator maker for this test
@@ -205,7 +205,7 @@ int hpx_main(boost::program_options::variables_map& vm)
 // scheduler type needed for numa bound tasks
 // ------------------------------------------------------------------------
 using high_priority_sched =
-    hpx::threads::policies::example::shared_priority_queue_scheduler<>;
+    hpx::threads::policies::shared_priority_queue_scheduler<>;
 using hpx::threads::policies::scheduler_mode;
 
 // the normal int main function that is called at startup and runs on an OS thread
@@ -250,7 +250,7 @@ int main(int argc, char* argv[])
     hpx::resource::partitioner rp(desc_cmdline, argc, argv);
 
     using numa_scheduler =
-        hpx::threads::policies::example::shared_priority_queue_scheduler<>;
+        hpx::threads::policies::shared_priority_queue_scheduler<>;
     using hpx::threads::policies::scheduler_mode;
     // setup the default pool with a numa aware scheduler
     rp.create_thread_pool("default",
@@ -258,8 +258,16 @@ int main(int argc, char* argv[])
             std::size_t num_threads, std::size_t thread_offset,
             std::size_t pool_index, std::string const& pool_name)
             -> std::unique_ptr<hpx::threads::thread_pool_base> {
-            std::unique_ptr<numa_scheduler> scheduler(new numa_scheduler(
-                num_threads, {2, 3, 64}, "shared-priority-scheduler"));
+            std::unique_ptr<numa_scheduler> scheduler(
+                new numa_scheduler(
+                    num_threads,
+                    {1, 1, 64}, // HP, NP, LP : cores per queue
+#if SHARED_PRIORITY_QUEUE_SCHEDULER_API==2
+                    true,       // NUMA stealing
+                    true,       // Core Stealing
+                    numa_scheduler::work_assignment_policy::assign_work_round_robin,
+#endif
+                    "shared-priority-scheduler"));
 
             scheduler_mode mode =
                 scheduler_mode(scheduler_mode::do_background_work |

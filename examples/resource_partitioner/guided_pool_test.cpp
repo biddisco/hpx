@@ -26,7 +26,7 @@
 #include <string>
 #include <utility>
 //
-#include "shared_priority_queue_scheduler.hpp"
+#include <hpx/runtime/threads/policies/shared_priority_queue_scheduler.hpp>
 #include "system_characteristics.hpp"
 
 static int pool_threads  = 0;
@@ -34,14 +34,14 @@ static int pool_threads  = 0;
 #define CUSTOM_POOL_NAME "Custom"
 
 // this is our custom scheduler type
-using high_priority_sched =
-    hpx::threads::policies::example::shared_priority_queue_scheduler<>;
+using numa_sched =
+    hpx::threads::policies::shared_priority_queue_scheduler<>;
 using hpx::threads::policies::scheduler_mode;
 
 // Force an instantiation of the pool type templated on our custom scheduler
 // we need this to ensure that the pool has the generated member functions needed
 // by the linker for this pool type
-// template class hpx::threads::detail::scheduled_thread_pool<high_priority_sched>;
+// template class hpx::threads::detail::scheduled_thread_pool<numa_sched>;
 
 // dummy function we will call using async
 void async_guided(std::size_t n, bool printout, const std::string &message)
@@ -267,15 +267,21 @@ int main(int argc, char* argv[])
         {
             std::cout << "User defined scheduler creation callback "
                       << std::endl;
-            std::unique_ptr<high_priority_sched> scheduler(
-                new high_priority_sched(num_threads,
-                    {6, 6, 64}, "shared-priority-scheduler"));
+            std::unique_ptr<numa_sched> scheduler(
+                new numa_sched(
+                    num_threads,
+                    {1, 1, 64}, // HP, NP, LP : cores per queue
+#if SHARED_PRIORITY_QUEUE_SCHEDULER_API==2
+                    true,       // NUMA stealing
+                    true,       // Core Stealing
+                    numa_sched::work_assignment_policy::assign_work_round_robin,
+#endif
+                    "shared-priority-scheduler"));
 
             auto mode = scheduler_mode(scheduler_mode::delay_exit);
 
             std::unique_ptr<hpx::threads::thread_pool_base> pool(
-                new hpx::threads::detail::scheduled_thread_pool<
-                        high_priority_sched
+                new hpx::threads::detail::scheduled_thread_pool<numa_sched
                     >(std::move(scheduler), notifier,
                         pool_index, pool_name, mode, thread_offset));
             return pool;
