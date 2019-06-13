@@ -50,6 +50,8 @@ static_assert(false,
 #define LOG_CUSTOM_MSG2(a)
 #define LOG_CUSTOM_VAR(a)
 
+#define SHARED_PRIORITY_QUEUE_SCHEDULER_API 2
+
 namespace hpx { namespace threads { namespace policies {
 
     ///////////////////////////////////////////////////////////////////////////
@@ -99,6 +101,7 @@ namespace hpx { namespace threads { namespace policies {
                 core_ratios cores_per_queue,
                 bool numa_stealing,
                 bool core_stealing,
+                work_assignment_policy policy,
                 detail::affinity_data const& affinity_data,
                 thread_queue_init_parameters thread_queue_init = {},
                 char const* description = "shared_priority_queue_scheduler")
@@ -106,6 +109,7 @@ namespace hpx { namespace threads { namespace policies {
               , cores_per_queue_(cores_per_queue)
               , numa_stealing_(numa_stealing)
               , core_stealing_(core_stealing)
+              , work_assign_policy_(policy)
               , thread_queue_init_(thread_queue_init)
               , affinity_data_(affinity_data)
               , description_(description)
@@ -116,12 +120,14 @@ namespace hpx { namespace threads { namespace policies {
                 core_ratios cores_per_queue,
                 bool numa_stealing,
                 bool core_stealing,
+                work_assignment_policy policy,
                 detail::affinity_data const& affinity_data,
                 char const* description)
               : num_worker_threads_(num_worker_threads)
               , cores_per_queue_(cores_per_queue)
               , numa_stealing_(numa_stealing)
               , core_stealing_(core_stealing)
+              , work_assign_policy_(policy)
               , thread_queue_init_()
               , affinity_data_(affinity_data)
               , description_(description)
@@ -132,6 +138,7 @@ namespace hpx { namespace threads { namespace policies {
             core_ratios cores_per_queue_;
             bool numa_stealing_;
             bool core_stealing_;
+            work_assignment_policy work_assign_policy_;
             thread_queue_init_parameters thread_queue_init_;
             detail::affinity_data const& affinity_data_;
             char const* description_;
@@ -145,6 +152,7 @@ namespace hpx { namespace threads { namespace policies {
           , cores_per_queue_(init.cores_per_queue_)
           , numa_stealing_(init.numa_stealing_)
           , core_stealing_(init.core_stealing_)
+          , work_policy_(init.work_assign_policy_)
           , num_workers_(init.num_worker_threads_)
           , num_domains_(1)
           , affinity_data_(init.affinity_data_)
@@ -660,7 +668,7 @@ namespace hpx { namespace threads { namespace policies {
                     // Reset thread_num to first queue.
                     thread_num = fast_mod(core_counters_[thread_num].next_queue++, num_workers_);
                 }
-                if (work_policy_ == assign_work_round_robin) {
+                if (work_policy_ == work_assignment_policy::assign_work_round_robin) {
                     thread_num = fast_mod(core_counters_[thread_num].next_queue++, num_workers_);
                                     }
                 thread_num = select_active_pu(l, thread_num);
@@ -926,7 +934,7 @@ namespace hpx { namespace threads { namespace policies {
         {
             HPX_ASSERT(thrd->get_scheduler_base() == this);
             LOG_CUSTOM_MSG("destroy_thread " << THREAD_DESC(thrd));
-            thrd->get_queue<queue_holder<thread_queue_mc<>>>().destroy_thread(thrd, busy_count);
+            thrd->get_queue<queue_holder<thread_queue_type>>().destroy_thread(thrd, busy_count);
         }
 
         //---------------------------------------------------------------------

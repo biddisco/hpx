@@ -33,6 +33,8 @@
 // Example binder functions for different page binding mappings
 #include "allocator_binder_linear.hpp"
 #include "allocator_binder_matrix.hpp"
+// Scheduler that honours numa placement hints for tasks
+#include <hpx/runtime/threads/policies/shared_priority_queue_scheduler.hpp>
 
 // ------------------------------------------------------------------------
 // allocator maker for this test
@@ -258,7 +260,13 @@ int main(int argc, char* argv[])
                 thread_queue_init)
             -> std::unique_ptr<hpx::threads::thread_pool_base> {
             numa_scheduler::init_parameter_type scheduler_init(
-                init.num_threads_, {2, 3, 64}, init.affinity_data_,
+                init.num_threads_, {1, 1, 64},
+#if SHARED_PRIORITY_QUEUE_SCHEDULER_API==2
+                true,       // NUMA stealing
+                true,       // Core Stealing
+                numa_scheduler::work_assignment_policy::assign_work_round_robin,
+#endif
+                init.affinity_data_,
                 thread_queue_init, "shared-priority-scheduler");
             std::unique_ptr<numa_scheduler> scheduler(
                 new numa_scheduler(scheduler_init));
