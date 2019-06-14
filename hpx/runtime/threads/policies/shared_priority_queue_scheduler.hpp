@@ -53,6 +53,7 @@ static_assert(false,
 #define SHARED_PRIORITY_QUEUE_SCHEDULER_API 2
 
 // ------------------------------------------------------------
+
 namespace hpx {
 namespace threads {
 namespace policies {
@@ -127,8 +128,7 @@ namespace policies {
             return !numa_stealing_;
         }
 
-        bool has_thread_stealing(std::size_t num_thread) const override
-        {
+        bool has_thread_stealing(std::size_t num_thread) const override {
             return core_stealing_;
         }
 
@@ -629,7 +629,7 @@ namespace policies {
                 }
                 if (work_policy_ == assign_work_round_robin) {
                     thread_num = fast_mod(core_counters_[thread_num].next_queue++, num_workers_);
-                                    }
+                }
                 thread_num = select_active_pu(l, thread_num);
                 domain_num = d_lookup_[thread_num];
                 q_index    = q_lookup_[thread_num];
@@ -733,9 +733,7 @@ namespace policies {
                     std::size_t q_index = q_lookup_[thread_num];
                     // get next task, steal if from another domain
                     result = hp_queues_[dom].get_next_thread(q_index, thrd, core_stealing_);
-                    if (result) {
-                        return result;
-                    }
+                    if (result) return result;
                     if (!numa_stealing_) break;
                 }
             }
@@ -758,9 +756,7 @@ namespace policies {
             // low priority task, x-numa stealing never happens
             if (cores_per_queue_.low_priority>0) {
                 result = lp_queues_[domain_num].get_next_thread(0, thrd, core_stealing_);
-                if (result) {
-                    return result;
-                }
+                if (result) return result;
             }
             return false;
         }
@@ -887,7 +883,7 @@ namespace policies {
         {
             HPX_ASSERT(thrd->get_scheduler_base() == this);
             LOG_CUSTOM_MSG("destroy_thread " << THREAD_DESC(thrd));
-            thrd->get_queue<queue_holder<thread_queue_type>>().destroy_thread(thrd, busy_count);
+            thrd->get_queue<queue_holder<thread_queue_mc<>>>().destroy_thread(thrd, busy_count);
         }
 
         //---------------------------------------------------------------------
@@ -1048,10 +1044,10 @@ namespace policies {
             std::int64_t& idle_loop_count, bool /*enable_stealing*/,
             std::size_t& added) override
         {
-            added = 0;
-            bool result = false;
+            bool result = true;
 
             HPX_ASSERT(thread_num != std::size_t(-1));
+            added = 0;
 
 //            LOG_CUSTOM_MSG("wait_or_add_new thread num " << decnumber(thread_num));
 
@@ -1061,14 +1057,14 @@ namespace policies {
             // is there a high priority task, take first from our numa domain
             // and then try to steal from others
             if (cores_per_queue_.high_priority>0) {
-            for (std::size_t d=0; d<num_domains_; ++d) {
+                for (std::size_t d=0; d<num_domains_; ++d) {
                     std::size_t dom = fast_mod((domain_num+d), num_domains_);
-                // set the preferred queue for this domain, if applicable
-                std::size_t q_index = q_lookup_[thread_num];
-                // get next task, steal if from another domain
+                    // set the preferred queue for this domain, if applicable
+                    std::size_t q_index = q_lookup_[thread_num];
+                    // get next task, steal if from another domain
                     result = hp_queues_[dom].wait_or_add_new(q_index, running,
-                        added, core_stealing_) && result;
-                if (0 != added) return result;
+                        added, core_stealing_);
+                    if (0 != added) return result;
                     if (!numa_stealing_) break;
                 }
             }
@@ -1080,7 +1076,7 @@ namespace policies {
                 std::size_t q_index = q_lookup_[thread_num];
                 // get next task, steal if from another domain
                 result = np_queues_[dom].wait_or_add_new(q_index, running,
-                    added, core_stealing_) && result;
+                    added, core_stealing_);
                 if (0 != added) return result;
                 if (!numa_stealing_) break;
             }
