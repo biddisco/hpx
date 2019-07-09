@@ -324,7 +324,6 @@ int main(int argc, char* argv[])
                 -> std::unique_ptr<hpx::threads::thread_pool_base> {
                 std::cout << "User defined scheduler creation callback "
                           << std::endl;
-
                 numa_sched::init_parameter_type scheduler_init(
                     init.num_threads_, {4, 4, 64},
 #if SHARED_PRIORITY_QUEUE_SCHEDULER_API==2
