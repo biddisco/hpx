@@ -46,7 +46,7 @@ static int pool_threads = 1;
 // this is our custom scheduler type
 using high_priority_sched =
     hpx::threads::policies::shared_priority_queue_scheduler<>;
-using namespace hpx::threads::policies::example;
+using namespace hpx::threads::policies;
 using hpx::threads::policies::scheduler_mode;
 
 // dummy function we will call using async
@@ -287,7 +287,12 @@ int main(int argc, char* argv[])
 
             std::unique_ptr<high_priority_sched> scheduler(
                 new high_priority_sched(
-                    num_threads, hpx::threads::policies::core_ratios(4, 4, 64),
+                    num_threads, hpx::threads::policies::core_ratios(1, 1, 16),
+#if SHARED_PRIORITY_QUEUE_SCHEDULER_API==2
+                    true,       // NUMA stealing
+                    true,       // Core Stealing
+                    high_priority_sched::work_assignment_policy::assign_work_round_robin,
+#endif
                     "shared-priority-scheduler"));
 
             auto mode = scheduler_mode(scheduler_mode::do_background_work |
@@ -322,7 +327,12 @@ int main(int argc, char* argv[])
                           << std::endl;
                 std::unique_ptr<high_priority_sched> scheduler(
                     new high_priority_sched(num_threads,
-                        hpx::threads::policies::core_ratios(4, 4, 64),
+                        hpx::threads::policies::core_ratios(1, 1, 16),
+#if SHARED_PRIORITY_QUEUE_SCHEDULER_API==2
+                        true,       // NUMA stealing
+                        true,       // Core Stealing
+                        high_priority_sched::work_assignment_policy::assign_work_round_robin,
+#endif
                         "shared-priority-scheduler"));
 
                 auto mode = scheduler_mode(scheduler_mode::delay_exit);
