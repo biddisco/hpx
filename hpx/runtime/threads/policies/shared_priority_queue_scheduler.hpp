@@ -54,10 +54,14 @@ static_assert(false,
 
 #define SHARED_PRIORITY_QUEUE_SCHEDULER_API 2
 
+#ifdef SHARED_PRIORITY_SCHEDULER_DEBUG
+# include <plugins/parcelport/parcelport_logging.hpp>
+#endif
+
 // ------------------------------------------------------------
 namespace hpx { namespace debug {
 #ifdef SHARED_PRIORITY_SCHEDULER_DEBUG
-    template<typename T>
+  template<typename T>
     void output(const std::string &name, const std::vector<T> &v) {
         std::cout << name.c_str() << "\t : {" << decnumber(v.size()) << "} : ";
         std::copy(std::begin(v), std::end(v), std::ostream_iterator<T>(std::cout, ", "));
@@ -564,7 +568,7 @@ namespace hpx { namespace threads { namespace policies {
         {
             HPX_ASSERT(thread_num ==
                 this->global_to_local_thread_index(get_worker_thread_num()));
-            
+
             added = 0;
 
             // process this thread only if specified

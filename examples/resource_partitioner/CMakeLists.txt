@@ -5,6 +5,7 @@
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 set(example_programs
+  custom_scheduler
   simplest_resource_partitioner_1
   simplest_resource_partitioner_2
 )
@@ -23,10 +24,13 @@ if(HPX_WITH_MAX_CPU_COUNT AND HPX_WITH_SHARED_PRIORITY_SCHEDULER)
   endif()
 endif()
 
+set(custom_scheduler_FLAGS DEPENDENCIES iostreams_component)
 set(guided_pool_test_FLAGS DEPENDENCIES iostreams_component)
 set(oversubscribing_resource_partitioner_FLAGS DEPENDENCIES iostreams_component)
 set(simple_resource_partitioner_FLAGS DEPENDENCIES iostreams_component)
 
+set(custom_scheduler_PARAMETERS
+    THREADS_PER_LOCALITY 4 "--use-scheduler" "--hp_tpq=2" "--np_tpq=2" "--lp_tpq=4") 
 set(oversubscribing_resource_partitioner_PARAMETERS
     THREADS_PER_LOCALITY 4 "--use-pools" "--use-scheduler")
 set(simple_resource_partitioner_PARAMETERS
