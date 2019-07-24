@@ -8,7 +8,6 @@
 #define HPX_THREADMANAGER_THREAD_QUEUE_MC
 
 #include <hpx/config.hpp>
-#include <hpx/compat/mutex.hpp>
 #include <hpx/error_code.hpp>
 #include <hpx/runtime/config_entry.hpp>
 #include <hpx/runtime/threads/policies/lockfree_queue_backends.hpp>
@@ -56,7 +55,7 @@
 namespace hpx { namespace threads { namespace policies
 {
 
-    template <typename Mutex = compat::mutex,
+    template <typename Mutex = std::mutex,
               typename PendingQueuing = lockfree_fifo,
               typename StagedQueuing = lockfree_lifo,
               typename TerminatedQueuing = lockfree_fifo>
