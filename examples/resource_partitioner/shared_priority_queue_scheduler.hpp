@@ -46,12 +46,6 @@ static_assert(false,
     "include \"all\" or \"shared-priority\"");
 #else
 
-#undef LOG_CUSTOM_MSG
-#undef LOG_CUSTOM_MSG2
-#define LOG_CUSTOM_MSG(a)
-#define LOG_CUSTOM_MSG2(a)
-#define LOG_CUSTOM_VAR(a)
-
 #define SHARED_PRIORITY_QUEUE_SCHEDULER_API 2
 
 // ------------------------------------------------------------
@@ -244,6 +238,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
             switch (data.schedulehint.mode) {
             case thread_schedule_hint_mode::thread_schedule_hint_mode_none:
             {
+                LOG_CUSTOM_VAR(msg = msgs[0]);
                 // Create thread on this worker thread if possible
                 std::size_t global_thread_num =
                     threads::detail::get_thread_num_tss();
@@ -267,6 +262,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
             }
             case thread_schedule_hint_mode::thread_schedule_hint_mode_thread:
             {
+                LOG_CUSTOM_VAR(msg = msgs[3]);
                 // @TODO. We should check that the thread num is valid
                 // Create thread on requested worker thread
                 thread_num = select_active_pu(l, data.schedulehint.hint);
@@ -278,7 +274,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
             case thread_schedule_hint_mode::thread_schedule_hint_mode_numa:
             {
                 // Create thread on requested NUMA domain
-
+                LOG_CUSTOM_VAR(msg = msgs[1]);
                 // TODO: This case does not handle suspended PUs.
                 domain_num = fast_mod(data.schedulehint.hint, num_domains_);
                 // if the thread creating the new task is on the domain
