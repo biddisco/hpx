@@ -19,7 +19,6 @@
 //
 #include <hpx/config/parcelport_defines.hpp>
 //
-#include <boost/log/trivial.hpp>
 #include <boost/preprocessor.hpp>
 //
 

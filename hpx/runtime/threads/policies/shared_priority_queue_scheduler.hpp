@@ -6,6 +6,8 @@
 #if !defined(HPX_RUNTIME_THREADS_POLICIES_SHARED_PRIORITY_QUEUE_SCHEDULER)
 #define HPX_RUNTIME_THREADS_POLICIES_SHARED_PRIORITY_QUEUE_SCHEDULER
 
+//#define SHARED_PRIORITY_SCHEDULER_DEBUG 1
+
 #include <hpx/config.hpp>
 #include <hpx/assertion.hpp>
 #include <hpx/runtime/get_worker_thread_num.hpp>
@@ -46,11 +48,65 @@ static_assert(false,
     "include \"all\" or \"shared-priority\"");
 #else
 
+// ------------------------------------------------------------
+// ------------------------------------------------------------
+// ------------------------------------------------------------
+#if !defined(HPX_MSVC) && defined(SHARED_PRIORITY_SCHEDULER_DEBUG)
+#include <plugins/parcelport/parcelport_logging.hpp>
+
+static std::chrono::high_resolution_clock::time_point log_t_start =
+    std::chrono::high_resolution_clock::now();
+
+#define COMMA ,
+#define LOG_CUSTOM_VAR(x) x
+
+#define LOG_CUSTOM_WORKER(x)                                                   \
+    dummy << "<CUSTOM> " << THREAD_ID << " time " << decimal(16) << nowt       \
+          << ' ';                                                              \
+        dummy << "pool (unset) " << x << std::endl;                            \
+    std::cout << dummy.str().c_str();
+
+#define LOG_CUSTOM_MSG(x)                                                      \
+    std::stringstream dummy;                                                   \
+    auto now = std::chrono::high_resolution_clock::now();                      \
+    auto nowt = std::chrono::duration_cast<std::chrono::microseconds>(         \
+        now - log_t_start)                                                     \
+                    .count();                                                  \
+    LOG_CUSTOM_WORKER(x);
+
+#define LOG_CUSTOM_MSG2(x)                                                     \
+    dummy.str(std::string());                                                  \
+    LOG_CUSTOM_WORKER(x);
+
+#define THREAD_DESC(thrd)                                                      \
+    "Desc: \"" << (thrd ? thrd->get_description().get_description() : "") << "\" "
+
+#if defined(HPX_HAVE_THREAD_DESCRIPTION)
+#define THREAD_DESC2(data, thrd)                                               \
+    "Desc: \"" << data.description.get_description() << "\""
+#else
+#define THREAD_DESC2(data, thrd)                                               \
+    hexpointer(thrd ? thrd : 0)
+#endif
+
+#else
+#define LOG_CUSTOM_VAR(x)
+#define LOG_CUSTOM_MSG(x)
+#define LOG_CUSTOM_MSG2(x)
+#define LOG_ERROR_MSG(x)
+#define THREAD_DESC(x)
+#endif
+
+#if defined(HPX_MSVC)
+#undef SHARED_PRIORITY_SCHEDULER_DEBUG
 #undef LOG_CUSTOM_MSG
 #undef LOG_CUSTOM_MSG2
-#define LOG_CUSTOM_MSG(a)
-#define LOG_CUSTOM_MSG2(a)
-#define LOG_CUSTOM_VAR(a)
+#define LOG_CUSTOM_MSG(x)
+#define LOG_CUSTOM_MSG2(x)
+#endif
+// ------------------------------------------------------------
+// ------------------------------------------------------------
+// ------------------------------------------------------------
 
 #define SHARED_PRIORITY_QUEUE_SCHEDULER_API 2
 
@@ -177,7 +233,7 @@ namespace policies {
             return !numa_stealing_;
         }
 
-        bool has_thread_stealing(std::size_t num_thread) const override {
+        bool has_thread_stealing(std::size_t /*num_thread*/) const override {
             return core_stealing_;
         }
 
@@ -199,7 +255,7 @@ namespace policies {
         bool cleanup_terminated(bool delete_all) override
         {
             // just cleanup the thread we were called by rather than all threads
-//            LOG_CUSTOM_MSG("cleanup_terminated - global version");
+            LOG_CUSTOM_MSG("cleanup_terminated - global version");
             std::size_t thread_num =this->global_to_local_thread_index(get_worker_thread_num());
             std::size_t domain_num = d_lookup_[thread_num];
             std::size_t q_index    = q_lookup_[thread_num];
@@ -213,6 +269,7 @@ namespace policies {
             HPX_ASSERT(thread_num ==
                 this->global_to_local_thread_index(get_worker_thread_num()));
 
+            LOG_CUSTOM_MSG("cleanup_terminated - thread version");
             // find the numa domain from the local thread index
             std::size_t domain_num = d_lookup_[thread_num];
             std::size_t q_index    = q_lookup_[thread_num];
@@ -248,6 +305,7 @@ namespace policies {
                 thread_num =
                     this->global_to_local_thread_index(get_worker_thread_num());
                 if (thread_num>=num_workers_) {
+                    LOG_ERROR_MSG("thread numbering overflow xPool injection " << thread_num);
                     // This is a task being injected from a thread on another pool.
                     // we can schedule on any thread available
                     thread_num = numa_holder_[0].thread_queue(0)->worker_next(num_workers_);
@@ -256,6 +314,7 @@ namespace policies {
                     domain_num = d_lookup_[thread_num];
                     q_index    = q_lookup_[thread_num];
                     thread_num = numa_holder_[domain_num].thread_queue(q_index)->numa_next(num_workers_);
+                    LOG_CUSTOM_MSG("round robin assignment " << thread_num);
                 }
                 thread_num = select_active_pu(l, thread_num);
                 domain_num = d_lookup_[thread_num];
@@ -302,12 +361,18 @@ namespace policies {
 
             numa_holder_[domain_num].thread_queue(q_index)->
                     create_thread(data, thrd, initial_state, run_now, ec);
+            LOG_CUSTOM_MSG("create_thread " << msg << " "
+                           << "queue " << decnumber(thread_num)
+                           << "domain " << decnumber(domain_num)
+                           << "qindex " << decnumber(q_index));
         }
 
         /// Return the next thread to be executed, return false if none available
         virtual bool get_next_thread(std::size_t thread_num, bool running,
-            threads::thread_data*& thrd, bool /*enable_stealing*/) override
+            threads::thread_data*& thrd, bool enable_stealing) override
         {
+            LOG_CUSTOM_MSG("get_next_thread " << decnumber(thread_num)
+                << "enable stealing" << enable_stealing);
             HPX_ASSERT(thread_num ==
                 this->global_to_local_thread_index(get_worker_thread_num()));
 
@@ -409,6 +474,11 @@ namespace policies {
                     "Invalid schedule hint mode: " +
                     std::to_string(schedulehint.mode));
             }
+
+            LOG_CUSTOM_MSG("thread scheduled "
+                          << "queue " << decnumber(thread_num)
+                          << "domain " << decnumber(domain_num)
+                          << "qindex " << decnumber(q_index));
 
             numa_holder_[domain_num].thread_queue(q_index)->
                     schedule_thread(thrd, priority, false);
@@ -514,8 +584,10 @@ namespace policies {
         {
             HPX_ASSERT(thread_num ==
                 this->global_to_local_thread_index(get_worker_thread_num()));
-            
+
             added = 0;
+
+            LOG_CUSTOM_MSG("wait_or_add_new thread num " << decnumber(thread_num));
 
             // process this thread only if specified
             if (thread_num!=std::size_t(-1)) {
