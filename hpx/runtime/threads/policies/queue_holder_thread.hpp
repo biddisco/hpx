@@ -97,30 +97,6 @@ static std::chrono::high_resolution_clock::time_point log_t_start =
 // ------------------------------------------------------------
 namespace hpx { namespace threads { namespace policies
 {
-    template <typename ... Data>
-    struct cache_line_data_2
-    {
-        static_assert(threads::get_cache_line_size() >= (0 + ... + sizeof(Data)),
-            "threads::get_cache_line_size() >= sizeof(Data)");
-
-        template <typename ... T>
-        cache_line_data_2(T...ts) : data_(ts...) {};
-
-        template <std::size_t I>
-        auto &get() {
-            return std::get<I>(data_);
-        }
-
-        template <std::size_t I>
-        auto const &get() const {
-            return std::get<I>(data_);
-        }
-
-        // pad to cache line size bytes
-        std::tuple<Data...> data_;
-        char cacheline_pad[threads::get_cache_line_size() - (0 + ... + sizeof(Data))];
-    };
-
     // apply the modulo operator only when needed
     // (i.e. when the input is greater than the ceiling)
     // NB: the numbers must be positive
@@ -135,7 +111,7 @@ namespace hpx { namespace threads { namespace policies
     // Helper class to hold a set of queues.
     // ----------------------------------------------------------------
     template <typename QueueType>
-    struct alignas(64) queue_holder_thread
+    struct queue_holder_thread
     {
         // Queues that will store actual work for this thread
         // They might be shared between cores, so we use a pointer to
@@ -174,9 +150,8 @@ namespace hpx { namespace threads { namespace policies
         // these ought to be atomic, but if we get a race and assign a thread
         // to queue N instead of N+1 it doesn't really matter
 
-        mutable cache_line_data_2<
-            int,
-            int
+        mutable util::cache_line_data<
+            std::tuple<int, int>
         > rollover_counters_;
 
         // ----------------------------------------------------------------
@@ -195,8 +170,8 @@ namespace hpx { namespace threads { namespace policies
             util::internal_allocator<thread_id_type>>;
         thread_map_type             thread_map_;
 
-        mutable cache_line_data_2<
-            std::atomic<std::int64_t>
+        mutable util::cache_line_data<
+            std::atomic<std::int32_t>
         > thread_map_count_;
 
         // -------------------------------------
@@ -204,8 +179,8 @@ namespace hpx { namespace threads { namespace policies
         // completed tasks that can be reused (stack space etc)
         using terminated_items_type = lockfree_fifo::apply<thread_data*>::type;
         terminated_items_type       terminated_items_;
-        mutable cache_line_data_2<
-            std::atomic<std::int64_t>
+        mutable util::cache_line_data<
+            std::atomic<std::int32_t>
         > terminated_items_count_;
 
         // ----------------------------------------------------------------
@@ -222,11 +197,11 @@ namespace hpx { namespace threads { namespace policies
             , queue_index_(id)
             , max_delete_count_(init.max_delete_count_)
             , max_terminated_threads_(init.max_terminated_threads_)
-            , rollover_counters_(id, round_robin_rollover)
-            , thread_map_count_(0)
             , terminated_items_(max_thread_count)
-            , terminated_items_count_(0)
         {
+            rollover_counters_.data_      = std::make_tuple(id, round_robin_rollover);
+            thread_map_count_.data_       = 0;
+            terminated_items_count_.data_ = 0;
             if (hp_queue_) hp_queue_->set_holder(this);
             if (np_queue_) np_queue_->set_holder(this);
             if (lp_queue_) lp_queue_->set_holder(this);
@@ -274,8 +249,8 @@ namespace hpx { namespace threads { namespace policies
                            << " queue " << dec4(idx)
                            << " new " << dec4(new_tasks)
                            << " work " << dec4(work_items)
-                           << " map " << dec4(thread_map_count_.get<0>())
-                           << " terminated " << dec4(terminated_items_count_.get<0>())
+                           << " map " << dec4(thread_map_count_.data_)
+                           << " terminated " << dec4(terminated_items_count_.data_)
                            << THREAD_DESC(thrd)
                            );
         }
@@ -289,8 +264,8 @@ namespace hpx { namespace threads { namespace policies
                                << " queue " << dec4(idx)
                                << " new " << dec4(new_tasks)
                                << " work " << dec4(work_items)
-                               << " map " << dec4(thread_map_count_.get<0>())
-                               << " terminated " << dec4(terminated_items_count_.get<0>())
+                               << " map " << dec4(thread_map_count_.data_)
+                               << " terminated " << dec4(terminated_items_count_.data_)
                                << THREAD_DESC(thrd)
                                );
 //            }
@@ -301,11 +276,12 @@ namespace hpx { namespace threads { namespace policies
         // using a batching of 10 per worker before incrementing
         inline unsigned int worker_next(const unsigned int workers) const
         {
-            if (--rollover_counters_.get<1>() == 0) {
-                rollover_counters_.get<1>() = round_robin_rollover;
-                rollover_counters_.get<0>() = fast_mod(rollover_counters_.get<0>()+1, workers);
+            if (--std::get<1>(rollover_counters_.data_) == 0) {
+                std::get<1>(rollover_counters_.data_) = round_robin_rollover;
+                std::get<0>(rollover_counters_.data_) =
+                    fast_mod(std::get<0>(rollover_counters_.data_)+1, workers);
             }
-            return rollover_counters_.get<0>();
+            return std::get<0>(rollover_counters_.data_);
         }
 
         // ------------------------------------------------------------
@@ -313,15 +289,17 @@ namespace hpx { namespace threads { namespace policies
         // using a batching of 10 per worker before incrementing
         inline unsigned int numa_next(const unsigned int numacount) const
         {
-            if (--rollover_counters_.get<1>() == 0) {
-                rollover_counters_.get<1>() = round_robin_rollover;
-                rollover_counters_.get<0>() = fast_mod(rollover_counters_.get<0>()+1, numacount);
-                return rollover_counters_.get<0>();
+            if (--std::get<1>(rollover_counters_.data_) == 0) {
+                std::get<1>(rollover_counters_.data_) = round_robin_rollover;
+                std::get<0>(rollover_counters_.data_) =
+                    fast_mod(std::get<0>(rollover_counters_.data_)+1, numacount);
+                return std::get<0>(rollover_counters_.data_);
             }
             // we have to take the modulus just in case the last thread used
             // in worker_next() was on another domain and has an index too high
-            rollover_counters_.get<0>() = fast_mod(rollover_counters_.get<0>(), numacount);
-            return rollover_counters_.get<0>();
+            std::get<0>(rollover_counters_.data_) =
+                fast_mod(std::get<0>(rollover_counters_.data_), numacount);
+            return std::get<0>(rollover_counters_.data_);
         }
 
         // ------------------------------------------------------------
@@ -349,7 +327,7 @@ namespace hpx { namespace threads { namespace policies
         // ----------------------------------------------------------------
         bool cleanup_terminated(bool delete_all = false)
         {
-            if (terminated_items_count_.get<0>() == 0) return true;
+            if (terminated_items_count_.data_ == 0) return true;
 
             if (delete_all) {
                 // do not lock mutex while deleting all threads, do it piece-wise
@@ -371,7 +349,7 @@ namespace hpx { namespace threads { namespace policies
         // ----------------------------------------------------------------
         bool cleanup_terminated_locked(bool delete_all = false)
         {
-            if (terminated_items_count_.get<0>() == 0)
+            if (terminated_items_count_.data_ == 0)
                 return true;
 
             if (delete_all) {
@@ -380,7 +358,7 @@ namespace hpx { namespace threads { namespace policies
                 while (terminated_items_.pop(todelete))
                 {
                     thread_id_type tid(todelete);
-                    --terminated_items_count_.get<0>();
+                    --terminated_items_count_.data_;
                     remove_from_thread_map(tid, true);
                     debug("deallocate", queue_index_,
                           np_queue_->new_tasks_count_.data_,
@@ -392,14 +370,14 @@ namespace hpx { namespace threads { namespace policies
                 // delete only this many threads
                 std::int64_t delete_count =
                     (std::max)(
-                        static_cast<std::int64_t>(terminated_items_count_.get<0>() / 10),
+                        static_cast<std::int64_t>(terminated_items_count_.data_ / 10),
                         static_cast<std::int64_t>(max_delete_count_));
 
                 thread_data* todelete;
                 while (delete_count && terminated_items_.pop(todelete))
                 {
                     thread_id_type tid(todelete);
-                    --terminated_items_count_.get<0>();
+                    --terminated_items_count_.data_;
                     remove_from_thread_map(tid, false);
                     recycle_thread(tid);
                     debug("recycle   ", queue_index_,
@@ -410,7 +388,7 @@ namespace hpx { namespace threads { namespace policies
 
                 }
             }
-            return terminated_items_count_.get<0>() == 0;
+            return terminated_items_count_.data_ == 0;
         }
 
         // ----------------------------------------------------------------
@@ -594,7 +572,7 @@ namespace hpx { namespace threads { namespace policies
                     "Couldn't add new thread to the thread map");
             }
 
-            ++thread_map_count_.get<0>();
+            ++thread_map_count_.data_;
 
             // this thread has to be in the map now
             HPX_ASSERT(thread_map_.find(thrd)!=thread_map_.end());
@@ -608,7 +586,7 @@ namespace hpx { namespace threads { namespace policies
         {
             // this thread has to be in this map
             HPX_ASSERT(thread_map_.find(thrd)  !=  thread_map_.end());
-            HPX_ASSERT(thread_map_count_.get<0>() >= 0);
+            HPX_ASSERT(thread_map_count_.data_ >= 0);
 
             bool deleted = thread_map_.erase(thrd) != 0;
             HPX_ASSERT(deleted);
@@ -617,7 +595,7 @@ namespace hpx { namespace threads { namespace policies
             if (dealloc) {
                 deallocate(thrd.get());
             }
-            --thread_map_count_.get<0>();
+            --thread_map_count_.data_;
         }
 
         // ----------------------------------------------------------------
@@ -738,7 +716,7 @@ namespace hpx { namespace threads { namespace policies
             thread_priority priority = thread_priority_default) const
         {
             if (terminated == state)
-                return terminated_items_count_.get<0>();
+                return terminated_items_count_.data_;
 
             if (staged == state)
                 return get_thread_count_staged(priority);
@@ -747,9 +725,9 @@ namespace hpx { namespace threads { namespace policies
                 return get_thread_count_pending(priority);
 
             if (unknown == state)
-                return thread_map_count_.get<0>() +
+                return thread_map_count_.data_ +
                         get_thread_count_staged(priority) -
-                        terminated_items_count_.get<0>();
+                        terminated_items_count_.data_;
 
             // acquire lock only if absolutely necessary
             std::lock_guard<mutex_type> lk(mtx_);
@@ -771,7 +749,7 @@ namespace hpx { namespace threads { namespace policies
         {
             HPX_ASSERT(&thrd->get_queue<queue_holder_thread>() == this);
             terminated_items_.push(thrd);
-            std::int64_t count = ++terminated_items_count_.get<0>();
+            std::int64_t count = ++terminated_items_count_.data_;
             if (count > max_terminated_threads_)
             {
                 cleanup_terminated(false);   // clean up all terminated threads
@@ -805,10 +783,10 @@ namespace hpx { namespace threads { namespace policies
             util::function_nonser<bool(thread_id_type)> const& f,
             thread_state_enum state = unknown) const
         {
-            std::uint64_t count = thread_map_count_.get<0>();
+            std::uint64_t count = thread_map_count_.data_;
             if (state == terminated)
             {
-                count = terminated_items_count_.get<0>();
+                count = terminated_items_count_.data_;
             }
             else if (state == staged)
             {
