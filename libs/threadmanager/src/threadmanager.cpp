@@ -626,7 +626,8 @@ namespace hpx { namespace threads {
                     !cfg_.numa_sensitive_, // NUMA stealing
                     true,                  // Core Stealing
                     local_sched_type::work_assignment_policy::assign_work_round_robin,
- #endif
+                    local_sched_type::work_stealing_policy::steal_after_local,
+#endif
                     thread_pool_init.affinity_data_, thread_queue_init,
                     "core-shared_priority_queue_scheduler");
                 std::unique_ptr<local_sched_type> sched(

@@ -137,6 +137,10 @@ namespace hpx { namespace threads { namespace policies {
             assign_work_round_robin,
             assign_work_thread_parent
         };
+        enum work_stealing_policy {
+            steal_high_priority_first,
+            steal_after_local,
+        };
 
     public:
         using has_periodic_maintenance = std::false_type;
@@ -150,7 +154,8 @@ namespace hpx { namespace threads { namespace policies {
                 core_ratios cores_per_queue,
                 bool numa_stealing,
                 bool core_stealing,
-                work_assignment_policy policy,
+                work_assignment_policy assign_policy,
+                work_stealing_policy steal_policy,
                 detail::affinity_data const& affinity_data,
                 thread_queue_init_parameters thread_queue_init = {},
                 char const* description = "shared_priority_queue_scheduler")
@@ -158,7 +163,8 @@ namespace hpx { namespace threads { namespace policies {
               , cores_per_queue_(cores_per_queue)
               , numa_stealing_(numa_stealing)
               , core_stealing_(core_stealing)
-              , work_assign_policy_(policy)
+              , work_assign_policy_(assign_policy)
+              , steal_policy_(steal_policy)
               , thread_queue_init_(thread_queue_init)
               , affinity_data_(affinity_data)
               , description_(description)
@@ -169,14 +175,16 @@ namespace hpx { namespace threads { namespace policies {
                 core_ratios cores_per_queue,
                 bool numa_stealing,
                 bool core_stealing,
-                work_assignment_policy policy,
+                work_assignment_policy assign_policy,
+                work_stealing_policy steal_policy,
                 detail::affinity_data const& affinity_data,
                 char const* description)
               : num_worker_threads_(num_worker_threads)
               , cores_per_queue_(cores_per_queue)
               , numa_stealing_(numa_stealing)
               , core_stealing_(core_stealing)
-              , work_assign_policy_(policy)
+              , work_assign_policy_(assign_policy)
+              , steal_policy_(steal_policy)
               , thread_queue_init_()
               , affinity_data_(affinity_data)
               , description_(description)
@@ -187,7 +195,8 @@ namespace hpx { namespace threads { namespace policies {
             core_ratios cores_per_queue_;
             bool numa_stealing_;
             bool core_stealing_;
-            work_assignment_policy work_assign_policy_;
+            work_assignment_policy       work_assign_policy_;
+            work_stealing_policy         steal_policy_;
             thread_queue_init_parameters thread_queue_init_;
             detail::affinity_data const& affinity_data_;
             char const* description_;
@@ -285,6 +294,7 @@ namespace hpx { namespace threads { namespace policies {
             switch (data.schedulehint.mode) {
             case thread_schedule_hint_mode::thread_schedule_hint_mode_none:
             {
+                LOG_CUSTOM_VAR(msg = msgs[0]);
                 // Create thread on this worker thread if possible
                 std::size_t global_thread_num =
                     threads::detail::get_thread_num_tss();
@@ -310,6 +320,7 @@ namespace hpx { namespace threads { namespace policies {
             }
             case thread_schedule_hint_mode::thread_schedule_hint_mode_thread:
             {
+                LOG_CUSTOM_VAR(msg = msgs[3]);
                 // @TODO. We should check that the thread num is valid
                 // Create thread on requested worker thread
                 thread_num = select_active_pu(l, data.schedulehint.hint);
@@ -322,6 +333,7 @@ namespace hpx { namespace threads { namespace policies {
             {
                 // Create thread on requested NUMA domain
 
+                LOG_CUSTOM_VAR(msg = msgs[1]);
                 // TODO: This case does not handle suspended PUs.
                 domain_num = fast_mod(data.schedulehint.hint, num_domains_);
                 // if the thread creating the new task is on the domain
@@ -368,13 +380,32 @@ namespace hpx { namespace threads { namespace policies {
             std::size_t domain_num = d_lookup_[thread_num];
             std::size_t q_index    = q_lookup_[thread_num];
 
-            bool result = false;
-            for (std::size_t d=0; d<num_domains_; ++d) {
-                std::size_t dom = fast_mod((domain_num+d), num_domains_);
-                result = numa_holder_[dom].get_next_thread(q_index, thrd, core_stealing_);
+            if (!core_stealing_) {
+                // try local queues only
+                bool result = numa_holder_[domain_num].get_next_thread(q_index, thrd, false);
                 if (result) return result;
-                // if no numa stealing - this thread should only check it's own numa
-                if (!numa_stealing_) break;
+            }
+            else if (steal_policy_==steal_high_priority_first) {
+                for (std::size_t d=0; d<num_domains_; ++d) {
+                    std::size_t dom = fast_mod((domain_num+d), num_domains_);
+                    bool result = numa_holder_[dom].get_next_thread(q_index, thrd, true);
+                    if (result) return result;
+                    // if no numa stealing - this thread should only check it's own numa
+                    if (!numa_stealing_) break;
+                }
+            }
+            else if (steal_policy_==steal_after_local) {
+                // do this core
+                bool result = numa_holder_[domain_num].get_next_thread(q_index, thrd, false);
+                if (result) return result;
+                // try others
+                for (std::size_t d=0; d<num_domains_; ++d) {
+                    std::size_t dom = fast_mod((domain_num+d), num_domains_);
+                    bool result = numa_holder_[dom].get_next_thread(q_index, thrd, true);
+                    if (result) return result;
+                    // if no numa stealing - this thread should only check it's own numa
+                    if (!numa_stealing_) break;
+                }
             }
             return false;
         }
@@ -577,29 +608,31 @@ namespace hpx { namespace threads { namespace policies {
             HPX_ASSERT(thread_num ==
                 this->global_to_local_thread_index(get_worker_thread_num()));
 
+            bool result = true;
             added = 0;
 
             LOG_CUSTOM_MSG("wait_or_add_new thread num " << decnumber(thread_num));
 
-            // process this thread only if specified
+            // if our thread num is specified, only handle this thread
             if (thread_num!=std::size_t(-1)) {
                 // find the numa domain from the local thread index
                 std::size_t domain_num = d_lookup_[thread_num];
                 std::size_t q_index    = q_lookup_[thread_num];
-                return numa_holder_[domain_num].thread_queue(q_index)->
-                    wait_or_add_new(running, idle_loop_count, added, core_stealing_);
+
+                result = numa_holder_[domain_num].thread_queue(q_index)->
+                    wait_or_add_new(running, idle_loop_count, added, false);
+                /*if (0 != added) */return result;
             }
 
             // find the numa domain from the local thread index
             std::size_t domain_num = d_lookup_[thread_num];
             std::size_t q_index    = q_lookup_[thread_num];
-            bool result = false;
             // process all cores if -1 was sent in
             for (std::size_t d=0; d<num_domains_; ++d) {
                 std::size_t dom = fast_mod((domain_num+d), num_domains_);
                 // get next task, steal if from another domain
                 result = numa_holder_[dom].thread_queue(q_index)->wait_or_add_new(running,
-                    idle_loop_count, added, core_stealing_);
+                    idle_loop_count, added, core_stealing_) && result;
                 if (0 != added) return result;
                 if (!numa_stealing_) break;
             }
@@ -864,6 +897,10 @@ namespace hpx { namespace threads { namespace policies {
 
         // round robin, or thread parent - default is thread parent
         work_assignment_policy work_policy_;
+
+        // steal only once local queues are drained, or always
+        // steal high-priority work from other threads
+        work_stealing_policy steal_policy_;
 
         // number of worker threads assigned to this pool
         std::size_t num_workers_;
