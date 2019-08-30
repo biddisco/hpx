@@ -45,7 +45,7 @@ static bool use_scheduler = false;
 static int pool_threads = 1;
 
 // this is our custom scheduler type
-using numa_sched =
+using numa_scheduler =
     hpx::threads::policies::shared_priority_queue_scheduler<>;
 using namespace hpx::threads::policies;
 using hpx::threads::policies::scheduler_mode;
@@ -285,24 +285,25 @@ int main(int argc, char* argv[])
             std::cout << "User defined scheduler creation callback "
                       << std::endl;
 
-            numa_sched::init_parameter_type scheduler_init(
+            numa_scheduler::init_parameter_type scheduler_init(
                 init.num_threads_, {1, 1, 64},
 #if SHARED_PRIORITY_QUEUE_SCHEDULER_API==2
                 true,       // NUMA stealing
                 true,       // Core Stealing
-                numa_sched::work_assignment_policy::assign_work_round_robin,
+                numa_scheduler::work_assignment_policy::assign_work_round_robin,
+                numa_scheduler::work_stealing_policy::steal_after_local,
 #endif
                 init.affinity_data_,
                 thread_queue_init, "shared-priority-scheduler");
-            std::unique_ptr<numa_sched> scheduler(
-                new numa_sched(scheduler_init));
+            std::unique_ptr<numa_scheduler> scheduler(
+                new numa_scheduler(scheduler_init));
 
             init.mode_ = scheduler_mode(scheduler_mode::do_background_work |
                 scheduler_mode::delay_exit);
 
             std::unique_ptr<hpx::threads::thread_pool_base> pool(
                 new hpx::threads::detail::scheduled_thread_pool<
-                    numa_sched>(std::move(scheduler), init));
+                    numa_scheduler>(std::move(scheduler), init));
             return pool;
         });
 
@@ -324,23 +325,24 @@ int main(int argc, char* argv[])
                 -> std::unique_ptr<hpx::threads::thread_pool_base> {
                 std::cout << "User defined scheduler creation callback "
                           << std::endl;
-                numa_sched::init_parameter_type scheduler_init(
+                numa_scheduler::init_parameter_type scheduler_init(
                     init.num_threads_, {4, 4, 64},
 #if SHARED_PRIORITY_QUEUE_SCHEDULER_API==2
                     true,       // NUMA stealing
                     true,       // Core Stealing
-                    numa_sched::work_assignment_policy::assign_work_round_robin,
+                    numa_scheduler::work_assignment_policy::assign_work_round_robin,
+                    numa_scheduler::work_stealing_policy::steal_after_local,
 #endif
                     init.affinity_data_,
                     thread_queue_init, "shared-priority-scheduler");
-                std::unique_ptr<numa_sched> scheduler(
-                    new numa_sched(scheduler_init));
+                std::unique_ptr<numa_scheduler> scheduler(
+                    new numa_scheduler(scheduler_init));
 
                 init.mode_ = scheduler_mode(scheduler_mode::delay_exit);
 
                 std::unique_ptr<hpx::threads::thread_pool_base> pool(
                     new hpx::threads::detail::scheduled_thread_pool<
-                        numa_sched>(std::move(scheduler), init));
+                        numa_scheduler>(std::move(scheduler), init));
                 return pool;
             });
 
