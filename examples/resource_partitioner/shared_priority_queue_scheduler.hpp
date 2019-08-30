@@ -48,16 +48,19 @@ static_assert(false,
 
 #define SHARED_PRIORITY_QUEUE_SCHEDULER_API 2
 
+#ifdef SHARED_PRIORITY_SCHEDULER_DEBUG
+# include <plugins/parcelport/parcelport_logging.hpp>
+#endif
 // ------------------------------------------------------------
 namespace hpx { namespace threads { namespace policies { namespace example {
 
 ///////////////////////////////////////////////////////////////////////////
 #if defined(HPX_HAVE_CXX11_STD_ATOMIC_128BIT)
     using default_shared_priority_queue_scheduler_terminated_queue =
-        lockfree_lifo;
+        concurrentqueue_fifo; // lockfree_lifo;
 #else
     using default_shared_priority_queue_scheduler_terminated_queue =
-        lockfree_fifo;
+        concurrentqueue_fifo; // lockfree_fifo;
 #endif
 
     // Holds core/queue ratios used by schedulers.
@@ -82,7 +85,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
     /// addition, the shared_priority_queue_scheduler is NUMA-aware and takes
     /// NUMA scheduling hints into account when creating and scheduling work.
     template <typename Mutex = std::mutex,
-        typename PendingQueuing = lockfree_fifo,
+        typename PendingQueuing = concurrentqueue_fifo,
         typename TerminatedQueuing =
             default_shared_priority_queue_scheduler_terminated_queue>
     class shared_priority_queue_scheduler : public scheduler_base
@@ -91,6 +94,10 @@ namespace hpx { namespace threads { namespace policies { namespace example {
         enum work_assignment_policy {
             assign_work_round_robin,
             assign_work_thread_parent
+        };
+        enum work_stealing_policy {
+            steal_high_priority_first,
+            steal_after_local,
         };
 
     public:
@@ -104,7 +111,8 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                 core_ratios cores_per_queue,
                 bool numa_stealing,
                 bool core_stealing,
-                work_assignment_policy policy,
+                work_assignment_policy assign_policy,
+                work_stealing_policy steal_policy,
                 detail::affinity_data const& affinity_data,
                 thread_queue_init_parameters thread_queue_init = {},
                 char const* description = "shared_priority_queue_scheduler")
@@ -112,7 +120,8 @@ namespace hpx { namespace threads { namespace policies { namespace example {
               , cores_per_queue_(cores_per_queue)
               , numa_stealing_(numa_stealing)
               , core_stealing_(core_stealing)
-              , work_assign_policy_(policy)
+              , work_assign_policy_(assign_policy)
+              , steal_policy_(steal_policy)
               , thread_queue_init_(thread_queue_init)
               , affinity_data_(affinity_data)
               , description_(description)
@@ -123,14 +132,16 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                 core_ratios cores_per_queue,
                 bool numa_stealing,
                 bool core_stealing,
-                work_assignment_policy policy,
+                work_assignment_policy assign_policy,
+                work_stealing_policy steal_policy,
                 detail::affinity_data const& affinity_data,
                 char const* description)
               : num_worker_threads_(num_worker_threads)
               , cores_per_queue_(cores_per_queue)
               , numa_stealing_(numa_stealing)
               , core_stealing_(core_stealing)
-              , work_assign_policy_(policy)
+              , work_assign_policy_(assign_policy)
+              , steal_policy_(steal_policy)
               , thread_queue_init_()
               , affinity_data_(affinity_data)
               , description_(description)
@@ -142,6 +153,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
             bool numa_stealing_;
             bool core_stealing_;
             work_assignment_policy work_assign_policy_;
+            work_stealing_policy         steal_policy_;
             thread_queue_init_parameters thread_queue_init_;
             detail::affinity_data const& affinity_data_;
             char const* description_;
@@ -193,7 +205,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
         bool cleanup_terminated(bool delete_all) override
         {
             // just cleanup the thread we were called by rather than all threads
-//            LOG_CUSTOM_MSG("cleanup_terminated - global version");
+            LOG_CUSTOM_MSG("cleanup_terminated - global version");
             std::size_t thread_num =this->global_to_local_thread_index(get_worker_thread_num());
             std::size_t domain_num = d_lookup_[thread_num];
             std::size_t q_index    = q_lookup_[thread_num];
@@ -207,6 +219,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
             HPX_ASSERT(thread_num ==
                 this->global_to_local_thread_index(get_worker_thread_num()));
 
+            LOG_CUSTOM_MSG("cleanup_terminated - thread version");
             // find the numa domain from the local thread index
             std::size_t domain_num = d_lookup_[thread_num];
             std::size_t q_index    = q_lookup_[thread_num];
@@ -245,6 +258,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                 thread_num =
                     this->global_to_local_thread_index(global_thread_num);
                 if (thread_num>=num_workers_) {
+                    LOG_ERROR_MSG("thread numbering overflow xPool injection " << thread_num);
                     // This is a task being injected from a thread on another pool.
                     // we can schedule on any thread available
                     thread_num = numa_holder_[0].thread_queue(0)->worker_next(num_workers_);
@@ -253,6 +267,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                     domain_num = d_lookup_[thread_num];
                     q_index    = q_lookup_[thread_num];
                     thread_num = numa_holder_[domain_num].thread_queue(q_index)->numa_next(num_workers_);
+                    LOG_CUSTOM_MSG("round robin assignment " << thread_num);
                 }
                 thread_num = select_active_pu(l, thread_num);
                 domain_num = d_lookup_[thread_num];
@@ -302,12 +317,18 @@ namespace hpx { namespace threads { namespace policies { namespace example {
 
             numa_holder_[domain_num].thread_queue(q_index)->
                     create_thread(data, thrd, initial_state, run_now, ec);
+            LOG_CUSTOM_MSG("create_thread " << msg << " "
+                           << "queue " << decnumber(thread_num)
+                           << "domain " << decnumber(domain_num)
+                           << "qindex " << decnumber(q_index));
         }
 
         /// Return the next thread to be executed, return false if none available
         virtual bool get_next_thread(std::size_t thread_num, bool running,
-            threads::thread_data*& thrd, bool /*enable_stealing*/) override
+            threads::thread_data*& thrd, bool enable_stealing) override
         {
+            LOG_CUSTOM_MSG("get_next_thread " << decnumber(thread_num)
+                << "enable stealing " << enable_stealing);
             HPX_ASSERT(thread_num ==
                 this->global_to_local_thread_index(get_worker_thread_num()));
 
@@ -315,13 +336,32 @@ namespace hpx { namespace threads { namespace policies { namespace example {
             std::size_t domain_num = d_lookup_[thread_num];
             std::size_t q_index    = q_lookup_[thread_num];
 
-            bool result = false;
+            if (!core_stealing_) {
+                // try local queues only
+                bool result = numa_holder_[domain_num].get_next_thread(q_index, thrd, false);
+                if (result) return result;
+            }
+            else if (steal_policy_==steal_high_priority_first) {
             for (std::size_t d=0; d<num_domains_; ++d) {
                 std::size_t dom = fast_mod((domain_num+d), num_domains_);
-                result = numa_holder_[dom].get_next_thread(q_index, thrd, core_stealing_);
+                    bool result = numa_holder_[dom].get_next_thread(q_index, thrd, true);
                 if (result) return result;
                 // if no numa stealing - this thread should only check it's own numa
                 if (!numa_stealing_) break;
+                }
+            }
+            else if (steal_policy_==steal_after_local) {
+                // do this core
+                bool result = numa_holder_[domain_num].get_next_thread(q_index, thrd, false);
+                if (result) return result;
+                // try others
+                for (std::size_t d=0; d<num_domains_; ++d) {
+                    std::size_t dom = fast_mod((domain_num+d), num_domains_);
+                    bool result = numa_holder_[dom].get_next_thread(q_index, thrd, true);
+                    if (result) return result;
+                    // if no numa stealing - this thread should only check it's own numa
+                    if (!numa_stealing_) break;
+                }
             }
             return false;
         }
@@ -414,6 +454,10 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                     std::to_string(schedulehint.mode));
             }
 
+            LOG_CUSTOM_MSG("thread scheduled "
+                          << "queue " << decnumber(thread_num)
+                          << "domain " << decnumber(domain_num)
+                          << "qindex " << decnumber(q_index));
             numa_holder_[domain_num].thread_queue(q_index)->
                     schedule_thread(thrd, priority, false);
         }
@@ -519,27 +563,30 @@ namespace hpx { namespace threads { namespace policies { namespace example {
             HPX_ASSERT(thread_num ==
                 this->global_to_local_thread_index(get_worker_thread_num()));
 
+            bool result = true;
             added = 0;
 
-            // process this thread only if specified
+            LOG_CUSTOM_MSG("wait_or_add_new thread num " << decnumber(thread_num));
+
+            // if our thread num is specified, only handle this thread
             if (thread_num!=std::size_t(-1)) {
                 // find the numa domain from the local thread index
                 std::size_t domain_num = d_lookup_[thread_num];
                 std::size_t q_index    = q_lookup_[thread_num];
-                return numa_holder_[domain_num].thread_queue(q_index)->
-                    wait_or_add_new(running, idle_loop_count, added, core_stealing_);
+                result = numa_holder_[domain_num].thread_queue(q_index)->
+                    wait_or_add_new(running, idle_loop_count, added, false);
+                /*if (0 != added) */return result;
             }
 
             // find the numa domain from the local thread index
             std::size_t domain_num = d_lookup_[thread_num];
             std::size_t q_index    = q_lookup_[thread_num];
-            bool result = false;
             // process all cores if -1 was sent in
             for (std::size_t d=0; d<num_domains_; ++d) {
                 std::size_t dom = fast_mod((domain_num+d), num_domains_);
                 // get next task, steal if from another domain
                 result = numa_holder_[dom].thread_queue(q_index)->wait_or_add_new(running,
-                    idle_loop_count, added, core_stealing_);
+                    idle_loop_count, added, core_stealing_) && result;
                 if (0 != added) return result;
                 if (!numa_stealing_) break;
             }
@@ -553,62 +600,88 @@ namespace hpx { namespace threads { namespace policies { namespace example {
             std::unique_lock<hpx::lcos::local::spinlock> lock(init_mutex);
             if (!initialized_)
             {
+                // make sure no other threads enter when mutex is unlocked
                 initialized_ = true;
 
                 auto const& topo = create_topology();
 
-                // For each worker thread, count which each numa domain they
-                // belong to and build lists of useful indexes/refs
+                // just to reduce line lengths
+                static const int NUMA_COUNT = HPX_HAVE_MAX_NUMA_DOMAIN_COUNT;
+                static const int CPU_COUNT  = HPX_HAVE_MAX_CPU_COUNT;
+
+                // For each worker thread, count which numa domain each
+                // belongs to and build lists of useful indexes/refs
                 num_domains_ = 1;
-                std::array<std::size_t, HPX_HAVE_MAX_NUMA_DOMAIN_COUNT> q_counts_;
+                std::array<std::size_t, NUMA_COUNT>           q_counts_;
+                std::array<std::size_t, CPU_COUNT>            c_lookup_;
+                std::array<std::size_t, CPU_COUNT>            p_lookup_;
+                std::array<std::set<std::size_t>, NUMA_COUNT> c_counts_;
                 std::fill(d_lookup_.begin(), d_lookup_.end(), 0);
                 std::fill(q_lookup_.begin(), q_lookup_.end(), 0);
                 std::fill(q_counts_.begin(), q_counts_.end(), 0);
+                std::fill(c_lookup_.begin(), c_lookup_.end(), 0);
+                std::fill(p_lookup_.begin(), p_lookup_.end(), 0);
+                std::fill(c_shared_.begin(), c_shared_.end(), 0);
 
+                std::array<std::map<std::size_t, std::size_t>, NUMA_COUNT> core_use_;
+                std::map<std::size_t, std::size_t> domain_map;
                 for (std::size_t local_id=0; local_id!=num_workers_; ++local_id)
                 {
                     std::size_t global_id = local_to_global_thread_index(local_id);
                     std::size_t pu_num = affinity_data_.get_pu_num(global_id);
                     std::size_t domain = topo.get_numa_node_number(pu_num);
                     d_lookup_[local_id] = domain;
-                    num_domains_ = (std::max)(num_domains_, domain+1);
+                    // each time a _new_ domain is added increment the offset
+                    domain_map.insert({domain, domain_map.size()});
+                }
+                num_domains_ = domain_map.size();
+                HPX_ASSERT(num_domains_ <= NUMA_COUNT);
+
+                // if we have zero threads on a numa domain, reindex the domains to be
+                // sequential otherwise it messes up counting as an indexing operation
+                // this can happen on nodes that have unusual numa topologies with
+                // (e.g.) High Bandwidth Memory on numa nodes with no processors
+                for (std::size_t local_id=0; local_id<d_lookup_.size(); ++local_id) {
+                    d_lookup_[local_id] = domain_map[d_lookup_[local_id]];
                 }
 
-                HPX_ASSERT(num_domains_ <= HPX_HAVE_MAX_NUMA_DOMAIN_COUNT);
-
-                // if we have zero cores on a numa domain, then reindex the domains to be
-                // sequential otherwise it messes up counting as an indexing operation
+                // ...for each domain, count up the pus assigned, by core
+                // (because pus on the same core will always share queues)
+                // NB. we do this _after_ remapping domains (above)
+                for (std::size_t local_id=0; local_id!=num_workers_; ++local_id)
                 {
-                    std::vector<std::size_t> d_inx(d_lookup_.begin(), d_lookup_.end());
-                    // reduce list of all used domains to simple unique sort list
-                    std::sort(d_inx.begin(), d_inx.end(), std::less<std::size_t>());
-                    auto last = std::unique(d_inx.begin(), d_inx.end());
-                    d_inx.erase(last, d_inx.end());
-                    num_domains_ = d_inx.size();
-                    // turn list into a map
-                    std::map<std::size_t, std::size_t> domain_map;
-                    std::size_t index = 0;
-                    for (auto d : d_inx) domain_map.emplace(d, index++);
-                    // replace old domain number with new one
-                    for (std::size_t d=0; d<d_lookup_.size(); ++d) {
-                        d_lookup_[d] = domain_map[d_lookup_[d]];
+                    std::size_t global_id = local_to_global_thread_index(local_id);
+                    std::size_t pu_num    = affinity_data_.get_pu_num(global_id);
+                    std::size_t core      = topo.get_core_number(pu_num);
+                    std::size_t domain    = d_lookup_[local_id];
+                    // initially, assign cores sequentially (size increments as we add)
+                    p_lookup_[local_id]   = core;
+                    c_lookup_[local_id]   = core_use_[domain].size();
+                    // if this core is already in the map, use the previous value
+                    if (!core_use_[domain].insert({core, c_lookup_[local_id]}).second) {
+                        c_lookup_[local_id] = core_use_[domain][core];
+                        c_shared_[local_id] = 1;
                     }
                 }
 
-                // count cores per domain and assign queues accordingly
-                for (std::size_t local_id=0; local_id<num_workers_; ++local_id)
+                for (std::size_t local_id=0; local_id!=num_workers_; ++local_id)
                 {
-                    q_lookup_[local_id] = q_counts_[d_lookup_[local_id]]++;
+                    std::size_t domain  = d_lookup_[local_id];
+                    q_lookup_[local_id] = core_use_[domain][p_lookup_[local_id]];
                 }
 
                 // init the numa_holder for each domain
-                for (std::size_t dom=0; dom<num_domains_; ++dom)
+                for (std::size_t d=0; d<num_domains_; ++d)
                 {
+                    q_counts_[d] = core_use_[d].size();
                     // init with {cores, queues} on this domain
-                    numa_holder_[dom].init(q_counts_[dom], thread_queue_init_);
+                    numa_holder_[d].init(q_counts_[d], thread_queue_init_);
                 }
 
 
+                debug::output("p_lookup_  ", &p_lookup_[0],  &p_lookup_[num_workers_]);
+                debug::output("c_lookup_  ", &c_lookup_[0],  &c_lookup_[num_workers_]);
+                debug::output("c_shared_  ", &c_shared_[0],  &c_shared_[num_workers_]);
                 debug::output("d_lookup_  ", &d_lookup_[0],  &d_lookup_[num_workers_]);
                 debug::output("q_lookup_  ", &q_lookup_[0],  &q_lookup_[num_workers_]);
                 debug::output("q_counts_  ", &q_counts_[0],  &q_counts_[num_domains_]);
@@ -632,8 +705,10 @@ namespace hpx { namespace threads { namespace policies { namespace example {
             }
 
             // this is the index of out thread in the local numa domain
-            int local_id   = q_lookup_[thread_num];
+            int local_q    = q_lookup_[thread_num];
             int domain_num = d_lookup_[thread_num];
+            // one thread holder per core (shared by PUs)
+            queue_holder_thread<thread_queue_mc<>> *thread_holder = nullptr;
 
             // queue pointers we will assign to each thread
             thread_queue_type *hp_queue = nullptr;
@@ -642,49 +717,57 @@ namespace hpx { namespace threads { namespace policies { namespace example {
 
             std::int16_t owner_mask = 0;
 
+            if (c_shared_[thread_num]) {
+                hp_queue = numa_holder_[domain_num].thread_queue(local_q)->hp_queue_;
+                np_queue = numa_holder_[domain_num].thread_queue(local_q)->np_queue_;
+                lp_queue = numa_holder_[domain_num].thread_queue(local_q)->lp_queue_;
+                thread_holder = numa_holder_[domain_num].queues_[local_q];
+            }
+            else {
             // High priority
             if (cores_per_queue_.high_priority>0) {
-                if (local_id % cores_per_queue_.high_priority == 0) {
+                    if (local_q % cores_per_queue_.high_priority == 0)
+                    {
                     // if we will own the queue, create it
-                    hp_queue = new thread_queue_type(queue_parameters_, nullptr, local_id);
+                        hp_queue = new thread_queue_type(queue_parameters_, nullptr, local_q);
                     owner_mask |= 1;
                 }
                 else {
                     // share the queue with our next lowest thread num neighbour
-                    hp_queue = numa_holder_[domain_num].thread_queue(local_id-1)->hp_queue_;
+                        hp_queue = numa_holder_[domain_num].thread_queue(local_q-1)->hp_queue_;
                 }
             }
 
             // Normal priority
-            if (local_id % cores_per_queue_.normal_priority == 0) {
+                if (local_q % cores_per_queue_.normal_priority == 0) {
                 // if we will own the queue, create it
-                np_queue = new thread_queue_type(queue_parameters_, nullptr, local_id);
+                    np_queue = new thread_queue_type(queue_parameters_, nullptr, local_q);
                 owner_mask |= 2;
             }
             else {
                 // share the queue with our next lowest thread num neighbour
-                np_queue = numa_holder_[domain_num].thread_queue(local_id-1)->np_queue_;
+                    np_queue = numa_holder_[domain_num].thread_queue(local_q-1)->np_queue_;
             }
 
             // Low priority
             if (cores_per_queue_.low_priority>0) {
-                if (local_id % cores_per_queue_.low_priority == 0) {
+                    if (local_q % cores_per_queue_.low_priority == 0) {
                     // if we will own the queue, create it
-                    lp_queue = new thread_queue_type(queue_parameters_, nullptr, local_id);
+                        lp_queue = new thread_queue_type(queue_parameters_, nullptr, local_q);
                     owner_mask |= 4;
                 }
                 else {
                     // share the queue with our next lowest thread num neighbour
-                    lp_queue = numa_holder_[domain_num].thread_queue(local_id-1)->lp_queue_;
+                        lp_queue = numa_holder_[domain_num].thread_queue(local_q-1)->lp_queue_;
                 }
             }
 
-            queue_holder_thread<thread_queue_mc<>> *thread_holder =
-                    new queue_holder_thread<thread_queue_mc<>>(
+                thread_holder = new queue_holder_thread<thread_queue_mc<>>(
                         hp_queue, np_queue, lp_queue,
                         owner_mask, thread_counter, queue_parameters_);
+            }
 
-            numa_holder_[domain_num].queues_[local_id] = thread_holder;
+            numa_holder_[domain_num].queues_[local_q] = thread_holder;
 
             // we can now increment the thread counter and allow the next thread to init
             thread_counter++;
@@ -749,6 +832,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
         // lookup domain from local worker index
         std::array<std::size_t, HPX_HAVE_MAX_CPU_COUNT> d_lookup_;
         std::array<std::size_t, HPX_HAVE_MAX_CPU_COUNT> q_lookup_;
+        std::array<bool,        HPX_HAVE_MAX_CPU_COUNT> c_shared_;
 
         // index of queue on domain from local worker index
         std::array<std::size_t, HPX_HAVE_MAX_CPU_COUNT> hp_lookup_;
@@ -766,8 +850,12 @@ namespace hpx { namespace threads { namespace policies { namespace example {
         // when false, no stealing takes place between any cores(queues)
         bool core_stealing_;
 
+        // round robin, or thread parent - default is thread parent
         work_assignment_policy work_policy_;
 
+        // steal only once local queues are drained, or always
+        // steal high-priority work from other threads
+        work_stealing_policy steal_policy_;
         // number of worker threads assigned to this pool
         std::size_t num_workers_;
 

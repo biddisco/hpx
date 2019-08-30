@@ -265,6 +265,7 @@ int main(int argc, char* argv[])
                 true,       // NUMA stealing
                 true,       // Core Stealing
                 numa_scheduler::work_assignment_policy::assign_work_round_robin,
+                numa_scheduler::work_stealing_policy::steal_after_local,
 #endif
                 init.affinity_data_,
                 thread_queue_init, "shared-priority-scheduler");
