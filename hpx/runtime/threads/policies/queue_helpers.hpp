@@ -246,8 +246,6 @@ namespace hpx { namespace threads { namespace policies
         thread_heap_type thread_heap_large_;
         thread_heap_type thread_heap_huge_;
 
-        std::size_t max_count_;     // maximum number of existing HPX-threads
-
         // mutex protecting the members
         mutable mutex_type mtx_;
 
@@ -521,11 +519,6 @@ namespace hpx { namespace threads { namespace policies
 
             std::lock_guard<mutex_type> lk(mtx_);
             return cleanup_terminated_locked(false);
-        }
-
-        void set_max_count(std::size_t max_count = max_thread_count)
-        {
-            max_count_ = (0 == max_count) ? max_thread_count : max_count; //-V105
         }
 
 //        // ------------------------------------------------------------
