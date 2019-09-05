@@ -675,7 +675,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                 {
                     q_counts_[d] = core_use_[d].size();
                     // init with {cores, queues} on this domain
-                    numa_holder_[d].init(q_counts_[d], thread_queue_init_);
+                    numa_holder_[d].init(q_counts_[d]);
                 }
 
 
@@ -729,7 +729,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                     if (local_q % cores_per_queue_.high_priority == 0)
                     {
                     // if we will own the queue, create it
-                        hp_queue = new thread_queue_type(queue_parameters_, nullptr, local_q);
+                        hp_queue = new thread_queue_type(queue_parameters_, local_q);
                     owner_mask |= 1;
                 }
                 else {
@@ -741,7 +741,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
             // Normal priority
                 if (local_q % cores_per_queue_.normal_priority == 0) {
                 // if we will own the queue, create it
-                    np_queue = new thread_queue_type(queue_parameters_, nullptr, local_q);
+                    np_queue = new thread_queue_type(queue_parameters_, local_q);
                 owner_mask |= 2;
             }
             else {
@@ -753,7 +753,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
             if (cores_per_queue_.low_priority>0) {
                     if (local_q % cores_per_queue_.low_priority == 0) {
                     // if we will own the queue, create it
-                        lp_queue = new thread_queue_type(queue_parameters_, nullptr, local_q);
+                        lp_queue = new thread_queue_type(queue_parameters_, local_q);
                     owner_mask |= 4;
                 }
                 else {
