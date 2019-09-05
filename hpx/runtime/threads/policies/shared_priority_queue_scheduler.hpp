@@ -99,10 +99,10 @@ namespace hpx { namespace threads { namespace policies {
 ///////////////////////////////////////////////////////////////////////////
 #if defined(HPX_HAVE_CXX11_STD_ATOMIC_128BIT)
     using default_shared_priority_queue_scheduler_terminated_queue =
-        lockfree_fifo;
+        lockfree_lifo; // concurrentqueue_fifo; // lockfree_lifo;
 #else
     using default_shared_priority_queue_scheduler_terminated_queue =
-        lockfree_fifo;
+        lockfree_fifo; // concurrentqueue_fifo; // lockfree_fifo;
 #endif
 
     // Holds core/queue ratios used by schedulers.
@@ -127,7 +127,7 @@ namespace hpx { namespace threads { namespace policies {
     /// addition, the shared_priority_queue_scheduler is NUMA-aware and takes
     /// NUMA scheduling hints into account when creating and scheduling work.
     template <typename Mutex = std::mutex,
-        typename PendingQueuing = lockfree_fifo,
+        typename PendingQueuing = lockfree_fifo, // concurrentqueue_fifo,
         typename TerminatedQueuing =
             default_shared_priority_queue_scheduler_terminated_queue>
     class shared_priority_queue_scheduler : public scheduler_base
@@ -157,7 +157,7 @@ namespace hpx { namespace threads { namespace policies {
                 work_assignment_policy assign_policy,
                 work_stealing_policy steal_policy,
                 detail::affinity_data const& affinity_data,
-                thread_queue_init_parameters thread_queue_init = {},
+                const thread_queue_init_parameters &thread_queue_init,
                 char const* description = "shared_priority_queue_scheduler")
               : num_worker_threads_(num_worker_threads)
               , cores_per_queue_(cores_per_queue)
@@ -171,30 +171,10 @@ namespace hpx { namespace threads { namespace policies {
             {
             }
 
-            init_parameter(std::size_t num_worker_threads,
-                core_ratios cores_per_queue,
-                bool numa_stealing,
-                bool core_stealing,
-                work_assignment_policy assign_policy,
-                work_stealing_policy steal_policy,
-                detail::affinity_data const& affinity_data,
-                char const* description)
-              : num_worker_threads_(num_worker_threads)
-              , cores_per_queue_(cores_per_queue)
-              , numa_stealing_(numa_stealing)
-              , core_stealing_(core_stealing)
-              , work_assign_policy_(assign_policy)
-              , steal_policy_(steal_policy)
-              , thread_queue_init_()
-              , affinity_data_(affinity_data)
-              , description_(description)
-            {
-            }
-
-            std::size_t num_worker_threads_;
-            core_ratios cores_per_queue_;
-            bool numa_stealing_;
-            bool core_stealing_;
+            std::size_t                  num_worker_threads_;
+            core_ratios                  cores_per_queue_;
+            bool                         numa_stealing_;
+            bool                         core_stealing_;
             work_assignment_policy       work_assign_policy_;
             work_stealing_policy         steal_policy_;
             thread_queue_init_parameters thread_queue_init_;
@@ -720,7 +700,7 @@ namespace hpx { namespace threads { namespace policies {
                 {
                     q_counts_[d] = core_use_[d].size();
                     // init with {cores, queues} on this domain
-                    numa_holder_[d].init(q_counts_[d], thread_queue_init_);
+                    numa_holder_[d].init(q_counts_[d]);
                 }
 
                 debug::output("p_lookup_  ", &p_lookup_[0],  &p_lookup_[num_workers_]);
@@ -774,7 +754,7 @@ namespace hpx { namespace threads { namespace policies {
                     if (local_q % cores_per_queue_.high_priority == 0)
                     {
                         // if we will own the queue, create it
-                        hp_queue = new thread_queue_type(queue_parameters_, nullptr, local_q);
+                        hp_queue = new thread_queue_type(queue_parameters_, local_q);
                         owner_mask |= 1;
                     }
                     else {
@@ -786,7 +766,7 @@ namespace hpx { namespace threads { namespace policies {
                 // Normal priority
                 if (local_q % cores_per_queue_.normal_priority == 0) {
                     // if we will own the queue, create it
-                    np_queue = new thread_queue_type(queue_parameters_, nullptr, local_q);
+                    np_queue = new thread_queue_type(queue_parameters_, local_q);
                     owner_mask |= 2;
                 }
                 else {
@@ -798,7 +778,7 @@ namespace hpx { namespace threads { namespace policies {
                 if (cores_per_queue_.low_priority>0) {
                     if (local_q % cores_per_queue_.low_priority == 0) {
                         // if we will own the queue, create it
-                        lp_queue = new thread_queue_type(queue_parameters_, nullptr, local_q);
+                        lp_queue = new thread_queue_type(queue_parameters_, local_q);
                         owner_mask |= 4;
                     }
                     else {
