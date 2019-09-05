@@ -103,10 +103,10 @@ namespace hpx { namespace threads { namespace policies {
 ///////////////////////////////////////////////////////////////////////////
 #if defined(HPX_HAVE_CXX11_STD_ATOMIC_128BIT)
     using default_shared_priority_queue_scheduler_terminated_queue =
-        lockfree_lifo; // concurrentqueue_fifo; // lockfree_lifo;
+        concurrentqueue_fifo; // lockfree_lifo;
 #else
     using default_shared_priority_queue_scheduler_terminated_queue =
-        lockfree_fifo; // concurrentqueue_fifo; // lockfree_fifo;
+        concurrentqueue_fifo; // lockfree_fifo;
 #endif
 
     // Holds core/queue ratios used by schedulers.
@@ -131,7 +131,7 @@ namespace hpx { namespace threads { namespace policies {
     /// addition, the shared_priority_queue_scheduler is NUMA-aware and takes
     /// NUMA scheduling hints into account when creating and scheduling work.
     template <typename Mutex = std::mutex,
-        typename PendingQueuing = lockfree_fifo, // concurrentqueue_fifo,
+        typename PendingQueuing = concurrentqueue_fifo,
         typename TerminatedQueuing =
             default_shared_priority_queue_scheduler_terminated_queue>
     class shared_priority_queue_scheduler : public scheduler_base
