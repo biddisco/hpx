@@ -592,7 +592,7 @@ namespace hpx { namespace threads {
 #if SHARED_PRIORITY_QUEUE_SCHEDULER_API==2
                     !cfg_.numa_sensitive_, // NUMA stealing
                     true,                  // Core Stealing
-                    local_sched_type::work_assignment_policy::assign_work_round_robin,
+                    local_sched_type::work_assignment_policy::assign_work_thread_parent,
                     local_sched_type::work_stealing_policy::steal_after_local,
 #endif
                     thread_pool_init.affinity_data_, thread_queue_init,
