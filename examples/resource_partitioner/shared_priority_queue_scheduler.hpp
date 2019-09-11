@@ -245,8 +245,6 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                 {"HINT_NONE" COMMA "HINT....." COMMA "ERROR...." COMMA  "NORMAL..."});
             LOG_CUSTOM_VAR(const char *msg = nullptr);
 
-            std::unique_lock<pu_mutex_type> l;
-
             using threads::thread_schedule_hint_mode;
             switch (data.schedulehint.mode) {
             case thread_schedule_hint_mode::thread_schedule_hint_mode_none:
@@ -269,7 +267,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                     thread_num = numa_holder_[domain_num].thread_queue(q_index)->numa_next(num_workers_);
                     LOG_CUSTOM_MSG("round robin assignment " << thread_num);
                 }
-                thread_num = select_active_pu(l, thread_num);
+                thread_num = select_active_pu(thread_num);
                 domain_num = d_lookup_[thread_num];
                 q_index    = q_lookup_[thread_num];
                 numa_holder_[domain_num].thread_queue(q_index)->debug("create 0  ", q_index, 10+q_index, 10+q_index, nullptr);
@@ -280,7 +278,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                 LOG_CUSTOM_VAR(msg = msgs[3]);
                 // @TODO. We should check that the thread num is valid
                 // Create thread on requested worker thread
-                thread_num = select_active_pu(l, data.schedulehint.hint);
+                thread_num = select_active_pu(data.schedulehint.hint);
                 domain_num = d_lookup_[thread_num];
                 q_index    = q_lookup_[thread_num];
                 numa_holder_[domain_num].thread_queue(q_index)->debug("create t  ", q_index, 20+q_index, 20+q_index, nullptr);
@@ -382,8 +380,6 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                 {"HINT_NONE" COMMA "HINT....." COMMA "ERROR...." COMMA  "NORMAL..."});
             LOG_CUSTOM_VAR(const char *msg = nullptr);
 
-            std::unique_lock<pu_mutex_type> l;
-
             using threads::thread_schedule_hint_mode;
 
             switch (schedulehint.mode) {
@@ -407,7 +403,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                     thread_num = numa_holder_[domain_num].thread_queue(q_index)->
                             numa_next(num_workers_);
                 }
-                thread_num = select_active_pu(l, thread_num, allow_fallback);
+                thread_num = select_active_pu(thread_num, allow_fallback);
                 domain_num = d_lookup_[thread_num];
                 q_index    = q_lookup_[thread_num];
                 numa_holder_[domain_num].thread_queue(q_index)->debug("schedule 0", q_index, domain_num, domain_num, thrd);
@@ -418,7 +414,7 @@ namespace hpx { namespace threads { namespace policies { namespace example {
                 // @TODO. We should check that the thread num is valid
                 // Create thread on requested worker thread
                 LOG_CUSTOM_VAR(msg = msgs[3]);
-                thread_num = select_active_pu(l, schedulehint.hint, allow_fallback);
+                thread_num = select_active_pu(schedulehint.hint, allow_fallback);
                 domain_num = d_lookup_[thread_num];
                 q_index    = q_lookup_[thread_num];
                 numa_holder_[domain_num].thread_queue(q_index)->debug("schedule t", q_index, domain_num, domain_num, thrd);

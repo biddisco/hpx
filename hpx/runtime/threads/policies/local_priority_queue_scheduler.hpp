@@ -544,8 +544,7 @@ namespace hpx { namespace threads { namespace policies {
                 num_thread %= num_queues_;
             }
 
-            std::unique_lock<pu_mutex_type> l;
-            num_thread = select_active_pu(l, num_thread);
+            num_thread = select_active_pu(num_thread);
 
             data.schedulehint.mode = thread_schedule_hint_mode_thread;
             data.schedulehint.hint = static_cast<std::int16_t>(num_thread);
@@ -677,8 +676,7 @@ namespace hpx { namespace threads { namespace policies {
                 num_thread %= num_queues_;
             }
 
-            std::unique_lock<pu_mutex_type> l;
-            num_thread = select_active_pu(l, num_thread, allow_fallback);
+            num_thread = select_active_pu(num_thread, allow_fallback);
 
             if (priority == thread_priority_high_recursive ||
                 priority == thread_priority_high ||
@@ -723,8 +721,7 @@ namespace hpx { namespace threads { namespace policies {
                 num_thread %= num_queues_;
             }
 
-            std::unique_lock<pu_mutex_type> l;
-            num_thread = select_active_pu(l, num_thread, allow_fallback);
+            num_thread = select_active_pu(num_thread, allow_fallback);
 
             if (priority == thread_priority_high_recursive ||
                 priority == thread_priority_high ||
