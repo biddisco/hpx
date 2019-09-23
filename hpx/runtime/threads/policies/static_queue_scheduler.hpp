@@ -73,7 +73,12 @@ namespace hpx { namespace threads { namespace policies
           : base_type(init, deferred_initialization)
         {}
 
-        virtual bool has_thread_stealing(std::size_t num_thread) const override
+        virtual bool has_work_stealing_core() const override
+        {
+            return false;
+        }
+
+        virtual bool has_work_stealing_numa() const override
         {
             return false;
         }

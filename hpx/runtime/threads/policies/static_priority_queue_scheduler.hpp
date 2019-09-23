@@ -67,14 +67,17 @@ namespace hpx { namespace threads { namespace policies
           : base_type(init, deferred_initialization)
         {
             // disable thread stealing to begin with
-            this->remove_scheduler_mode(policies::enable_stealing);
+            this->remove_scheduler_mode(
+                scheduler_mode(policies::enable_stealing_core |
+                               policies::enable_stealing_numa));
         }
 
-        scheduler_mode get_scheduler_mode(std::size_t num_thread) const override
+        scheduler_mode get_scheduler_mode() const override
         {
             return scheduler_mode(
-                this->base_type::get_scheduler_mode(num_thread) &
-                ~policies::enable_stealing);
+                this->base_type::get_scheduler_mode() &
+                ~(policies::enable_stealing_core |
+                  policies::enable_stealing_numa));
         }
 
         static std::string get_scheduler_name()

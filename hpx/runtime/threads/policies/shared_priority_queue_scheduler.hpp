@@ -152,8 +152,6 @@ namespace hpx { namespace threads { namespace policies {
         {
             init_parameter(std::size_t num_worker_threads,
                 core_ratios cores_per_queue,
-                bool numa_stealing,
-                bool core_stealing,
                 work_assignment_policy assign_policy,
                 work_stealing_policy steal_policy,
                 detail::affinity_data const& affinity_data,
@@ -161,8 +159,6 @@ namespace hpx { namespace threads { namespace policies {
                 char const* description = "shared_priority_queue_scheduler")
               : num_worker_threads_(num_worker_threads)
               , cores_per_queue_(cores_per_queue)
-              , numa_stealing_(numa_stealing)
-              , core_stealing_(core_stealing)
               , work_assign_policy_(assign_policy)
               , steal_policy_(steal_policy)
               , thread_queue_init_(thread_queue_init)
@@ -173,8 +169,6 @@ namespace hpx { namespace threads { namespace policies {
 
             std::size_t                  num_worker_threads_;
             core_ratios                  cores_per_queue_;
-            bool                         numa_stealing_;
-            bool                         core_stealing_;
             work_assignment_policy       work_assign_policy_;
             work_stealing_policy         steal_policy_;
             thread_queue_init_parameters thread_queue_init_;
@@ -188,8 +182,6 @@ namespace hpx { namespace threads { namespace policies {
                            init.description_,
                            init.thread_queue_init_)
           , cores_per_queue_(init.cores_per_queue_)
-          , numa_stealing_(init.numa_stealing_)
-          , core_stealing_(init.core_stealing_)
           , work_policy_(init.work_assign_policy_)
           , num_workers_(init.num_worker_threads_)
           , num_domains_(1)
@@ -201,14 +193,6 @@ namespace hpx { namespace threads { namespace policies {
         }
 
         virtual ~shared_priority_queue_scheduler() {}
-
-        bool numa_sensitive() const override {
-            return !numa_stealing_;
-        }
-
-        bool has_thread_stealing(std::size_t /*num_thread*/) const override {
-            return core_stealing_;
-        }
 
         static std::string get_scheduler_name()
         {
@@ -863,14 +847,6 @@ namespace hpx { namespace threads { namespace policies {
 
         // number of cores per queue for HP, NP, LP queues
         core_ratios cores_per_queue_;
-
-        // when true, numa_stealing permits stealing across numa domains,
-        // when false, no stealing takes place across numa domains,
-        bool numa_stealing_;
-
-        // when true, core_stealing permits stealing between cores(queues),
-        // when false, no stealing takes place between any cores(queues)
-        bool core_stealing_;
 
         // round robin, or thread parent - default is thread parent
         work_assignment_policy work_policy_;

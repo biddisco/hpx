@@ -105,9 +105,9 @@ namespace hpx { namespace threads { namespace policies {
         std::pair<hpx::state, hpx::state> get_minmax_state() const;
 
         // get/set scheduler mode
-        virtual scheduler_mode get_scheduler_mode(std::size_t num_thread) const
+        virtual scheduler_mode get_scheduler_mode() const
         {
-            return modes_[num_thread].data_.load(std::memory_order_relaxed);
+            return mode_.load(std::memory_order_relaxed);
         }
 
         void set_scheduler_mode(scheduler_mode mode);
@@ -115,6 +115,8 @@ namespace hpx { namespace threads { namespace policies {
         void add_remove_scheduler_mode(
             scheduler_mode to_add_mode, scheduler_mode to_remove_mode);
         void remove_scheduler_mode(scheduler_mode mode);
+        // add or remove depending on set true/false
+        void update_scheduler_mode(scheduler_mode mode, bool set);
 
         pu_mutex_type& get_pu_mutex(std::size_t num_thread)
         {
@@ -123,12 +125,8 @@ namespace hpx { namespace threads { namespace policies {
         }
 
         ///////////////////////////////////////////////////////////////////////
-        virtual bool numa_sensitive() const
-        {
-            return false;
-        }
-
-        virtual bool has_thread_stealing(std::size_t num_thread) const;
+        virtual bool has_work_stealing_core() const;
+        virtual bool has_work_stealing_numa() const;
 
         // domain management
         std::size_t domain_from_local_thread_index(std::size_t n);
@@ -261,7 +259,7 @@ namespace hpx { namespace threads { namespace policies {
         // the scheduler mode is simply replicated across the cores to
         // avoid false sharing, we ignore benign data races related to this
         // variable
-        std::vector<util::cache_line_data<std::atomic<scheduler_mode>>> modes_;
+        std::atomic<scheduler_mode> mode_;
 
 #if defined(HPX_HAVE_THREAD_MANAGER_IDLE_BACKOFF)
         // support for suspension on idle queues
