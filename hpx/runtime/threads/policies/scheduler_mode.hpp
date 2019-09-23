@@ -33,15 +33,18 @@ namespace hpx { namespace threads { namespace policies
             ///< scheduler to dynamically increase and reduce the number of
             ///< processing units it runs on. Setting this value not succeed for
             ///< schedulers that do not support this functionality.
-        enable_stealing = 0x20,          ///< This option allows for certain
+        enable_stealing_core = 0x20,          ///< This option allows for certain
             ///< schedulers to explicitly disable thread stealing
-        enable_idle_backoff = 0x40,     ///< This option allows for certain
+        enable_stealing_numa = 0x40,          ///< This option allows for certain
+            ///< schedulers to explicitly disable thread stealing
+        enable_idle_backoff = 0x80,     ///< This option allows for certain
             ///< schedulers to explicitly disable exponential idle-back off
         default_mode =
                 do_background_work |
                 reduce_thread_priority |
                 delay_exit |
-                enable_stealing |
+                enable_stealing_core |
+                enable_stealing_numa |
                 enable_idle_backoff,
             ///< This option represents the default mode.
         all_flags =
@@ -50,7 +53,8 @@ namespace hpx { namespace threads { namespace policies
                 delay_exit |
                 fast_idle_mode |
                 enable_elasticity |
-                enable_stealing |
+                enable_stealing_core |
+                enable_stealing_numa |
                 enable_idle_backoff
     };
 }}}
