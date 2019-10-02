@@ -4,6 +4,14 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#define SHARED_PRIORITY_SCHEDULER_DEBUG     true
+#define THREAD_QUEUE_MC_DEBUG               true
+#define GUIDED_POOL_EXECUTOR_DEBUG          true
+#define QUEUE_HOLDER_NUMA_DEBUG             true
+#define QUEUE_HOLDER_THREAD_DEBUG           true
+#define NUMA_BINDING_ALLOCATOR_DEBUG        true
+#define NUMA_BINDING_ALLOCATOR_INIT_MEMORY  true
+
 #include <hpx/hpx.hpp>
 #include <hpx/hpx_init.hpp>
 //
@@ -260,10 +268,10 @@ int main(int argc, char* argv[])
                 thread_queue_init)
             -> std::unique_ptr<hpx::threads::thread_pool_base> {
             numa_scheduler::init_parameter_type scheduler_init(
-                init.num_threads_, {1, 1, 64},
+                init.num_threads_, {1, 2, 4},
 #if SHARED_PRIORITY_QUEUE_SCHEDULER_API==2
-                true,       // NUMA stealing
-                true,       // Core Stealing
+//                true,       // NUMA stealing
+//                true,       // Core Stealing
                 numa_scheduler::work_assignment_policy::assign_work_round_robin,
                 numa_scheduler::work_stealing_policy::steal_after_local,
 #endif
