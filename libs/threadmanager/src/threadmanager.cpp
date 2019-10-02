@@ -639,10 +639,10 @@ namespace hpx { namespace threads {
                     shared_priority_queue_scheduler<>
                         local_sched_type;
                 local_sched_type::init_parameter_type init(
-                    thread_pool_init.num_threads_, {1, 1, 64},
+                    thread_pool_init.num_threads_, {1, 1, 1},
 #if SHARED_PRIORITY_QUEUE_SCHEDULER_API==2
-                    local_sched_type::work_assignment_policy::assign_work_round_robin,
-                    local_sched_type::work_stealing_policy::steal_after_local,
+                    local_sched_type::work_assignment_policy::assign_work_thread_parent,
+                    local_sched_type::work_stealing_policy::steal_high_priority_first,
 #endif
                     thread_pool_init.affinity_data_, thread_queue_init,
                     "core-shared_priority_queue_scheduler");

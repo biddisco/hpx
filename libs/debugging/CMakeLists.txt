@@ -4,7 +4,7 @@
 # Distributed under the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-cmake_minimum_required(VERSION 3.6.3 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.3.2 FATAL_ERROR)
 
 set(debugging_headers
   hpx/debugging/demangle_helper.hpp
@@ -14,7 +14,8 @@ set(debugging_compat_headers
   hpx/util/debug/demangle_helper.hpp
   )
 
-set(debugging_sources)
+set(debugging_sources
+  )
 
 include(HPX_AddModule)
 add_hpx_module(debugging
@@ -27,5 +28,11 @@ add_hpx_module(debugging
   COMPAT_HEADERS ${debugging_compat_headers}
   DEPENDENCIES
     hpx_config
+    hpx_errors
+    hpx_functional
+    hpx_coroutines
+    hpx_hardware
+    hpx_topology
+    hpx_program_options
   CMAKE_SUBDIRS examples tests
 )

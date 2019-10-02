@@ -262,8 +262,6 @@ int main(int argc, char* argv[])
             numa_scheduler::init_parameter_type scheduler_init(
                 init.num_threads_, {1, 1, 64},
 #if SHARED_PRIORITY_QUEUE_SCHEDULER_API==2
-                true,       // NUMA stealing
-                true,       // Core Stealing
                 numa_scheduler::work_assignment_policy::assign_work_round_robin,
                 numa_scheduler::work_stealing_policy::steal_after_local,
 #endif
