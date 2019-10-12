@@ -5,6 +5,7 @@
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 set(tests
+    cross_pool_injection
     named_pool_executor
     resource_partitioner_info
     shutdown_suspended_pus
@@ -18,6 +19,7 @@ set(tests
     used_pus
 )
 
+set(cross_pool_injectionr_PARAMETERS THREADS_PER_LOCALITY all)
 set(named_pool_executor_PARAMETERS THREADS_PER_LOCALITY 4)
 set(resource_partitioner_info_PARAMETERS THREADS_PER_LOCALITY 4)
 set(shutdown_suspended_pus_PARAMETERS THREADS_PER_LOCALITY 4)
