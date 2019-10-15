@@ -607,19 +607,20 @@ namespace hpx { namespace threads {
                         local_sched_type;
                 local_sched_type::init_parameter_type init(
                     thread_pool_init.num_threads_, {1, 1, 1},
-#if SHARED_PRIORITY_QUEUE_SCHEDULER_API==2
-                    local_sched_type::work_assignment_policy::assign_work_thread_parent,
-                    local_sched_type::work_stealing_policy::steal_high_priority_first,
-#endif
                     thread_pool_init.affinity_data_, thread_queue_init,
                     "core-shared_priority_queue_scheduler");
                 std::unique_ptr<local_sched_type> sched(
                     new local_sched_type(init));
 
-                sched->update_scheduler_mode(policies::enable_stealing_core,
-                                             true);
-                sched->update_scheduler_mode(policies::enable_stealing_numa,
-                                             !numa_sensitive);
+                sched->update_scheduler_mode(
+                    policies::scheduler_mode(
+                        policies::enable_stealing |
+                        policies::assign_work_round_robin |
+                        policies::steal_high_priority_first),
+                    true);
+                sched->update_scheduler_mode(
+                    policies::enable_stealing_numa,
+                    !numa_sensitive);
                 // instantiate the pool
                 std::unique_ptr<thread_pool_base> pool(
                     new hpx::threads::detail::scheduled_thread_pool<
