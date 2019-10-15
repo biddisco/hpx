@@ -260,7 +260,8 @@ int main(int argc, char* argv[])
 
     using numa_scheduler =
         hpx::threads::policies::shared_priority_queue_scheduler<>;
-    using hpx::threads::policies::scheduler_mode;
+    using namespace hpx::threads;
+
     // setup the default pool with a numa aware scheduler
     rp.create_thread_pool("default",
         [](hpx::threads::thread_pool_init_parameters init,
@@ -281,8 +282,7 @@ int main(int argc, char* argv[])
                 scheduler_mode::do_background_work |
                 scheduler_mode::delay_exit |
                 scheduler_mode::enable_stealing |
-                scheduler_mode::enable_stealing_numa |
-                scheduler_mode::assign_work_round_robin |
+                scheduler_mode::assign_work_thread_parent |
                 scheduler_mode::steal_after_local);
 
             std::unique_ptr<hpx::threads::thread_pool_base> pool(
