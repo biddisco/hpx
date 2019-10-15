@@ -260,7 +260,8 @@ int main(int argc, char* argv[])
 
     using numa_scheduler =
         hpx::threads::policies::shared_priority_queue_scheduler<>;
-    using hpx::threads::policies::scheduler_mode;
+    using namespace hpx::threads;
+
     // setup the default pool with a numa aware scheduler
     rp.create_thread_pool("default",
         [](hpx::threads::thread_pool_init_parameters init,
@@ -269,20 +270,27 @@ int main(int argc, char* argv[])
             -> std::unique_ptr<hpx::threads::thread_pool_base> {
             numa_scheduler::init_parameter_type scheduler_init(
                 init.num_threads_, {1, 2, 4},
-#if SHARED_PRIORITY_QUEUE_SCHEDULER_API==2
-//                true,       // NUMA stealing
-//                true,       // Core Stealing
-                numa_scheduler::work_assignment_policy::assign_work_round_robin,
-                numa_scheduler::work_stealing_policy::steal_after_local,
-#endif
                 init.affinity_data_,
                 thread_queue_init, "shared-priority-scheduler");
             std::unique_ptr<numa_scheduler> scheduler(
                 new numa_scheduler(scheduler_init));
 
+            scheduler->add_remove_scheduler_mode(
+                hpx::threads::policies::scheduler_mode(
+                    hpx::threads::policies::enable_stealing |
+                    hpx::threads::policies::assign_work_thread_parent |
+                    hpx::threads::policies::steal_high_priority_first),
+                hpx::threads::policies::scheduler_mode(
+                    hpx::threads::policies::enable_stealing_numa |
+                    hpx::threads::policies::assign_work_round_robin |
+                    hpx::threads::policies::steal_after_local |
+                    hpx::threads::policies::steal_after_local)
+            );
+
             scheduler_mode mode =
                 scheduler_mode(scheduler_mode::do_background_work |
                     scheduler_mode::delay_exit);
+
             init.mode_ = mode;
 
             std::unique_ptr<hpx::threads::thread_pool_base> pool(
