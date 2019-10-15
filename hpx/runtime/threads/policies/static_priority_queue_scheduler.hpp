@@ -68,7 +68,7 @@ namespace hpx { namespace threads { namespace policies
         {
             // disable thread stealing to begin with
             this->remove_scheduler_mode(
-                scheduler_mode(policies::enable_stealing_core |
+                scheduler_mode(policies::enable_stealing |
                                policies::enable_stealing_numa));
         }
 
@@ -76,7 +76,7 @@ namespace hpx { namespace threads { namespace policies
         {
             return scheduler_mode(
                 this->base_type::get_scheduler_mode() &
-                ~(policies::enable_stealing_core |
+                ~(policies::enable_stealing |
                   policies::enable_stealing_numa));
         }
 
