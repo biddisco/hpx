@@ -574,8 +574,7 @@ namespace hpx { namespace threads { namespace detail
             // extract the stealing mode once per loop iteration
             bool enable_stealing =
                 scheduler.SchedulingPolicy::get_scheduler_mode() &
-                (policies::enable_stealing_core |
-                 policies::enable_stealing_numa);
+                    policies::enable_stealing;
 
             // stealing staged threads is enabled if:
             // - fast idle mode is on: same as normal stealing
