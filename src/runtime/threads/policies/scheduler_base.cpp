@@ -354,7 +354,7 @@ namespace hpx { namespace threads { namespace policies
 
     bool scheduler_base::has_work_stealing_core() const
     {
-        return (get_scheduler_mode() & policies::enable_stealing_core);
+        return (get_scheduler_mode() & policies::enable_stealing);
     }
 
     bool scheduler_base::has_work_stealing_numa() const
