@@ -37,7 +37,7 @@
 #include <utility>
 
 #ifndef NDEBUG
-# define QUEUE_HOLDER_THREAD_DEBUG true
+# define QUEUE_HOLDER_THREAD_DEBUG false
 #else
 # if !defined(QUEUE_HOLDER_THREAD_DEBUG)
 #  define QUEUE_HOLDER_THREAD_DEBUG false
@@ -233,17 +233,17 @@ namespace hpx { namespace threads { namespace policies {
             if (owns_np_queue()) delete np_queue_;
             if (owns_lp_queue()) delete lp_queue_;
             //
-            for(auto t: thread_heap_small_)
-                deallocate(t.get());
+            for (auto t : thread_heap_small_)
+                deallocate(get_thread_id_data(t));
 
-            for(auto t: thread_heap_medium_)
-                deallocate(t.get());
+            for (auto t : thread_heap_medium_)
+                deallocate(get_thread_id_data(t));
 
-            for(auto t: thread_heap_large_)
-                deallocate(t.get());
+            for (auto t : thread_heap_large_)
+                deallocate(get_thread_id_data(t));
 
-            for(auto t: thread_heap_huge_)
-                deallocate(t.get());
+            for (auto t : thread_heap_huge_)
+                deallocate(get_thread_id_data(t));
         }
 
         // ----------------------------------------------------------------
@@ -489,7 +489,7 @@ namespace hpx { namespace threads { namespace policies {
                 // Take ownership of the thread object and rebind it.
                 tid = heap->front();
                 heap->pop_front();
-                tid->rebind(data, state);
+                get_thread_id_data(tid)->rebind(data, state);
                 tq_deb.debug(debug::str<>("create_thread_object"), "rebind"
                              , queue_data_print(this)
                              , debug::threadinfo<threads::thread_id_type*>(&tid));
@@ -509,7 +509,8 @@ namespace hpx { namespace threads { namespace policies {
         // ----------------------------------------------------------------
         void recycle_thread(thread_id_type thrd)
         {
-            std::ptrdiff_t stacksize = thrd->get_stack_size();
+            std::ptrdiff_t stacksize =
+                get_thread_id_data(thrd)->get_stack_size();
 
             if (stacksize == get_stack_size(thread_stacksize_small))
             {
@@ -556,7 +557,7 @@ namespace hpx { namespace threads { namespace policies {
             if (/*HPX_UNLIKELY*/(!p.second)) {
                 std::string map_size = std::to_string(thread_map_.size());
                 threads::thread_id_type tid2 = *(p.first);
-                threads::thread_data *td = tid2.get();
+                threads::thread_data *td = get_thread_id_data(tid2);
 
                 std::ostringstream address;
                 address << (void const *)td;
@@ -602,7 +603,7 @@ namespace hpx { namespace threads { namespace policies {
                          , debug::threadinfo<thread_id_type*>(&tid));
 
             if (dealloc) {
-                deallocate(tid.get());
+                deallocate(get_thread_id_data(tid));
             }
             --thread_map_count_.data_;
         }
@@ -819,7 +820,7 @@ namespace hpx { namespace threads { namespace policies {
             for (thread_map_type::const_iterator it = thread_map_.begin();
                  it != end; ++it)
             {
-                if ((*it)->get_state().state() == state)
+                if (get_thread_id_data(*it)->get_state().state() == state)
                     ++num_threads;
             }
             return num_threads;
@@ -855,11 +856,11 @@ namespace hpx { namespace threads { namespace policies {
             for (thread_map_type::iterator it = thread_map_.begin();
                  it != end; ++it)
             {
-                if ((*it)->get_state().state() == suspended)
+                if (get_thread_id_data(*it)->get_state().state() == suspended)
                 {
-                    (*it)->set_state(pending, wait_abort);
+                    get_thread_id_data(*it)->set_state(pending, wait_abort);
                     // np queue always exists so use that as priority doesn't matter
-                    np_queue_->schedule_work((*it).get(), true);
+                    np_queue_->schedule_work(get_thread_id_data(*it), true);
                 }
             }
         }
@@ -904,7 +905,7 @@ namespace hpx { namespace threads { namespace policies {
                 for (thread_map_type::const_iterator it = thread_map_.begin();
                      it != end; ++it)
                 {
-                    if ((*it)->get_state().state() == state)
+                    if (get_thread_id_data(*it)->get_state().state() == state)
                         ids.push_back(*it);
                 }
             }

@@ -44,7 +44,7 @@
 #include <vector>
 
 #ifndef NDEBUG
-# define THREAD_QUEUE_MC_DEBUG true
+# define THREAD_QUEUE_MC_DEBUG false
 #else
 # if !defined(THREAD_QUEUE_MC_DEBUG)
 #  define THREAD_QUEUE_MC_DEBUG false
@@ -122,7 +122,7 @@ namespace hpx { namespace threads { namespace policies
                     // pushing the new thread into the pending queue of the
                     // specified thread_queue
                     ++added;
-                    schedule_work(thrd.get(), stealing);
+                    schedule_work(get_thread_id_data(thrd), stealing);
                 }
             }
 
@@ -208,7 +208,7 @@ namespace hpx { namespace threads { namespace policies
 
                 // push the new thread in the pending queue thread
                 if (initial_state == pending)
-                    schedule_work(get_thread_id_data(thrd).get(), false);
+                    schedule_work(get_thread_id_data(thrd), false);
 
                 // return the thread_id of the newly created thread
                 if (id) *id = thrd;

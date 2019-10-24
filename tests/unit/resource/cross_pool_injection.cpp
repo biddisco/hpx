@@ -1,4 +1,4 @@
-//  Copyright (c) 2017 Hartmut Kaiser
+//  Copyright (c) 2019 John Biddiscombe
 //
 //  SPDX-License-Identifier: BSL-1.0
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -46,7 +46,7 @@ int hpx_main(int argc, char* argv[])
     // print partition characteristics
     hpx::threads::get_thread_manager().print_pools(std::cout);
 
-    auto const sched = hpx::threads::get_self_id()->get_scheduler_base();
+    auto const sched = hpx::threads::get_self_id_data()->get_scheduler_base();
     if (std::string("core-shared_priority_queue_scheduler") == sched->get_description()) {
         sched->add_remove_scheduler_mode(
             // add these flags

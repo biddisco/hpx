@@ -37,7 +37,7 @@
 #include <utility>
 
 #ifndef NDEBUG
-# define QUEUE_HOLDER_NUMA_DEBUG true
+# define QUEUE_HOLDER_NUMA_DEBUG false
 #else
 # if !defined(QUEUE_HOLDER_NUMA_DEBUG)
 #  define QUEUE_HOLDER_NUMA_DEBUG false

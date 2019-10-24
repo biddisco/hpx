@@ -249,7 +249,7 @@ void measure_function_futures_limiting_executor(
     std::uint64_t const tasks = num_threads * 2000;
     std::atomic<std::uint64_t> sanity_check(count);
 
-    auto const sched = hpx::threads::get_self_id()->get_scheduler_base();
+    auto const sched = hpx::threads::get_self_id_data()->get_scheduler_base();
     if (std::string("core-shared_priority_queue_scheduler") == sched->get_description()) {
         sched->add_remove_scheduler_mode(
             // add these flags
