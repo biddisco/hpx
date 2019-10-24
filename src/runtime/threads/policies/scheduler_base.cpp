@@ -48,6 +48,7 @@ namespace hpx { namespace threads { namespace policies
       , thread_queue_init_(thread_queue_init)
       , parent_pool_(nullptr)
       , background_thread_count_(0)
+      , background_work_([](){})
     {
         set_scheduler_mode(mode);
 
@@ -326,7 +327,6 @@ namespace hpx { namespace threads { namespace policies
         }
         do_some_work(std::size_t(-1));
     }
-
 
     void scheduler_base::add_scheduler_mode(scheduler_mode mode)
     {

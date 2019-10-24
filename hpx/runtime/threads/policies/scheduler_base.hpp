@@ -248,6 +248,14 @@ namespace hpx { namespace threads { namespace policies {
             return thread_queue_init_.small_stacksize_;
         }
 
+        void set_background_work_function(std::function<void(void)> &f) {
+            background_work_ = f;
+        }
+
+        void process_background() {
+            background_work_();
+        }
+
     protected:
         // the scheduler mode is simply replicated across the cores to
         // avoid false sharing, we ignore benign data races related to this
@@ -281,6 +289,8 @@ namespace hpx { namespace threads { namespace policies {
         threads::thread_pool_base* parent_pool_;
 
         std::atomic<std::int64_t> background_thread_count_;
+
+        std::function<void(void)> background_work_;
 
 #if defined(HPX_HAVE_SCHEDULER_LOCAL_STORAGE)
     public:
