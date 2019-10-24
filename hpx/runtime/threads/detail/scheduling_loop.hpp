@@ -898,6 +898,12 @@ namespace hpx { namespace threads { namespace detail
                     added = std::size_t(-1);
                 }
 
+                if (scheduler.SchedulingPolicy::get_scheduler_mode() &
+                        policies::do_background_work)
+                {
+                    scheduler.process_background();
+                }
+
 #if defined(HPX_HAVE_NETWORKING)
 #if defined(HPX_HAVE_BACKGROUND_THREAD_COUNTERS) &&                            \
     defined(HPX_HAVE_THREAD_IDLE_RATES)
