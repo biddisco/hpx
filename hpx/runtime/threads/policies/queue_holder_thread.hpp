@@ -39,7 +39,7 @@
 #include <utility>
 
 #ifndef NDEBUG
-# define QUEUE_HOLDER_THREAD_DEBUG true
+# define QUEUE_HOLDER_THREAD_DEBUG false
 #else
 # if !defined(QUEUE_HOLDER_THREAD_DEBUG)
 #  define QUEUE_HOLDER_THREAD_DEBUG false
@@ -487,6 +487,9 @@ namespace hpx { namespace threads { namespace policies {
                 tid = heap->front();
                 heap->pop_front();
                 get_thread_id_data(tid)->rebind(data, state);
+                tq_deb.debug(debug::str<>("create_thread_object"), "rebind"
+                             , queue_data_print(this)
+                             , debug::threadinfo<threads::thread_id_type*>(&tid));
             }
             else
             {
