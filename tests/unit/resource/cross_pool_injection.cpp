@@ -4,8 +4,14 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-// Simple test verifying basic resource partitioner
-// pool and executor
+// This test creates a random number of thread pools at startup
+// and assigns a random number of threads to each (not exceeding the 
+// number of threads available in total). Tasks are created and assigned
+// to random pools, with continuations assigned to another random pool
+// using an executor per pool.
+// The test is intended to stress test the scheduler and ensure that
+// cross pool injection of tasks does not cause segfaults or other
+// problems such as lockups.
 
 #include <hpx/hpx_init.hpp>
 
@@ -211,10 +217,6 @@ int main(int argc, char* argv[])
                     // pick a random number of threads less than the max
                     threads_in_pool = 1 + st_rand() %
                             ((std::max)(std::size_t(1),max_threads/2));
-// { DEBUG ONLY
-                    threads_in_pool = max_threads/2;
-// } DEBUG ONLY
-
                     pool_name = "pool-"+std::to_string(num_pools);
                     rp.create_thread_pool(pool_name,
                         hpx::resource::scheduling_policy::shared_priority);
