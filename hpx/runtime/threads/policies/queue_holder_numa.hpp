@@ -18,7 +18,8 @@
 #include <hpx/thread_support/unlock_guard.hpp>
 //
 #include <hpx/runtime/threads/policies/queue_holder_thread.hpp>
-#include <libs/debug/include/hpx/debug/locks.hpp>
+#include <hpx/debugging/locks.hpp>
+#include <hpx/debugging/profiler.hpp>
 //
 #include <cmath>
 #include <cstddef>
@@ -99,7 +100,7 @@ namespace hpx { namespace threads { namespace policies
             for (std::uint16_t i=0; i<num_queues_;
                  ++i, q = fast_mod((qidx + i), num_queues_))
             {
-                if (queues_[q]->get_next_thread_HP(thrd, (stealing || (i>0)))) {
+                if (queues_[q]->get_next_thread_HP(thrd, (stealing || (i>0)), i==0)) {
                     nq_deb.debug(debug::str<>("HP/BP get_next")
                          , "D", debug::dec<2>(domain_)
                          , "Q",  debug::dec<3>(q)
@@ -144,7 +145,7 @@ namespace hpx { namespace threads { namespace policies
 
         // ----------------------------------------------------------------
         bool add_new_HP(
-                ThreadQueue *origin,
+                ThreadQueue *receiver,
                 std::uint16_t qidx,
                 std::size_t &added,
                 bool stealing, bool allow_stealing)
@@ -154,7 +155,7 @@ namespace hpx { namespace threads { namespace policies
             for (std::uint16_t i=0; i<num_queues_;
                  ++i, q = fast_mod((qidx + i), num_queues_))
             {
-                std::size_t added = origin->add_new_HP(8, queues_[q], (stealing || (i>0)));
+                std::size_t added = receiver->add_new_HP(64, queues_[q], (stealing || (i>0)));
                 if (added>0) {
                     nq_deb.debug(debug::str<>("HP/BP add_new")
                         , "added", debug::dec<>(added)
@@ -173,7 +174,7 @@ namespace hpx { namespace threads { namespace policies
 
         // ----------------------------------------------------------------
         bool add_new(
-                ThreadQueue *origin,
+                ThreadQueue *receiver,
                 std::uint16_t qidx,
                 std::size_t &added,
                 bool stealing, bool allow_stealing)
@@ -183,7 +184,7 @@ namespace hpx { namespace threads { namespace policies
             for (std::uint16_t i=0; i<num_queues_;
                  ++i, q = fast_mod((qidx + i), num_queues_))
             {
-                std::size_t added = origin->add_new(8, queues_[q], (stealing || (i>0)));
+                std::size_t added = receiver->add_new(64, queues_[q], (stealing || (i>0)));
                 if (added>0) {
                     nq_deb.debug(debug::str<>("add_new")
                          , "added", debug::dec<>(added)

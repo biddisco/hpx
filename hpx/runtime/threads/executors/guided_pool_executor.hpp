@@ -14,11 +14,11 @@
 #include <hpx/lcos/dataflow.hpp>
 #include <hpx/functional/bind_back.hpp>
 #include <hpx/debugging/demangle_helper.hpp>
+#include <hpx/debugging/print.hpp>
 #include <hpx/functional/invoke.hpp>
 #include <hpx/util/pack_traversal.hpp>
 #include <hpx/util/thread_description.hpp>
 #include <hpx/traits/is_future_tuple.hpp>
-#include <libs/debug/include/hpx/debug/print.hpp>
 
 #include <cstddef>
 #include <cstdint>
