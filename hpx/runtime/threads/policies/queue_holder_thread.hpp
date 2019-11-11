@@ -335,6 +335,8 @@ namespace hpx { namespace threads { namespace policies {
         // ----------------------------------------------------------------
         bool cleanup_terminated(std::size_t thread_num, bool delete_all)
         {
+//            hpx::debug::task_profiler prof("cleanup_terminated","thread_holder");
+            //
             if (thread_num!=thread_num_) {
                 tq_deb.error(debug::str<>("assertion fail")
                              , "thread_num", thread_num
@@ -445,6 +447,13 @@ namespace hpx { namespace threads { namespace policies {
         }
 
         // ----------------------------------------------------------------
+        // Not thread safe. This function must only be called by the
+        // thread that owns the holder object.
+        // Creates a thread_data object using information from
+        // thread_init_data .
+        // If a thread data object is available on one of the heaps
+        // it will use that, otherwise a new one is created.
+        // Heaps store data ordered/sorted by stack size
         void create_thread_object(threads::thread_id_type& tid,
             threads::thread_init_data& data, thread_state_enum state)
         {
@@ -615,11 +624,12 @@ namespace hpx { namespace threads { namespace policies {
         }
 
         // ----------------------------------------------------------------
-        bool get_next_thread_HP(threads::thread_data*& thrd, bool stealing) HPX_HOT
+        bool get_next_thread_HP(threads::thread_data*& thrd,
+                                bool stealing, bool check_new) HPX_HOT
         {
             // only take from BP queue if we are not stealing
             if (!stealing && bp_queue_ &&
-                    bp_queue_->get_next_thread(thrd, stealing))
+                    bp_queue_->get_next_thread(thrd, stealing, check_new))
             {
                 tq_deb.debug(debug::str<>("next_thread_BP")
                              , queue_data_print(this)
@@ -629,7 +639,7 @@ namespace hpx { namespace threads { namespace policies {
             }
 
             if (hp_queue_ &&
-                    hp_queue_->get_next_thread(thrd, stealing))
+                    hp_queue_->get_next_thread(thrd, stealing, check_new))
             {
                 tq_deb.debug(debug::str<>("get_next_thread_HP")
                              , queue_data_print(this)

@@ -18,6 +18,7 @@
 #include <hpx/runtime/threads/policies/queue_holder_numa.hpp>
 #include <hpx/runtime/threads/thread_data.hpp>
 #include <hpx/topology/topology.hpp>
+#include <hpx/debugging/print.hpp>
 #include <hpx/errors.hpp>
 #include <hpx/logging.hpp>
 #include <hpx/util/yield_while.hpp>
@@ -47,7 +48,7 @@ static_assert(false,
 #else
 
 #ifndef NDEBUG
-# define SHARED_PRIORITY_SCHEDULER_DEBUG true
+# define SHARED_PRIORITY_SCHEDULER_DEBUG false
 #else
 # if !defined(SHARED_PRIORITY_SCHEDULER_DEBUG)
 #  define SHARED_PRIORITY_SCHEDULER_DEBUG false
@@ -473,7 +474,7 @@ namespace hpx { namespace threads { namespace policies {
                 else {
                     // try other numa domains BP/HP
                     std::uint16_t dstart = fast_mod((domain+1), num_domains_);
-                    std::uint16_t dom = fast_mod((domain+1), num_domains_);
+                    std::uint16_t dom = dstart;
                     for (std::uint16_t d=1; d<num_domains_;
                          ++d, // these are executed at the end of a loop
                          dom=fast_mod((domain+d), num_domains_))
@@ -490,7 +491,7 @@ namespace hpx { namespace threads { namespace policies {
                         }
                     }
                     // try other numa domains NP/LP
-                    dom = fast_mod((domain+1), num_domains_);
+                    dom = dstart;
                     for (std::uint16_t d=1; d<num_domains_;
                          ++d, dom=fast_mod((domain+d), num_domains_))
                     {
@@ -572,6 +573,7 @@ namespace hpx { namespace threads { namespace policies {
             std::int64_t& idle_loop_count, bool /*enable_stealing*/,
             std::size_t& added) override
         {
+//            hpx::debug::task_profiler prof("wait_or_add_new","scheduler");
             int this_thread = local_thread_number();
             HPX_ASSERT(this_thread>=0 && this_thread<int(num_workers_));
 
@@ -856,6 +858,7 @@ namespace hpx { namespace threads { namespace policies {
         ///////////////////////////////////////////////////////////////////////
         void on_start_thread(std::size_t local_thread) override
         {
+//            hpx::debug::task_profiler prof("start_thread","scheduler");
             spq_deb.debug(debug::str<>("start_thread"), "local_thread", local_thread);
 
             auto const& topo = create_topology();
@@ -883,7 +886,7 @@ namespace hpx { namespace threads { namespace policies {
                     std::size_t global_id = local_to_global_thread_index(local_id);
                     std::size_t pu_num = affinity_data_.get_pu_num(global_id);
                     std::size_t domain = topo.get_numa_node_number(pu_num);
-#if 1 || defined(SHARED_PRIORITY_SCHEDULER_DEBUG_NUMA)
+#if 0 && SHARED_PRIORITY_SCHEDULER_DEBUG_NUMA==1
                     if (pu_num>(num_workers_/2)) {
                         domain++;
                     }

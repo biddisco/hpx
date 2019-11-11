@@ -5,7 +5,7 @@
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 // Test that creates a set of tasks using normal priority, but every
-// Nth normal task spawns a set of high priority tasks. 
+// Nth normal task spawns a set of high priority tasks.
 // The test is intended to be used with a task plotting/profiling
 // tool to verify that high priority tasks run before low ones.
 
@@ -19,7 +19,7 @@
 #include <hpx/runtime/threads/executors/pool_executor.hpp>
 #include <hpx/testing.hpp>
 #include <hpx/program_options.hpp>
-#include <hpx/debugging/profiler.hpp>
+// #include <hpx/debugging/profiler.hpp>
 
 #include <cstddef>
 #include <string>
@@ -34,7 +34,7 @@ using hpx::program_options::variables_map;
 // dummy function we will call using async
 void dummy_task(const std::string &name, std::size_t n)
 {
-    hpx::debug::task_profiler t(name,"group_" + name);
+//    hpx::debug::task_profiler t(name,"group_" + name);
     // no other work can take place on this thread whilst it sleeps
     std::this_thread::sleep_for(std::chrono::microseconds(n));
     //
@@ -93,7 +93,7 @@ int hpx_main(variables_map& vm)
     std::atomic<int> counter = (np_loop + hp_loop)*cycles;
     std::atomic<int> counter1 = 0;
     {
-        hpx::debug::task_profiler t("launch", "master");
+//        hpx::debug::task_profiler t("launch", "master");
         for (int i=0; i<np_total; ++i)
         {
             // normal priority
@@ -101,7 +101,7 @@ int hpx_main(variables_map& vm)
                 then(hpx::launch::sync, [&](auto &&){
                     counter--;
                     if (++counter1 % np_loop == 0) {
-                        hpx::debug::task_profiler t2("launch", "master");
+//                        hpx::debug::task_profiler t2("launch", "master");
                         for (int j=0; j<hp_loop; ++j)
                         {
                             // high priority
@@ -140,15 +140,15 @@ int main(int argc, char* argv[])
          "number of cycles in the benchmark");
     // clang-format on
 
-    std::string profiler_filename("scheduler_test.csv");
-    hpx::debug::get_profiler()->setOutputFilename(profiler_filename);
+//    std::string profiler_filename("scheduler_test.csv");
+//    hpx::debug::get_profiler()->setOutputFilename(profiler_filename);
 
     // Create the resource partitioner
     hpx::resource::partitioner rp(cmdline, argc, argv);
 
     HPX_TEST_EQ(hpx::init(), 0);
 
-    hpx::debug::delete_profiler();
+//    hpx::debug::delete_profiler();
 
     return hpx::util::report_errors();
 }

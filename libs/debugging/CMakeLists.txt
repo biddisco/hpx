@@ -8,6 +8,9 @@ cmake_minimum_required(VERSION 3.3.2 FATAL_ERROR)
 
 set(debugging_headers
   hpx/debugging/demangle_helper.hpp
+#  hpx/debugging/print.hpp
+#  hpx/debugging/locks.hpp
+#  hpx/debugging/profiler.hpp
   )
 
 set(debugging_compat_headers
