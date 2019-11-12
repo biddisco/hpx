@@ -267,17 +267,16 @@ int main(int argc, char* argv[])
         [](hpx::threads::thread_pool_init_parameters init,
             hpx::threads::policies::thread_queue_init_parameters
                 thread_queue_init)
-            -> std::unique_ptr<hpx::threads::thread_pool_base> {
+            -> std::unique_ptr<hpx::threads::thread_pool_base>
+        {
             std::cout << "User defined scheduler creation callback "
                       << std::endl;
             numa_scheduler::init_parameter_type scheduler_init(
-                init.num_threads_, {1, 1, 64},
-#if SHARED_PRIORITY_QUEUE_SCHEDULER_API==2
-                numa_scheduler::work_assignment_policy::assign_work_round_robin,
-                numa_scheduler::work_stealing_policy::steal_after_local,
-#endif
+                init.num_threads_,
+                {1, 1, 64},
                 init.affinity_data_,
                 thread_queue_init, "shared-priority-scheduler");
+
             std::unique_ptr<numa_scheduler> scheduler(
                 new numa_scheduler(scheduler_init));
 

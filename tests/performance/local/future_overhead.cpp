@@ -252,7 +252,7 @@ void measure_function_futures_limiting_executor(
     auto const sched = hpx::threads::get_self_id_data()->get_scheduler_base();
     if (std::string("core-shared_priority_queue_scheduler") == sched->get_description()) {
         sched->update_scheduler_mode(
-            hpx::threads::policies::enable_stealing_core, true);
+            hpx::threads::policies::enable_stealing, true);
         sched->update_scheduler_mode(
             hpx::threads::policies::enable_stealing_numa, true);
     }
@@ -406,7 +406,7 @@ void measure_function_futures_create_thread_hierarchical_placement(
 
     if (std::string("core-shared_priority_queue_scheduler") == sched->get_description()) {
         sched->update_scheduler_mode(
-            hpx::threads::policies::enable_stealing_core, false);
+            hpx::threads::policies::enable_stealing, false);
         sched->update_scheduler_mode(
             hpx::threads::policies::enable_stealing_numa, false);
     }
