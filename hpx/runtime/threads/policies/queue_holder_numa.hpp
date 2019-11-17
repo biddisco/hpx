@@ -59,7 +59,7 @@ namespace hpx { namespace threads { namespace policies
     struct queue_holder_numa
     {
         // ----------------------------------------------------------------
-        using ThreadQueue = queue_holder_thread<QueueType>;
+        using thread_holder_type = queue_holder_thread<QueueType>;
         using mutex_type  = typename QueueType::mutex_type;
 
         // ----------------------------------------------------------------
@@ -86,7 +86,7 @@ namespace hpx { namespace threads { namespace policies
         }
 
         // ----------------------------------------------------------------
-        inline ThreadQueue* thread_queue(std::uint16_t id) const
+        inline thread_holder_type* thread_queue(std::uint16_t id) const
         {
             return queues_[id];
         }
@@ -106,7 +106,7 @@ namespace hpx { namespace threads { namespace policies
                          , "Q",  debug::dec<3>(q)
                          , "Qidx",  debug::dec<3>(qidx)
                          , ((i==0 && !stealing) ? "taken" : "stolen from")
-                         , typename ThreadQueue::queue_data_print(queues_[q])
+                         , typename thread_holder_type::queue_data_print(queues_[q])
                          , debug::threadinfo<threads::thread_data*>(thrd));
                     return true;
                 }
@@ -133,7 +133,7 @@ namespace hpx { namespace threads { namespace policies
                          , "Q",  debug::dec<3>(q)
                          , "Qidx",  debug::dec<3>(qidx)
                          , ((i==0 && !stealing) ? "taken" : "stolen from")
-                         , typename ThreadQueue::queue_data_print(queues_[q])
+                         , typename thread_holder_type::queue_data_print(queues_[q])
                          , debug::threadinfo<threads::thread_data*>(thrd));
                     return true;
                 }
@@ -145,7 +145,7 @@ namespace hpx { namespace threads { namespace policies
 
         // ----------------------------------------------------------------
         bool add_new_HP(
-                ThreadQueue *receiver,
+                thread_holder_type *receiver,
                 std::uint16_t qidx,
                 std::size_t &added,
                 bool stealing, bool allow_stealing)
@@ -163,7 +163,7 @@ namespace hpx { namespace threads { namespace policies
                         , "Q",  debug::dec<3>(q)
                         , "Qidx",  debug::dec<3>(qidx)
                         , ((i==0 && !stealing) ? "taken" : "stolen from")
-                        , typename ThreadQueue::queue_data_print(queues_[q]));
+                        , typename thread_holder_type::queue_data_print(queues_[q]));
                     return true;
                 }
                 // if stealing disabled, do not check other queues
@@ -174,7 +174,7 @@ namespace hpx { namespace threads { namespace policies
 
         // ----------------------------------------------------------------
         bool add_new(
-                ThreadQueue *receiver,
+                thread_holder_type *receiver,
                 std::uint16_t qidx,
                 std::size_t &added,
                 bool stealing, bool allow_stealing)
@@ -192,7 +192,7 @@ namespace hpx { namespace threads { namespace policies
                          , "Q",  debug::dec<3>(q)
                          , "Qidx",  debug::dec<3>(qidx)
                          , ((i==0 && !stealing) ? "taken" : "stolen from")
-                         , typename ThreadQueue::queue_data_print(queues_[q]));
+                         , typename thread_holder_type::queue_data_print(queues_[q]));
                     return true;
                 }
                 // if stealing disabled, do not check other queues
@@ -240,7 +240,7 @@ namespace hpx { namespace threads { namespace policies
         // ----------------------------------------------------------------
         std::uint16_t                       num_queues_;
         std::uint16_t                       domain_;
-        std::vector<ThreadQueue*>           queues_;
+        std::vector<thread_holder_type*>           queues_;
 
     public:
 

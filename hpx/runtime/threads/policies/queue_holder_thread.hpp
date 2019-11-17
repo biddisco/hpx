@@ -165,8 +165,8 @@ namespace hpx { namespace threads { namespace policies {
 
         struct queue_data_print
         {
-            const queue_holder_thread *q_;
-            queue_data_print(const queue_holder_thread* q) : q_(q) {}
+            const thread_holder_type *q_;
+            queue_data_print(const thread_holder_type* q) : q_(q) {}
             //
             friend std::ostream & operator <<
                 (std::ostream &os, const queue_data_print& d)
@@ -842,7 +842,7 @@ namespace hpx { namespace threads { namespace policies {
         void destroy_thread(threads::thread_data* thrd, std::uint16_t thread_num, bool xthread)
         {
             // the thread must be destroyed by the same queue holder that created it
-            HPX_ASSERT(&thrd->get_queue<queue_holder_thread>() == this);
+            HPX_ASSERT(&thrd->get_queue<thread_holder_type>() == this);
             //
             tq_deb.debug(debug::str<>("destroy"), "terminated_items push"
                          , "xthread", xthread
@@ -971,7 +971,7 @@ namespace hpx { namespace threads { namespace policies {
 
     template <typename QueueType>
     util::internal_allocator<threads::thread_data>
-        queue_holder_thread<QueueType>::thread_alloc_;
+        thread_holder_type::thread_alloc_;
 
 #ifdef HPX_HAVE_THREAD_MINIMAL_DEADLOCK_DETECTION
     // ------------------------------------------------------------

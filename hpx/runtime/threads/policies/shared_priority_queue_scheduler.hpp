@@ -108,9 +108,11 @@ namespace hpx { namespace threads { namespace policies {
     public:
         using has_periodic_maintenance = std::false_type;
 
-        using thread_queue_type = thread_queue_mc<Mutex, PendingQueuing,
-            PendingQueuing, TerminatedQueuing>;
-        using thread_holder_type = queue_holder_thread<thread_queue_type>;
+        using thread_queue_type =
+            thread_queue_mc<>::thread_queue_type;
+
+        using thread_holder_type =
+            queue_holder_thread<thread_queue_type>;
 
         struct init_parameter
         {
@@ -759,8 +761,8 @@ namespace hpx { namespace threads { namespace policies {
             threads::thread_data* thrd, std::int64_t& busy_count) override
         {
             HPX_ASSERT(thrd->get_scheduler_base() == this);
-            auto d1 = thrd->get_queue<queue_holder_thread<thread_queue_type>>().domain_index_;
-            auto q1 = thrd->get_queue<queue_holder_thread<thread_queue_type>>().queue_index_;
+            auto d1 = thrd->get_queue<thread_holder_type>().domain_index_;
+            auto q1 = thrd->get_queue<thread_holder_type>().queue_index_;
 
             int this_thread = local_thread_number();
             HPX_ASSERT(this_thread>=0 && this_thread<int(num_workers_));
@@ -780,7 +782,7 @@ namespace hpx { namespace threads { namespace policies {
             // the cleanup of a task should be done by the original owner
             // of the task, so return it to the queue it came from before it
             // was stolen
-            thrd->get_queue<queue_holder_thread<thread_queue_type>>().
+            thrd->get_queue<thread_holder_type>().
                     destroy_thread(thrd, this_thread, xthread);
         }
 
@@ -1062,7 +1064,7 @@ namespace hpx { namespace threads { namespace policies {
                                   , "owner_mask", owner_mask
                                   );
 
-                    thread_holder = new queue_holder_thread<thread_queue_type>(
+                    thread_holder = new thread_holder_type(
                         bp_queue, hp_queue, np_queue, lp_queue,
                         domain, index, local_id, owner_mask,
                         queue_parameters_);
