@@ -15,7 +15,10 @@
 #include <hpx/runtime/threads/thread_executor.hpp>
 #include <hpx/runtime/threads/thread_pool_base.hpp>
 #include <hpx/functional/invoke.hpp>
+#include <hpx/functional/invoke_fused.hpp>
+#include <hpx/functional/result_of.hpp>
 #include <hpx/util/yield_while.hpp>
+#include <hpx/type_support/void_guard.hpp>
 
 #include <atomic>
 #include <cstddef>
@@ -101,16 +104,22 @@ namespace hpx { namespace threads { namespace executors
             );
         }
 
+        struct on_exit {
+             on_exit(limiting_executor *this_e) : exec_(this_e) {}
+            ~on_exit() { exec_->count_down(); }
+             limiting_executor *exec_;
+        };
+
         // --------------------------------------------------------------------
         // async execute specialized for simple arguments typical
         // of a normal async call with arbitrary arguments
         // --------------------------------------------------------------------
         template <typename F, typename ... Ts>
-        future<typename util::invoke_result<F, Ts...>::type>
+        future<typename util::detail::invoke_deferred_result<F, Ts...>::type>
         async_execute(F && f, Ts &&... ts)
+
         {
-            typedef typename util::detail::invoke_deferred_result<
-                    F, Ts...>::type result_type;
+            using result_type = typename util::detail::invoke_deferred_result<F, Ts...>::type;
 
             count_up();
             auto&& args = hpx::util::make_tuple(std::forward<Ts>(ts)...);
@@ -118,8 +127,8 @@ namespace hpx { namespace threads { namespace executors
                 executor_,
                 [this, HPX_CAPTURE_FORWARD(f), HPX_CAPTURE_FORWARD(args)]() mutable
                 {
-                    hpx::util::invoke_fused(std::move(f), std::move(args));
-                    count_down();
+                    on_exit decrementer(this);
+                    return util::void_guard<result_type>(), util::invoke_fused(std::move(f), std::move(args));
                 }
             );
 
@@ -127,6 +136,8 @@ namespace hpx { namespace threads { namespace executors
                 launch::async,
                 threads::thread_priority_default,
                 threads::thread_stacksize_default);
+//                executor_.get_priority(),
+//                executor_.get_stacksize());
 
             return p.get_future();
         }
@@ -140,23 +151,19 @@ namespace hpx { namespace threads { namespace executors
                   typename ... Ts,
                   typename = enable_if_t<traits::is_future<
                     typename std::remove_reference<Future>::type>::value>>
-        auto
+        future<typename util::detail::invoke_deferred_result<F, Future, Ts...>::type>
         then_execute(F && f, Ts &&... ts)
-        ->  future<typename util::detail::invoke_deferred_result<
-            F, Future, Ts...>::type>
         {
-            typedef typename util::detail::invoke_deferred_result<
-                    F, Future, Ts...>::type result_type;
+            using result_type = typename util::detail::invoke_deferred_result<F, Ts...>::type;
 
             count_up();
-
             auto&& args = hpx::util::make_tuple(std::forward<Ts>(ts)...);
             lcos::local::futures_factory<result_type()> p(
                 executor_,
                 [this, HPX_CAPTURE_FORWARD(f), HPX_CAPTURE_FORWARD(args)]() mutable
                 {
-                    hpx::util::invoke_fused(std::move(f), std::move(args));
-                    count_down();
+                    on_exit decrementer(this);
+                    return util::void_guard<result_type>(), util::invoke_fused(std::move(f), std::move(args));
                 }
             );
 
