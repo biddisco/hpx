@@ -234,6 +234,17 @@ namespace hpx { namespace threads { namespace policies {
                     return -1;
                 }
 
+                std::size_t get_numa_node_index() override
+                {
+                    int local_num = local_thread_number();
+                    return d_lookup_[local_num];
+                }
+
+                std::size_t get_numa_node_total() override
+                {
+                    return num_domains_;
+                }
+
                 // ------------------------------------------------------------
                 bool cleanup_terminated(bool delete_all) override
                 {

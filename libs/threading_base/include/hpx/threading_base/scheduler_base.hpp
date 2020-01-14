@@ -270,6 +270,20 @@ namespace hpx { namespace threads { namespace policies {
             return thread_queue_init_.small_stacksize_;
         }
 
+        // Return numa node that the scheduler's calling thread is running on
+        // A return value of -1 indicates that the calling thread does not belong
+        // to the pool of threads managed by this scheduler
+        virtual std::size_t get_numa_node_index()
+        {
+            return 0;
+        }
+
+        // Return the number of numa nodes the scheduler is managing
+        virtual std::size_t get_numa_node_total()
+        {
+            return 1;
+        }
+
     protected:
         // the scheduler mode, ptoected from false sharing
         util::cache_line_data<std::atomic<scheduler_mode>> mode_;
