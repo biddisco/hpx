@@ -270,7 +270,10 @@ namespace hpx { namespace compute { namespace host {
         {
             pointer result = nullptr;
 
-            if (policy_ ==
+            if (binding_helper_.get()==nullptr) {
+                result = new T[n];
+            }
+            else if (policy_ ==
                 threads::hpx_hwloc_membind_policy::membind_firsttouch)
             {
                 threads::hwloc_bitmap_ptr bitmap =
@@ -337,7 +340,12 @@ namespace hpx { namespace compute { namespace host {
 #ifdef NUMA_BINDING_ALLOCATOR_DEBUG_PAGE_BINDING
             display_binding(p, binding_helper_);
 #endif
-            threads::topology().deallocate(p, n * sizeof(T));
+            if (binding_helper_.get()==nullptr) {
+                delete []p;
+            }
+            else {
+                threads::topology().deallocate(p, n * sizeof(T));
+            }
         }
 
         // Returns the maximum theoretically possible value of n, for which the
