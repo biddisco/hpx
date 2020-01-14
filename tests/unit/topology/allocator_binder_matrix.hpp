@@ -23,8 +23,10 @@ template <typename T>
 struct matrix_numa_binder : hpx::compute::host::numa_binding_helper<T>
 {
     matrix_numa_binder(std::size_t Ncols, std::size_t Nrows, std::size_t Ntile,
-        std::size_t Ntiles_per_domain, std::size_t Ncolprocs = 1,
-        std::size_t Nrowprocs = 1)
+        std::size_t Ntiles_per_domain,
+        std::size_t Ncolprocs = 1,
+        std::size_t Nrowprocs = 1,
+        std::string pool_name = "default")
       : hpx::compute::host::numa_binding_helper<T>()
       , cols_(Ncols)
       , rows_(Nrows)
@@ -33,6 +35,7 @@ struct matrix_numa_binder : hpx::compute::host::numa_binding_helper<T>
       , colprocs_(Ncolprocs)
       , rowprocs_(Nrowprocs)
     {
+        hpx::compute::host::numa_binding_helper<T>::pool_name_ = pool_name;
         int const cache_line_size = hpx::threads::get_cache_line_size();
         int const page_size = hpx::threads::get_memory_page_size();
         int const alignment = (std::max)(page_size, cache_line_size);
@@ -60,15 +63,21 @@ struct matrix_numa_binder : hpx::compute::host::numa_binding_helper<T>
     // for debug purposes
     virtual std::string description() const override
     {
+        // clang-format off
         std::ostringstream temp;
-        temp << "Matrix " << std::dec << " columns " << cols_ << " rows "
-             << rows_ << " tile_size " << tile_size_ << " leading_dim "
-             << leading_dim_ << " tiles_per_domain " << tiles_per_domain_
-             << " colprocs " << colprocs_ << " rowprocs " << rowprocs_
-             << " rows_page " << rows_page_ << " domains(col) "
-             << rows_ / rows_page_ << " display_step (" << display_step(0)
-             << ',' << display_step(1) << ')';
+        temp << "Matrix " << std::dec
+             << " columns " << cols_
+             << " rows " << rows_
+             << " tile_size " << tile_size_
+             << " leading_dim " << leading_dim_
+             << " tiles_per_domain " << tiles_per_domain_
+             << " colprocs " << colprocs_
+             << " rowprocs " << rowprocs_
+             << " rows_page " << rows_page_
+             << " domains(col) " << rows_ / rows_page_
+             << " display_step (" << display_step(0) << ',' << display_step(1) << ')';
         return temp.str();
+        // clang-format on
     }
 
     // Total memory consumption in bytes
@@ -119,4 +128,4 @@ struct matrix_numa_binder : hpx::compute::host::numa_binding_helper<T>
     std::size_t rows_page_;
 };
 
-#endif    // ALLOCATOR_BINDER_MATRIX_HPP
+#endif // ALLOCATOR_BINDER_MATRIX_HPP
