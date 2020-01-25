@@ -85,7 +85,6 @@ namespace hpx { namespace debug {
         }
     };
 
-#ifdef HPX_HAVE_CXX17_FOLD_EXPRESSIONS
     namespace detail {
         // ------------------------------------------------------------------
         // helper class for printing thread ID, either std:: or hpx::
@@ -128,18 +127,19 @@ namespace hpx { namespace debug {
             std::ostream& os, const current_time_print_helper&)
         {
             using namespace std::chrono;
-            static high_resolution_clock::time_point log_t_start =
-                high_resolution_clock::now();
+            static steady_clock::time_point log_t_start =
+                steady_clock::now();
             //
-            auto now = high_resolution_clock::now();
+            auto now = steady_clock::now();
             auto nowt = duration_cast<microseconds>(now - log_t_start).count();
             //
             os << debug::dec<10>(nowt) << " ";
             return os;
         }
 
+#ifdef HPX_HAVE_CXX17_FOLD_EXPRESSIONS
         template <typename... Args>
-        void display(const char* prefix, Args... args)
+        void display(const char* prefix, std::forward<Args>(args)... args)
         {
             // using a temp stream object with a single copy to cout at the end
             // prevents multiple threads from injecting overlapping text
@@ -150,8 +150,23 @@ namespace hpx { namespace debug {
             tempstream << std::endl;
             std::cout << tempstream.str();
         }
-    }    // namespace detail
+
+#else
+        template <typename... Args>
+        void display(const char* prefix, const Args&... args)
+        {
+            // using a temp stream object with a single copy to cout at the end
+            // prevents multiple threads from injecting overlapping text
+            std::stringstream tempstream;
+            tempstream << prefix << detail::current_time_print_helper()
+                       << detail::current_thread_print_helper();
+            variadic_print(tempstream, args...);
+            tempstream << std::endl;
+            std::cout << tempstream.str();
+        }
 #endif
+
+    }    // namespace detail
 }}    // namespace hpx::debug
 /// \endcond
 
