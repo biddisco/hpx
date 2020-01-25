@@ -29,6 +29,8 @@
 #define DEBUGGING_PRINT_LINUX
 #endif
 
+#undef HPX_HAVE_CXX17_FOLD_EXPRESSIONS
+
 // ------------------------------------------------------------
 // This file provides a simple to use printf style debugging
 // tool that can be used on a per file basis to enable output.
@@ -371,7 +373,7 @@ namespace hpx { namespace debug {
         }
 
         template <typename... Args>
-        void timed(const Args... args)
+        void timed(const Args&... args)
         {
             display("<TIM> ", args...);
         }
@@ -399,13 +401,13 @@ namespace hpx { namespace debug {
     }
 
     template <typename... Args>
-    struct timed_init
+    struct timed_var
     {
         mutable std::chrono::steady_clock::time_point time_start_;
-        double delay_;
-        std::tuple<std::decay_t<Args>...> message_;
+        const double delay_;
+        const std::tuple<Args...> message_;
         //
-        timed_init(double delay, Args&... args)
+        timed_var(const double& delay, const Args&... args)
           : time_start_(std::chrono::steady_clock::now())
           , delay_(delay)
           , message_(args...)
@@ -428,7 +430,7 @@ namespace hpx { namespace debug {
         }
 
         friend std::ostream& operator<<(
-            std::ostream& os, const timed_init<Args...>& ti)
+            std::ostream& os, const timed_var<Args...>& ti)
         {
             detail::tuple_print(os, ti.message_);
             return os;
@@ -549,7 +551,7 @@ namespace hpx { namespace debug {
         }
 
         template <typename... T, typename... Args>
-        void timed(timed_init<T...>& init, const Args&... args) const
+        void timed(const timed_var<T...>& init, const Args&... args) const
         {
             auto now = std::chrono::steady_clock::now();
             if (init.elapsed(now))
@@ -603,9 +605,9 @@ namespace hpx { namespace debug {
         }
 
         template <typename... Args>
-        timed_init<Args...> make_timer(const double delay, Args... args)
+        timed_var<Args...> make_timer(const double delay, const Args... args)
         {
-            return timed_init<Args...>(delay, args...);
+            return timed_var<Args...>(delay, args...);
         }
     };
 
