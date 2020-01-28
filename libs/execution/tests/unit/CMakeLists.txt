@@ -9,6 +9,7 @@ set(tests
     created_executor
     executor_parameters
     executor_parameters_timer_hooks
+    limiting_executor
     minimal_async_executor
     minimal_sync_executor
     minimal_timed_async_executor

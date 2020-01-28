@@ -11,6 +11,8 @@
 #include <hpx/apply.hpp>
 #include <hpx/execution/executors/execution_fwd.hpp>
 #include <hpx/functional/invoke.hpp>
+#include <hpx/functional/invoke_fused.hpp>
+#include <hpx/functional/result_of.hpp>
 #include <hpx/runtime/threads/executors/default_executor.hpp>
 #include <hpx/runtime/threads/executors/pool_executor.hpp>
 #include <hpx/runtime/threads/thread_executor.hpp>
@@ -101,29 +103,46 @@ namespace hpx { namespace threads { namespace executors {
                 });
         }
 
+        struct on_exit
+        {
+            on_exit(limiting_executor* this_e)
+              : exec_(this_e)
+            {
+            }
+            ~on_exit()
+            {
+                exec_->count_down();
+            }
+            limiting_executor* exec_;
+        };
+
         // --------------------------------------------------------------------
         // async execute specialized for simple arguments typical
         // of a normal async call with arbitrary arguments
         // --------------------------------------------------------------------
         template <typename F, typename... Ts>
-        future<typename util::invoke_result<F, Ts...>::type> async_execute(
-            F&& f, Ts&&... ts)
+        future<typename util::detail::invoke_deferred_result<F, Ts...>::type>
+        async_execute(F&& f, Ts&&... ts)
+
         {
-            typedef
-                typename util::detail::invoke_deferred_result<F, Ts...>::type
-                    result_type;
+            using result_type =
+                typename util::detail::invoke_deferred_result<F, Ts...>::type;
 
             count_up();
             auto&& args = hpx::util::make_tuple(std::forward<Ts>(ts)...);
             lcos::local::futures_factory<result_type()> p(executor_,
                 [this, f = std::forward<F>(f),
                     args = std::forward<decltype(args)>(args)]() mutable {
-                    hpx::util::invoke_fused(std::move(f), std::move(args));
-                    count_down();
+                    on_exit decrementer(this);
+                    return /*util::void_guard<result_type>(), */
+                        util::invoke_fused(std::move(f), std::move(args));
                 });
 
-            p.apply(launch::async, threads::thread_priority_default,
+            p.apply("limiting exec", launch::async,
+                threads::thread_priority_default,
                 threads::thread_stacksize_default);
+            //                executor_.get_priority(),
+            //                executor_.get_stacksize());
 
             return p.get_future();
         }
@@ -135,21 +154,21 @@ namespace hpx { namespace threads { namespace executors {
         template <typename F, typename Future, typename... Ts,
             typename = enable_if_t<traits::is_future<
                 typename std::remove_reference<Future>::type>::value>>
-        auto then_execute(F&& f, Ts&&... ts)
-            -> future<typename util::detail::invoke_deferred_result<F, Future,
-                Ts...>::type>
+        future<typename util::detail::invoke_deferred_result<F, Future,
+            Ts...>::type>
+        then_execute(F&& f, Ts&&... ts)
         {
-            typedef typename util::detail::invoke_deferred_result<F, Future,
-                Ts...>::type result_type;
+            using result_type =
+                typename util::detail::invoke_deferred_result<F, Ts...>::type;
 
             count_up();
-
             auto&& args = hpx::util::make_tuple(std::forward<Ts>(ts)...);
             lcos::local::futures_factory<result_type()> p(executor_,
                 [this, f = std::forward<F>(f),
                     args = std::forward<decltype(args)>(args)]() mutable {
-                    hpx::util::invoke_fused(std::move(f), std::move(args));
-                    count_down();
+                    on_exit decrementer(this);
+                    return util::void_guard<result_type>(),
+                           util::invoke_fused(std::move(f), std::move(args));
                 });
 
             p.apply(launch::async, threads::thread_priority_default,
@@ -170,10 +189,18 @@ namespace hpx { namespace threads { namespace executors {
             upper_threshold_ = upper;
         }
 
+        // wait (suspend) until the number of tasks 'in flight' on this executor
+        // drops to the lower threashold
         void wait()
         {
             hpx::util::yield_while(
                 [&]() { return (count_ > lower_threshold_); });
+        }
+
+        // wait (suspend) until all tasks launched on this executor have completed
+        void wait_all()
+        {
+            hpx::util::yield_while([&]() { return (count_ > 0); });
         }
 
     private:
