@@ -77,7 +77,7 @@
 #include <hpx/debugging/print.hpp>
 namespace hpx {
     // cppcheck-suppress ConfigurationNotChecked
-    static hpx::debug::enable_print<true> ppt_deb("PPORT  ");
+    static hpx::debug::enable_print<false> ppt_deb("PPORT  ");
 
     #define FUNC_START_DEBUG_MSG hpx::ppt_deb.debug(debug::str<>("*** Enter ") , __func__);
     #define FUNC_END_DEBUG_MSG   hpx::ppt_deb.debug(debug::str<>("### Exit  ") , __func__);
