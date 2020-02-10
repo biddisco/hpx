@@ -16,6 +16,7 @@
 //
 #include <hpx/runtime/parcelset/rma/rma_object.hpp>
 #include <hpx/runtime/parcelset/rma/allocator.hpp>
+#include <hpx/threading_base/print.hpp>
 
 #include <algorithm>
 #include <array>

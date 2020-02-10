@@ -379,7 +379,7 @@ namespace hpx { namespace compute { namespace host {
                 {
                     return status[0];
                 }
-                // if (status[0]<0) std::cout << "." << decnumber(status[0]) << ".";
+                // if (status[0]<0) std::cout << "." << hpx::debug::dec<>(status[0]) << ".";
                 return -1;
             }
             HPX_THROW_EXCEPTION(kernel_error, "get_numa_domain",
