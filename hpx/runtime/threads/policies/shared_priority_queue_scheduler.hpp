@@ -70,6 +70,8 @@ static_assert(false,
 #define SHARED_PRIORITY_SCHEDULER_LINUX
 #endif
 
+// #define SHARED_PRIORITY_SCHEDULER_DEBUG_NUMA
+
 namespace hpx {
     using print_onoff =
         hpx::debug::enable_print<SHARED_PRIORITY_SCHEDULER_DEBUG>;
@@ -200,7 +202,7 @@ namespace hpx { namespace threads { namespace policies {
                     steal_hp_first_ = mode & policies::steal_high_priority_first;
                     core_stealing_ = mode & policies::enable_stealing;
                     numa_stealing_ = mode & policies::enable_stealing_numa;
-                    spq_arr.debug(debug::str<>("scheduler_mode")
+                    spq_deb.debug(debug::str<>("scheduler_mode")
                         , round_robin_ ? "round_robin" : "thread parent"
                         , ','
                         , steal_hp_first_ ? "steal_hp_first" : "steal after local"
@@ -223,7 +225,11 @@ namespace hpx { namespace threads { namespace policies {
 
                 // ------------------------------------------------------------
                 // access thread local storage to determine correct thread
-                // and pool identification
+                // and pool identification. This is used internally by the scheduler
+                // to compute correct queue indexes and offsets relative to a numa
+                // node. It should not be used without care as the thread numbering
+                // internal to the scheduler is not a simple linear indexing
+                // returns -1 to indicate an invalid thread/value/state
                 inline std::size_t local_thread_number()
                 {
                     using namespace hpx::threads::detail;
@@ -231,7 +237,7 @@ namespace hpx { namespace threads { namespace policies {
                     // if the thread belongs to this pool return local Id
                     if (pool_index_ == tns.pool_index)
                         return tns.local_thread_num;
-                    return -1;
+                    return std::size_t(-1);
                 }
 
                 // ------------------------------------------------------------
@@ -369,8 +375,8 @@ namespace hpx { namespace threads { namespace policies {
                                 numa_holder_[domain_num]
                                     .thread_queue(
                                         static_cast<std::size_t>(q_index))
-                                    ->worker_next(static_cast<std::size_t>(
-                                        num_workers_));
+                                    ->worker_next(
+                                        static_cast<std::size_t>(num_workers_));
                         }
                         thread_num = select_active_pu(l, thread_num);
                         // cppcheck-suppress redundantAssignment
@@ -426,27 +432,39 @@ namespace hpx { namespace threads { namespace policies {
                                 std::to_string(data.schedulehint.mode));
                     }
                     // we do not allow threads created on other queues to 'run now'
-                    // as this caues cross-thread allocations and map accesses
+                    // as this causes cross-thread allocations and map accesses
                     if (local_num != thread_num)
                     {
                         run_now = false;
-                        spq_deb.debug(debug::str<>("create_thread"), "pool",
-                            parent_pool_->get_pool_name(), "hint", msg, "dest",
-                            "D", debug::dec<2>(domain_num), "Q",
-                            debug::dec<3>(q_index), "this", "D",
-                            debug::dec<2>(d_lookup_[local_num]), "Q",
-                            debug::dec<3>(local_num), "run_now OVERRIDE ",
-                            run_now, debug::threadinfo<thread_init_data>(data));
+                        // clang-format off
+                        spq_deb.debug(debug::str<>("create_thread")
+                            , "pool", parent_pool_->get_pool_name()
+                            , "hint", msg
+                            , "dest"
+                            , "D", debug::dec<2>(domain_num)
+                            , "Q", debug::dec<3>(q_index)
+                            , "this"
+                            , "D", debug::dec<2>(d_lookup_[local_num])
+                            , "Q", debug::dec<3>(local_num)
+                            , "run_now OVERRIDE ", run_now
+                            , debug::threadinfo<thread_init_data>(data));
+                        // clang-format on
                     }
                     else
                     {
-                        spq_deb.debug(debug::str<>("create_thread"), "pool",
-                            parent_pool_->get_pool_name(), "hint", msg, "dest",
-                            "D", debug::dec<2>(domain_num), "Q",
-                            debug::dec<3>(q_index), "this", "D",
-                            debug::dec<2>(d_lookup_[local_num]), "Q",
-                            debug::dec<3>(local_num), "run_now", run_now,
-                            debug::threadinfo<thread_init_data>(data));
+                        // clang-format off
+                        spq_deb.debug(debug::str<>("create_thread")
+                            , "pool", parent_pool_->get_pool_name()
+                            , "hint", msg
+                            , "dest"
+                            , "D", debug::dec<2>(domain_num)
+                            , "Q", debug::dec<3>(q_index)
+                            , "this"
+                            , "D", debug::dec<2>(d_lookup_[local_num])
+                            , "Q", debug::dec<3>(local_num)
+                            , "run_now", run_now
+                            , debug::threadinfo<thread_init_data>(data));
+                        // clang-format on
                     }
                     numa_holder_[domain_num]
                         .thread_queue(static_cast<std::size_t>(q_index))
@@ -455,8 +473,8 @@ namespace hpx { namespace threads { namespace policies {
                 }
 
                 template <typename T>
-                bool steal_by_function(std::size_t domain,
-                    std::size_t q_index, bool steal_numa, bool steal_core,
+                bool steal_by_function(std::size_t domain, std::size_t q_index,
+                    bool steal_numa, bool steal_core,
                     thread_holder_type* origin, T& var, const char* prefix,
                     std::function<bool(std::size_t, std::size_t,
                         thread_holder_type*, T&, bool, bool)>
@@ -799,6 +817,9 @@ namespace hpx { namespace threads { namespace policies {
                         // @TODO. We should check that the thread num is valid
                         // Create thread on requested worker thread
                         debug::set(msg, "HINT_THREAD");
+                        spq_deb.debug(debug::str<>("schedule_thread"),
+                            "received HINT_THREAD",
+                            debug::dec<3>(schedulehint.hint));
                         thread_num = select_active_pu(
                             l, schedulehint.hint, allow_fallback);
                         domain_num = d_lookup_[thread_num];
@@ -1003,9 +1024,9 @@ namespace hpx { namespace threads { namespace policies {
                             std::size_t domain =
                                 topo.get_numa_node_number(pu_num);
 #if defined(SHARED_PRIORITY_SCHEDULER_DEBUG_NUMA)
-                            if (pu_num > (num_workers_ / 2))
+                            if (local_id >= (num_workers_ + 1) / 2)
                             {
-                                domain++;
+                                domain += 1;
                             }
 #endif
                             d_lookup_[local_id] = domain;
@@ -1091,8 +1112,7 @@ namespace hpx { namespace threads { namespace policies {
                     // store local thread number and pool index in thread local storage
                     hpx::threads::detail::set_thread_pool_tss(
                         {std::size_t(local_thread),
-                            std::size_t(
-                                parent_pool_->get_pool_id().index())});
+                            std::size_t(parent_pool_->get_pool_id().index())});
 
                     // one thread holder per core (shared by PUs)
                     thread_holder_type* thread_holder = nullptr;
@@ -1152,12 +1172,11 @@ namespace hpx { namespace threads { namespace policies {
                                 {
                                     // share the queue with our next lowest neighbor
                                     HPX_ASSERT(index != 0);
-                                    hp_queue =
-                                        numa_holder_[domain]
-                                            .thread_queue(
-                                                static_cast<std::size_t>(
-                                                    index - 1))
-                                            ->hp_queue_;
+                                    hp_queue = numa_holder_[domain]
+                                                   .thread_queue(
+                                                       static_cast<std::size_t>(
+                                                           index - 1))
+                                                   ->hp_queue_;
                                 }
                             }
                             // Normal priority
@@ -1172,11 +1191,11 @@ namespace hpx { namespace threads { namespace policies {
                             {
                                 // share the queue with our next lowest neighbor
                                 HPX_ASSERT(index != 0);
-                                np_queue = numa_holder_[domain]
-                                               .thread_queue(
-                                                   static_cast<std::size_t>(
-                                                       index - 1))
-                                               ->np_queue_;
+                                np_queue =
+                                    numa_holder_[domain]
+                                        .thread_queue(
+                                            static_cast<std::size_t>(index - 1))
+                                        ->np_queue_;
                             }
                             // Low priority
                             if (cores_per_queue_.low_priority > 0)
@@ -1193,12 +1212,11 @@ namespace hpx { namespace threads { namespace policies {
                                 {
                                     // share the queue with our next lowest neighbor
                                     HPX_ASSERT(index != 0);
-                                    lp_queue =
-                                        numa_holder_[domain]
-                                            .thread_queue(
-                                                static_cast<std::size_t>(
-                                                    index - 1))
-                                            ->lp_queue_;
+                                    lp_queue = numa_holder_[domain]
+                                                   .thread_queue(
+                                                       static_cast<std::size_t>(
+                                                           index - 1))
+                                                   ->lp_queue_;
                                 }
                             }
 
