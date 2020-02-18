@@ -111,12 +111,12 @@ namespace hpx { namespace threads { namespace policies {
                 {
                     // clang-format off
                     nq_deb.debug(debug::str<>("HP/BP get_next")
+                         , typename ThreadQueue::queue_data_print(queues_[q])
+                         , debug::threadinfo<threads::thread_data*>(thrd)
                          , "D", debug::dec<2>(domain_)
                          , "Q",  debug::dec<3>(q)
                          , "Qidx",  debug::dec<3>(qidx)
-                         , ((i==0 && !stealing) ? "taken" : "stolen from")
-                         , typename ThreadQueue::queue_data_print(queues_[q])
-                         , debug::threadinfo<threads::thread_data*>(thrd));
+                         , ((i==0 && !stealing) ? "taken" : "stolen from"));
                     // clang-format on
                     return true;
                 }

@@ -245,12 +245,15 @@ namespace hpx { namespace threads { namespace policies {
             if (0 != work_items_count_count && work_items_.pop(thrd, other_end))
             {
                 --work_items_count_.data_;
-                tqmc_deb.debug(debug::str<>("get_next_thread"), "stealing",
-                    other_end, "D", debug::dec<2>(holder_->domain_index_), "Q",
-                    debug::dec<3>(queue_index_), "n",
-                    debug::dec<4>(new_tasks_count_.data_), "w",
-                    debug::dec<4>(work_items_count_.data_),
-                    debug::threadinfo<threads::thread_data*>(thrd));
+                // clang-format off
+                tqmc_deb.debug(debug::str<>("get_next_thread")
+                    , "stealing", other_end
+                    , "D", debug::dec<2>(holder_->domain_index_)
+                    , "Q", debug::dec<3>(queue_index_)
+                    , "n", debug::dec<4>(new_tasks_count_.data_)
+                    , "w", debug::dec<4>(work_items_count_.data_)
+                    , debug::threadinfo<threads::thread_data*>(thrd));
+                // clang-format on
                 return true;
             }
             if (check_new && add_new(32, this, false) > 0)
@@ -266,13 +269,15 @@ namespace hpx { namespace threads { namespace policies {
         void schedule_work(threads::thread_data* thrd, bool other_end)
         {
             ++work_items_count_.data_;
-            tqmc_deb.debug(debug::str<>("schedule_work"), "stealing", other_end,
-                "D", debug::dec<2>(holder_->domain_index_), "Q",
-                debug::dec<3>(queue_index_), "n",
-                debug::dec<4>(new_tasks_count_.data_), "w",
-                debug::dec<4>(work_items_count_.data_),
-                debug::threadinfo<threads::thread_data*>(thrd));
-            //
+            // clang-format off
+            tqmc_deb.debug(debug::str<>("schedule_work")
+                , "stealing", other_end
+                , "D", debug::dec<2>(holder_->domain_index_)
+                , "Q", debug::dec<3>(queue_index_)
+                , "n", debug::dec<4>(new_tasks_count_.data_)
+                , "w", debug::dec<4>(work_items_count_.data_)
+                , debug::threadinfo<threads::thread_data*>(thrd));
+            // clang-format on
             work_items_.push(thrd, other_end);
 #ifdef DEBUG_QUEUE_EXTRA
             debug_queue(work_items_);

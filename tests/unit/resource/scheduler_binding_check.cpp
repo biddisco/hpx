@@ -51,7 +51,9 @@ void threadLoop()
     const unsigned iterations = 2048;
     std::atomic<int> count_down(iterations);
 
-    auto f = [&count_down](std::size_t thread_expected) {
+    auto const sched = hpx::threads::get_self_id_data()->get_scheduler_base();
+
+    auto f1 = [&count_down](std::size_t thread_expected) {
         dec_counter dec(count_down);
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
         std::size_t thread_actual = hpx::get_worker_thread_num();
@@ -65,7 +67,21 @@ void threadLoop()
         HPX_TEST_EQ(thread_actual, thread_expected);
     };
 
-    std::size_t threads = hpx::get_num_worker_threads();
+    auto f2 = [&count_down, &sched](std::size_t thread_expected) {
+        dec_counter dec(count_down);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        std::size_t thread_actual = sched->get_thread_index();
+        hpx::deb_schbin.debug(hpx::debug::str<>("Running on thread"),
+            thread_actual, "Expected", thread_expected);
+        if (thread_actual != thread_expected)
+        {
+            hpx::deb_schbin.error(hpx::debug::str<>("actual!=expected"), "Got",
+                thread_actual, "Expected", thread_expected);
+        }
+        HPX_TEST_EQ(thread_actual, thread_expected);
+    };
+
+    std::size_t threads = sched->get_thread_total();
     // launch tasks on threads using numbering 0,1,2,3...0,1,2,3
     for (std::size_t i = 0; i < iterations; ++i)
     {
@@ -73,7 +89,8 @@ void threadLoop()
             hpx::threads::thread_priority_bound,
             hpx::threads::thread_stacksize_default,
             hpx::threads::thread_schedule_hint(std::int16_t(i % threads)));
-        hpx::async(exec, f, (i % threads)).get();
+        hpx::async(exec, f1, (i % threads)).get();
+        hpx::async(exec, f2, (i % threads)).get();
     }
 
     do

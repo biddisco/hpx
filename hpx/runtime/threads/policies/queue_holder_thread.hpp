@@ -515,9 +515,10 @@ namespace hpx { namespace threads { namespace policies {
                 tid = heap->front();
                 heap->pop_front();
                 get_thread_id_data(tid)->rebind(data, state);
-                tq_deb.debug(debug::str<>("create_thread_object"), "rebind",
+                tq_deb.debug(debug::str<>("create_thread_object"),
                     queue_data_print(this),
-                    debug::threadinfo<threads::thread_id_type*>(&tid));
+                    debug::threadinfo<threads::thread_id_type*>(&tid),
+                    "rebind");
             }
             else
             {
@@ -534,9 +535,9 @@ namespace hpx { namespace threads { namespace policies {
                         data, this, state);
                 }
                 tid = thread_id_type(p);
-                tq_deb.debug(debug::str<>("create_thread_object"), "new",
+                tq_deb.debug(debug::str<>("create_thread_object"),
                     queue_data_print(this),
-                    debug::threadinfo<threads::thread_id_type*>(&tid));
+                    debug::threadinfo<threads::thread_id_type*>(&tid), "new");
             }
         }
 
@@ -599,7 +600,7 @@ namespace hpx { namespace threads { namespace policies {
                 //address << (void const*) td;
                 //std::string prev = address.str();
 
-                tq_deb.error(debug::str<>("map add"),
+                tq_deb.error(debug::str<>("add_to_thread_map"),
                     "Couldn't add new thread to the thread map",
                     queue_data_print(this),
                     debug::threadinfo<thread_id_type*>(&tid));
@@ -613,7 +614,8 @@ namespace hpx { namespace threads { namespace policies {
 
             ++thread_map_count_.data_;
 
-            tq_deb.debug(debug::str<>("map add"), queue_data_print(this),
+            tq_deb.debug(debug::str<>("add_to_thread_map"),
+                queue_data_print(this),
                 debug::threadinfo<thread_id_type*>(&tid));
 
             // this thread has to be in the map now
