@@ -11,6 +11,7 @@
 #include <hpx/assertion.hpp>
 #include <hpx/concurrency/cache_line_data.hpp>
 #include <hpx/format.hpp>
+#include <hpx/runtime/threads/detail/thread_num_tss.hpp>
 #include <hpx/runtime/threads/policies/scheduler_mode.hpp>
 #include <hpx/runtime/threads/policies/thread_queue_init_parameters.hpp>
 #include <hpx/runtime/threads/thread_data_fwd.hpp>
@@ -272,6 +273,36 @@ namespace hpx { namespace threads { namespace policies {
             }
 
             return thread_queue_init_.small_stacksize_;
+        }
+
+        // Return the thread index of the calling thread
+        // the index is the scheduler's internal Id that maps global threads
+        // into the schedulers queues.
+        // A return value of -1 indicates that the calling thread does not belong
+        // to the pool of threads managed by this scheduler
+        virtual std::size_t get_thread_index()
+        {
+            return threads::detail::get_thread_num_tss();
+        }
+
+        // Return the number of threads managed by the scheduler
+        virtual std::size_t get_thread_total()
+        {
+            return get_parent_pool()->get_os_thread_count();
+        }
+
+        // Return numa node that the scheduler's calling thread is running on
+        // A return value of -1 indicates that the calling thread does not belong
+        // to the pool of threads managed by this scheduler
+        virtual std::size_t get_numa_node_index()
+        {
+            return 0;
+        }
+
+        // Return the number of numa nodes the scheduler is managing
+        virtual std::size_t get_numa_node_total()
+        {
+            return 1;
         }
 
     protected:

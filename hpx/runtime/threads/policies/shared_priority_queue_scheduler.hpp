@@ -239,6 +239,30 @@ namespace hpx { namespace threads { namespace policies {
                     return std::size_t(-1);
                 }
 
+                // this returns the thread index taking into account the
+                // queues are split across numa domains
+                std::size_t get_thread_index() override
+                {
+                    return hpx::threads::detail::get_thread_num_tss();
+                }
+
+                // return the number of threads managed by the scheduler
+                std::size_t get_thread_total() override
+                {
+                    return num_workers_;
+                }
+
+                std::size_t get_numa_node_index() override
+                {
+                    int local_num = local_thread_number();
+                    return d_lookup_[local_num];
+                }
+
+                std::size_t get_numa_node_total() override
+                {
+                    return num_domains_;
+                }
+
                 // ------------------------------------------------------------
                 bool cleanup_terminated(bool delete_all) override
                 {
@@ -388,6 +412,10 @@ namespace hpx { namespace threads { namespace policies {
                         thread_schedule_hint_mode_thread:
                     {
                         debug::set(msg, "HINT_THREAD");
+                        spq_deb.debug(debug::str<>("create_thread"),
+                            "received HINT_THREAD",
+                            debug::dec<3>(data.schedulehint.hint));
+
                         // @TODO. We should check that the thread num is valid
                         // Create thread on requested worker thread
                         thread_num =
