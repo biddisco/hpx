@@ -34,9 +34,28 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <type_traits>
 
 #include <hpx/serialization/serialize.hpp>
 #include <simple_profiler.hpp>
+
+
+static constexpr int debug_threshold = 9;
+
+template <int Level>
+struct check_level : std::integral_constant<bool, Level <= debug_threshold> {};
+
+template <int Level>
+struct debug_level : hpx::debug::enable_print<check_level<Level>::value>
+{
+    using base_type = hpx::debug::enable_print<check_level<Level>::value>;
+    // inherit constructor
+    using base_type::base_type;
+};
+
+// cppcheck-suppress ConfigurationNotChecked
+template <int Level>
+static debug_level<Level> nws_deb("STORAGE");
 
 #define DEBUG_ALL_RANKS_OUTPUT 0
 
@@ -110,27 +129,6 @@
 #endif
 
 //----------------------------------------------------------------------------
-// control the amount of debug messaging that is output
-#define DEBUG_LEVEL 0
-
-//----------------------------------------------------------------------------
-// if we have access to boost logging via the libfabric parcelport include this
-// otherwise use this
-#include <plugins/parcelport/parcelport_logging.hpp>
-
-#if DEBUG_LEVEL>0
-# define LOG_DEBUG_MSG(x) std::cout << "Network storage " << x << std::endl
-# define DEBUG_OUTPUT(level,x)   \
-    if (DEBUG_LEVEL>=level) {    \
-        LOG_DEBUG_MSG(x);        \
-    }
-# define DEBUG_ONLY(x) x
-#else
-# define DEBUG_OUTPUT(level,x)
-# define DEBUG_ONLY(x)
-#endif
-
-//----------------------------------------------------------------------------
 #define TEST_FAIL    0
 #define TEST_SUCCESS 1
 
@@ -153,7 +151,7 @@ static_assert(
 //
 // Each locality allocates a buffer of memory which is used to host transfers
 //
-static hpx::parcelset::rma::rma_vector<char> rma_storage;
+//static hpx::parcelset::rma::rma_vector<char> rma_storage;
 static char *local_storage = nullptr;
 static hpx::lcos::local::spinlock storage_mutex;
 
@@ -175,23 +173,23 @@ typedef struct {
 //----------------------------------------------------------------------------
 void allocate_local_storage(uint64_t local_storage_bytes)
 {
-    hpx::parcelset::rma::rma_object<int> x =
-        hpx::parcelset::rma::make_rma_object<int>();
-    rma_storage.reserve(local_storage_bytes);
+//    hpx::parcelset::rma::rma_object<int> x =
+//        hpx::parcelset::rma::make_rma_object<int>();
+//    rma_storage.reserve(local_storage_bytes);
     local_storage = new char[local_storage_bytes];
 }
 
 //----------------------------------------------------------------------------
 void delete_local_storage()
 {
-    rma_storage.reset();
+//    rma_storage.reset();
     delete[] local_storage;
 }
 
 //----------------------------------------------------------------------------
 void release_storage_lock(char *p)
 {
-    DEBUG_OUTPUT(6, "Release lock and delete memory");
+    nws_deb<6>.debug("Release lock and delete memory");
     delete []p;
 //  storage_mutex.unlock();
 }
@@ -247,9 +245,17 @@ public:
   {
   }
 
+  pointer_allocator(const pointer_allocator & other) noexcept
+    : pointer_(other.pointer_), size_(other.size_)
+  {
+  }
+
   pointer_allocator(pointer p, size_type size) noexcept
     : pointer_(p), size_(size)
   {
+      nws_deb<6>.debug(hpx::debug::str<>("Construct")
+                    , "Pointer", hpx::debug::ptr(pointer_)
+                    , "Size", hpx::debug::hex<8>(size_));
   }
 
   pointer address(reference value) const { return &value; }
@@ -258,12 +264,26 @@ public:
   pointer allocate(size_type n, void const* /*hint*/ = nullptr)
   {
     HPX_TEST_EQ(n, size_);
+    nws_deb<6>.debug(hpx::debug::str<>("Allocate")
+                  , "P", hpx::debug::ptr(pointer_)
+                  , "N", hpx::debug::hex<8>(n));
     return static_cast<T*>(pointer_);
   }
 
   void deallocate(pointer p, size_type n)
   {
-    HPX_TEST_EQ(p == pointer_ && n, size_);
+    if (p!=pointer_ || n!=size_) {
+        nws_deb<6>.debug(hpx::debug::str<>("Deallocate")
+                      , "P", hpx::debug::ptr(p)
+                      , "N", hpx::debug::hex<8>(n)
+                      , "Pointer", hpx::debug::ptr(pointer_)
+                      , "Size", hpx::debug::hex<8>(size_));
+    }
+    if (p != pointer_ || n != size_)
+    {
+        std::cout << "Error" << std::endl;
+    }
+    HPX_TEST(p == pointer_ && n == size_);
   }
 
 private:
@@ -312,7 +332,7 @@ struct buffer_deleter
     std::shared_ptr<general_buffer_type> buffer_;
     //
     ~buffer_deleter() {
-        DEBUG_OUTPUT(7, "Deleting buffer index " << index_);
+        nws_deb<7>.debug( "Deleting buffer index " , index_);
         index_  = 0;
         buffer_ = nullptr;
     }
@@ -322,7 +342,7 @@ struct buffer_deleter
 void async_callback(buffer_deleter deleter, boost::system::error_code const& /*ec*/,
     hpx::parcelset::parcel const& /*p*/)
 {
-    DEBUG_OUTPUT(7, "Async callback triggered for index " << deleter.index_);
+    nws_deb<7>.debug( "Async callback triggered for index " , deleter.index_);
 }
 
 //----------------------------------------------------------------------------
@@ -364,8 +384,10 @@ namespace Storage {
         // The memory must be freed after final use.
         std::allocator<char> local_allocator;
         boost::shared_array<char> local_buffer(local_allocator.allocate(length),
-            [](char*){
-                DEBUG_OUTPUT(6, "Not deleting memory");
+            [length](char*p){
+                nws_deb<6>.debug("Not deleting boost::shared_array"
+                                 , "Pointer", hpx::debug::ptr(p)
+                                 , "Size", hpx::debug::hex<8>(length));
             }
         );
 
@@ -374,7 +396,7 @@ namespace Storage {
         async_mem_result_type fut =
 #endif
             copy_from_local_storage(local_buffer.get(), address, length);
-        DEBUG_OUTPUT(6, "create local buffer count " << local_buffer.use_count());
+        nws_deb<6>.debug("create local buffer count " , local_buffer.use_count());
 
         // wrap the remote buffer pointer in an allocator for return
         pointer_allocator<char> return_allocator(
@@ -387,7 +409,7 @@ namespace Storage {
             hpx::launch::sync,
             // return the data in a transfer buffer
             [=](hpx::future<int> fut) -> transfer_buffer_type {
-                DEBUG_OUTPUT(6, ".then local buffer count " << local_buffer.use_count());
+                nws_deb<6>.debug(".then local buffer count " , local_buffer.use_count());
                 return transfer_buffer_type(
                     local_buffer.get(), length,
                     transfer_buffer_type::take,
@@ -431,7 +453,7 @@ namespace Storage {
             }
             // this must always be done to reset the counter
             process_count_ = nranks_;
-            DEBUG_OUTPUT(1, "resetting barrier on rank " << rank_ << " " << process_count_);
+            nws_deb<10>.debug("resetting barrier on rank " , rank_ , " " , process_count_);
         }
 
         static simple_barrier local_barrier;
@@ -449,23 +471,23 @@ namespace Storage {
     // this function will be a remote action
     void decrement_barrier(uint32_t rank) {
         simple_barrier &barrier = simple_barrier::get_local_barrier();
-        DEBUG_OUTPUT(1, "Decrement barrier from rank " << rank << " " << barrier.process_count_);
+        nws_deb<10>.debug("Decrement barrier from rank " , rank , " " , barrier.process_count_);
         barrier.process_count_--;
-        DEBUG_OUTPUT(1, "Decrement barrier from rank " << rank << " " << barrier.process_count_);
+        nws_deb<10>.debug("Decrement barrier from rank " , rank , " " , barrier.process_count_);
     }
 
     // this function will be a remote action
     void reset_barrier() {
         simple_barrier &barrier = simple_barrier::get_local_barrier();
         barrier.process_count_ = 0;
-        DEBUG_OUTPUT(1, "Reset barrier rank " << barrier.rank_ << " " << barrier.process_count_);
+        nws_deb<10>.debug("Reset barrier rank " , barrier.rank_ , " " , barrier.process_count_);
     }
 
     // this function will be a remote action
     static void init_barrier() {
         simple_barrier &barrier = simple_barrier::get_local_barrier();
         barrier.init();
-        DEBUG_OUTPUT(1, "Init barrier rank " << barrier.rank_ << " " << barrier.process_count_);
+        nws_deb<10>.debug("Init barrier rank " , barrier.rank_ , " " , barrier.process_count_);
     }
 
 } // namespace storage
@@ -492,28 +514,28 @@ HPX_REGISTER_ACTION(ResetBarrier_action);
 void simple_barrier_count_down() {
     Storage::simple_barrier &barrier = Storage::simple_barrier::get_local_barrier();
     if (barrier.rank_==0) {
-        DEBUG_OUTPUT(1, "Decrement count " << barrier.rank_ << " " << barrier.process_count_);
+        nws_deb<1>.debug("Decrement count " , barrier.rank_ , " " , barrier.process_count_);
         --barrier.process_count_;
         // wait until everyone has counted down
-        DEBUG_OUTPUT(1, "Before yield A rank " << barrier.rank_ << " " << barrier.process_count_);
+        nws_deb<10>.debug("Before yield A rank " , barrier.rank_ , " " , barrier.process_count_);
         hpx::util::yield_while( [&](){
             bool done = (barrier.process_count_==0);
             if (done) barrier.init();
             return !done;
         });
-        DEBUG_OUTPUT(1, "After yield A rank " << barrier.rank_);
+        nws_deb<10>.debug("After yield A rank " , barrier.rank_);
         ResetBarrier_action reset_action;
         std::vector<hpx::id_type> remotes = hpx::find_remote_localities();
         for (auto &&r : remotes) {
             hpx::async(reset_action, r);
         }
-        DEBUG_OUTPUT(1, "After actions rank " << barrier.rank_);
+        nws_deb<10>.debug("After actions rank " , barrier.rank_);
     }
     else {
         DecrementBarrier_action barrier_action;
         hpx::async(barrier_action, barrier.agas_, barrier.rank_);
         // now wait until our barrier is reset to zero
-        DEBUG_OUTPUT(1, "Before yield B rank " << barrier.rank_ << " " << barrier.process_count_);
+        nws_deb<10>.debug("Before yield B rank " , barrier.rank_ , " " , barrier.process_count_);
         hpx::util::yield_while( [&](){
             // once the condition is met, reinitialize the barrier before continuing
             // this ensures that the barrier is always ready for the next entrance
@@ -522,7 +544,7 @@ void simple_barrier_count_down() {
             if (done) barrier.init();
             return !done;
         } );
-        DEBUG_OUTPUT(1, "After yield B rank " << barrier.rank_);
+        nws_deb<10>.debug("After yield B rank " , barrier.rank_);
     }
 }
 
@@ -560,13 +582,13 @@ void test_write(
     LOG_TIMED_BLOCK(flight, DEVEL, 60.0, { LOG_DEBUG_MSG("test_write"); });
     //
     Storage::simple_barrier storage_barrier();
-    DEBUG_OUTPUT(1, "Entering Barrier at start of write on rank " << rank);
+    nws_deb<1>.debug("Entering Barrier at start of write on rank " , rank);
 //    hpx::lcos::barrier b1("b1_write");
 //    hpx::lcos::barrier b2("b2_write");
     simple_barrier_count_down();
 //    // block at the barrier b1
 //    b1.wait(hpx::launch::async).get();
-    DEBUG_OUTPUT(1, "Passed Barrier at start of write on rank " << rank);
+    nws_deb<1>.debug("Passed Barrier at start of write on rank " , rank);
     //
     hpx::util::high_resolution_timer timerWrite;
     hpx::util::simple_profiler level1("Write function", rank==0 && !options.warmup);
@@ -587,7 +609,7 @@ void test_write(
             }
         }
 
-        DEBUG_OUTPUT(2, "Starting iteration " << iter << " on rank " << rank);
+        nws_deb<2>.debug("Starting iteration " , iter , " on rank " , rank);
 
         //
         // Start main message sending loop
@@ -619,8 +641,8 @@ void test_write(
             int memory_slot = random_slot(gen);
             uint32_t memory_offset = static_cast<uint32_t>
                 (memory_slot*options.transfer_size_B);
-            DEBUG_OUTPUT(5,
-                "Rank " << rank << " sending block " << slot << " to rank " << send_rank
+            nws_deb<6>.debug(5,
+                "Rank " , rank , " sending block " , slot , " to rank " , send_rank
             );
             prof_setup.done();
 
@@ -628,8 +650,8 @@ void test_write(
             // Create a serializable memory buffer ready for sending (zero copy on send).
             {
                 hpx::util::simple_profiler prof_put(iteration, "Put");
-                DEBUG_OUTPUT(5,
-                    "Put from rank " << rank << " on rank " << send_rank
+                nws_deb<6>.debug(5,
+                    "Put from rank " , rank , " on rank " , send_rank
                 );
 
                 std::shared_ptr<general_buffer_type> temp_buffer =
@@ -663,23 +685,23 @@ void test_write(
             network_executor_limit(num_transfer_slots);
         }
 
-        DEBUG_OUTPUT(3, "Completed iteration " << iter << " on rank " << rank);
+        nws_deb<3>.debug("Completed iteration " , iter , " on rank " , rank);
         network_executor_limit(0);
     }
 
     simple_barrier_count_down();
 
     network_executor_limit(0);
-    LOG_DEVEL_MSG("completed : final in flight " << decnumber(in_flight));
+    nws_deb<1>.debug("completed : final in flight " , hpx::debug::dec<>(in_flight));
 
     if (rank==0) std::cout << std::endl;
-    DEBUG_OUTPUT(2, "Exited iterations loop on rank " << rank);
+    nws_deb<2>.debug("Exited iterations loop on rank " , rank);
 
     hpx::util::simple_profiler prof_barrier(level1, "Final Barrier");
-    DEBUG_OUTPUT(1, "Entering Barrier at end of write on rank " << rank);
+    nws_deb<1>.debug("Entering Barrier at end of write on rank " , rank);
 //    b2.wait(hpx::launch::async).get();
     simple_barrier_count_down();
-    DEBUG_OUTPUT(1, "Passed Barrier at end of write on rank " << rank);
+    nws_deb<1>.debug("Passed Barrier at end of write on rank " , rank);
     //
     uint32_t active_ranks = options.all2all ? nranks : 1;
     double writeMB   = static_cast<double>
@@ -721,7 +743,7 @@ static void transfer_data(general_buffer_type recv,
   }
 /*
   else {
-    DEBUG_OUTPUT(2, "Skipped copy due to matching pointers");
+    nws_deb<2>.debug("Skipped copy due to matching pointers");
   }
   */
 }
@@ -740,14 +762,10 @@ void test_read(
     LOG_TIMED_INIT(flight);
     LOG_TIMED_BLOCK(flight, DEVEL, 60.0, { LOG_DEBUG_MSG("test_read"); });
 
-    DEBUG_OUTPUT(1, "Entering Barrier at start of read on rank " << rank);
-////    hpx::lcos::barrier::synchronize();
-//    hpx::lcos::barrier b1("b1_read");
-//    hpx::lcos::barrier b2("b2_read");
-//    b1.wait(hpx::launch::async).get();
+    nws_deb<10>.debug("Entering Barrier at start of read on rank " , rank);
     simple_barrier_count_down();
 
-    DEBUG_OUTPUT(1, "Passed Barrier at start of read on rank " << rank);
+    nws_deb<10>.debug("Passed Barrier at start of read on rank " , rank);
     //
     // this is mostly the same as the put loop, except that the received future
     // is not an int, but a transfer buffer which we have to copy out of.
@@ -767,7 +785,7 @@ void test_read(
             }
         }
 
-        DEBUG_OUTPUT(2, "Starting iteration " << iter << " on rank " << rank);
+        nws_deb<2>.debug("Starting iteration " , iter , " on rank " , rank);
         //
         // Start main message sending loop
         //
@@ -788,9 +806,6 @@ void test_read(
                   send_rank = random_rank(gen);
               }
             }
-
-            // get the pointer to the current packet send buffer
-//            char *buffer = &local_storage[i*options.transfer_size_B];
 
             // Get the HPX locality from the dest rank
             hpx::id_type locality = hpx::naming::get_id_from_locality_id(send_rank);
@@ -822,7 +837,7 @@ void test_read(
                         options.transfer_size_B, buffer_address
                     ).then(
                         hpx::launch::sync,
-                        [=](hpx::future<transfer_buffer_type> &&buffer) -> void {
+                        [HPX_CAPTURE_MOVE(general_buffer)](hpx::future<transfer_buffer_type> &&buffer) -> void {
                             return transfer_data(general_buffer, std::move(buffer));
                         }
                     ).then(
@@ -839,21 +854,21 @@ void test_read(
             network_executor_limit(num_transfer_slots);
         }
 
-        DEBUG_OUTPUT(3, "Completed iteration " << iter << " on rank " << rank);
+        nws_deb<3>.debug("Completed iteration " , iter , " on rank " , rank);
         network_executor_limit(0);
     }
 
     simple_barrier_count_down();
 
     network_executor_limit(0);
-    LOG_DEVEL_MSG("completed : final in flight " << decnumber(in_flight));
+    nws_deb<1>.debug("completed : final in flight " , hpx::debug::dec<>(in_flight));
 
     if (rank==0) std::cout << std::endl;
-    DEBUG_OUTPUT(2, "Exited iterations loop on rank " << rank);
+    nws_deb<2>.debug("Exited iterations loop on rank " , rank);
 
-    DEBUG_OUTPUT(1, "Entering Barrier at end of read on rank " << rank);
+    nws_deb<10>.debug("Entering Barrier at end of read on rank " , rank);
     simple_barrier_count_down();
-    DEBUG_OUTPUT(1, "Passed Barrier at end of read on rank " << rank);
+    nws_deb<10>.debug("Passed Barrier at end of read on rank " , rank);
     //
     if (rank==0) std::cout << std::endl;
     //
@@ -887,7 +902,7 @@ void test_read(
 int hpx_main(hpx::program_options::variables_map& vm)
 {
     hpx::util::high_resolution_timer timer_main;
-    DEBUG_OUTPUT(3,"HPX main");
+    nws_deb<6>.debug(/*hpx::debug::level<3>(), */hpx::debug::str<>("HPX main"));
     //
     hpx::id_type                    here = hpx::find_here();
     uint64_t                        rank = hpx::naming::get_locality_id_from_id(here);
@@ -930,14 +945,14 @@ int hpx_main(hpx::program_options::variables_map& vm)
       options.local_storage_MB = options.global_storage_MB/nranks;
     }
 
-    DEBUG_OUTPUT(2, "Allocating local storage on rank " << rank);
+    nws_deb<2>.debug("Allocating local storage on rank " , rank);
     allocate_local_storage(options.local_storage_MB*1024*1024);
     //
     uint64_t num_transfer_slots = 1024*1024*options.local_storage_MB
         / options.transfer_size_B;
-    DEBUG_OUTPUT(1,
-        "num ranks " << nranks << ", num_transfer_slots "
-        << num_transfer_slots << " on rank " << rank
+    nws_deb<6>.debug(1,
+        "num ranks " , nranks , ", num_transfer_slots "
+        , num_transfer_slots , " on rank " , rank
     );
     //
     if (options.nolocal && nranks==1) {
@@ -950,14 +965,14 @@ int hpx_main(hpx::program_options::variables_map& vm)
     std::uniform_int_distribution<uint64_t> random_slot(0,
         (int)num_transfer_slots - 1);
 
-    DEBUG_OUTPUT(1, "Initialize barrier before first use on rank " << rank);
+    nws_deb<10>.debug("Initialize barrier before first use on rank " , rank);
     Storage::init_barrier();
-    DEBUG_OUTPUT(1, "Entering startup_barrier on rank " << rank);
+    nws_deb<10>.debug("Entering startup_barrier on rank " , rank);
 //    hpx::lcos::barrier start_barrier("startup_barrier");
 //    hpx::lcos::barrier end_barrier("end_barrier");
 //    start_barrier.wait(hpx::launch::async).get();
     simple_barrier_count_down();
-    DEBUG_OUTPUT(1, "Passed startup_barrier on rank " << rank);
+    nws_deb<10>.debug("Passed startup_barrier on rank " , rank);
 
     test_options warmup = options;
     warmup.iterations = 1;
@@ -967,21 +982,21 @@ int hpx_main(hpx::program_options::variables_map& vm)
         std::cout << "Warmup complete \n\n" << std::endl;
     }
     //
-    test_write(rank, nranks, num_transfer_slots, gen, random_rank, random_slot, options);
-    if (rank==0) {
-        std::cout << "Write complete \n\n" << std::endl;
-    }
+//    test_write(rank, nranks, num_transfer_slots, gen, random_rank, random_slot, options);
+//    if (rank==0) {
+//        std::cout << "Write complete \n\n" << std::endl;
+//    }
     test_read (rank, nranks, num_transfer_slots, gen, random_rank, random_slot, options);
     if (rank==0) {
         std::cout << "Read complete \n\n" << std::endl;
     }
     //
-    DEBUG_OUTPUT(1, "Entering end_barrier on rank " << rank);
+    nws_deb<10>.debug("Entering end_barrier on rank " , rank);
 //    end_barrier.wait(hpx::launch::async).get();
     simple_barrier_count_down();
-    DEBUG_OUTPUT(1, "Passed end_barrier on rank " << rank);
+    nws_deb<10>.debug("Passed end_barrier on rank " , rank);
 
-    DEBUG_OUTPUT(2, "Deleting local storage " << rank);
+    nws_deb<2>.debug("Deleting local storage " , rank);
     delete_local_storage();
 
     if (rank==0) {
@@ -997,7 +1012,7 @@ int hpx_main(hpx::program_options::variables_map& vm)
 //    std::terminate(); //
 
     if (rank==0) {
-        DEBUG_OUTPUT(2, "Calling finalize " << rank);
+        nws_deb<2>.debug("Calling finalize " , rank);
         return hpx::finalize();
     }
     else return 0;
@@ -1087,6 +1102,6 @@ int main(int argc, char* argv[])
         "hpx.run_hpx_main!=1"
     };
 
-    DEBUG_OUTPUT(3,"Calling hpx::init");
+    nws_deb<6>.debug(3,"Calling hpx::init");
     return hpx::init(desc_commandline, argc, argv, cfg);
 }
