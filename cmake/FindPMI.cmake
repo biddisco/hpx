@@ -12,7 +12,6 @@ if (NOT PC_PMI_CRAY_FOUND)
   pkg_check_modules(PC_PMI QUIET pmi)
 endif()
 
-
 find_path(PMI_INCLUDE_DIR pmi2.h
   HINTS
     ${PMI_ROOT} ENV PMI_ROOT
@@ -31,6 +30,12 @@ find_library(PMI_LIBRARY NAMES pmi
     ${PC_PMI_LIBDIR}
     ${PC_PMI_LIBRARY_DIRS}
   PATH_SUFFIXES lib lib64)
+
+if (PMI_FIND_QUIETLY)
+  if (NOT PMI_LIBRARY OR NOT PMI_INCLUDE_DIR)
+      return()
+  endif()
+endif()
 
 if (NOT PMI_LIBRARY OR NOT PMI_INCLUDE_DIR)
   hpx_error("PMI_LIBRARY OR PMI_INCLUDE_DIR not found, please install PMI or set \

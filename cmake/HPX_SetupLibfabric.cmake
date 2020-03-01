@@ -32,20 +32,23 @@ if (HPX_WITH_PARCELPORT_LIBFABRIC AND NOT TARGET hpx::libfabric)
     target_link_libraries(hpx::libfabric INTERFACE ${LIBFABRIC_LIBRARY})
   endif()
 
+  set(_libfabric_libraries hpx::libfabric)
 
+  #------------------------------------------------------------------------------
   # Setup PMI imported target
-  find_package(PMI)
+  #------------------------------------------------------------------------------
+  find_package(PMI QUIET)
   if (PMI_FOUND)
     hpx_add_config_define_namespace(
       DEFINE HPX_PARCELPORT_LIBFABRIC_HAVE_PMI
       NAMESPACE parcelport)
-  endif()
 
-  add_library(hpx::pmi INTERFACE IMPORTED)
-  set_property(TARGET hpx::pmi PROPERTY
-    INTERFACE_INCLUDE_DIRECTORIES ${PMI_INCLUDE_DIR})
-  set_property(TARGET hpx::pmi PROPERTY
-    INTERFACE_LINK_LIBRARIES ${PMI_LIBRARY})
+    add_library(hpx::pmi INTERFACE IMPORTED)
+    set_property(TARGET hpx::pmi PROPERTY
+      INTERFACE_INCLUDE_DIRECTORIES ${PMI_INCLUDE_DIR})
+    set_property(TARGET hpx::pmi PROPERTY
+      INTERFACE_LINK_LIBRARIES ${PMI_LIBRARY})
+  endif()
 
   #------------------------------------------------------------------------------
   # Logging
@@ -74,14 +77,22 @@ if (HPX_WITH_PARCELPORT_LIBFABRIC AND NOT TARGET hpx::libfabric)
   endif()
 
   #------------------------------------------------------------------------------
-  # make sure boost log is linked correctly
+  # Bootstrap options
   #------------------------------------------------------------------------------
-  if(HPX_PARCELPORT_LIBFABRIC_WITH_LOGGING OR HPX_PARCELPORT_LIBFABRIC_WITH_DEV_MODE)
-    if (NOT Boost_USE_STATIC_LIBS)
-      hpx_add_config_define_namespace(
-          DEFINE    BOOST_LOG_DYN_LINK
-          NAMESPACE parcelport)
-    endif()
+  hpx_option(HPX_PARCELPORT_LIBFABRIC_WITH_BOOTSTRAPPING BOOL
+    "Configure the parcelport to enable bootstrap capabilities (default: OFF, enabled if PMI was found)"
+    ${PMI_FOUND} CATEGORY "Parcelport" ADVANCED)
+
+  if (HPX_PARCELPORT_LIBFABRIC_WITH_BOOTSTRAPPING)
+    hpx_add_config_define_namespace(
+        DEFINE    HPX_PARCELPORT_LIBFABRIC_HAVE_BOOTSTRAPPING
+        VALUE     std::true_type
+        NAMESPACE parcelport)
+  else()
+    hpx_add_config_define_namespace(
+        DEFINE    HPX_PARCELPORT_LIBFABRIC_HAVE_BOOTSTRAPPING
+        VALUE     std::false_type
+        NAMESPACE parcelport)
   endif()
 
   #------------------------------------------------------------------------------
@@ -104,16 +115,25 @@ if (HPX_WITH_PARCELPORT_LIBFABRIC AND NOT TARGET hpx::libfabric)
       hpx_add_config_define_namespace(
           DEFINE HPX_PARCELPORT_LIBFABRIC_GNI
           NAMESPACE parcelport)
+      # enable bootstrapping, add pmi library
+      set(HPX_PARCELPORT_LIBFABRIC_WITH_BOOTSTRAPPING ON)
+      set(_libfabric_libraries ${_libfabric_libraries} hpx::pmi)
   elseif(HPX_PARCELPORT_LIBFABRIC_PROVIDER MATCHES "sockets")
       hpx_add_config_define_namespace(
           DEFINE HPX_PARCELPORT_LIBFABRIC_SOCKETS
           NAMESPACE parcelport)
+      # enable bootstrapping
+      set(HPX_PARCELPORT_LIBFABRIC_WITH_BOOTSTRAPPING ON)
   elseif(HPX_PARCELPORT_LIBFABRIC_PROVIDER MATCHES "psm2")
       hpx_add_config_define_namespace(
           DEFINE HPX_PARCELPORT_LIBFABRIC_PSM2
           NAMESPACE parcelport)
-  endif()
+  endif()  
 
+  #------------------------------------------------------------------------------
+  # Domain and endpoint are fixed, but used to be options
+  # leaving options in case they are needed again to support other platforms
+  #------------------------------------------------------------------------------
   hpx_option(HPX_PARCELPORT_LIBFABRIC_DOMAIN STRING
     "The libfabric domain (leave blank for default"
     "" CATEGORY "Parcelport" ADVANCED)
@@ -133,25 +153,6 @@ if (HPX_WITH_PARCELPORT_LIBFABRIC AND NOT TARGET hpx::libfabric)
       NAMESPACE parcelport)
 
   #------------------------------------------------------------------------------
-  # Bootstrap options
-  #------------------------------------------------------------------------------
-  hpx_option(HPX_PARCELPORT_LIBFABRIC_WITH_BOOTSTRAPPING BOOL
-    "Configure the parcelport to enable bootstrap capabilities (default: OFF, enabled if PMI was found)"
-    ${PMI_FOUND} CATEGORY "Parcelport" ADVANCED)
-
-  if (HPX_PARCELPORT_LIBFABRIC_WITH_BOOTSTRAPPING)
-    hpx_add_config_define_namespace(
-        DEFINE    HPX_PARCELPORT_LIBFABRIC_HAVE_BOOTSTRAPPING
-        VALUE     std::true_type
-        NAMESPACE parcelport)
-  else()
-    hpx_add_config_define_namespace(
-        DEFINE    HPX_PARCELPORT_LIBFABRIC_HAVE_BOOTSTRAPPING
-        VALUE     std::false_type
-        NAMESPACE parcelport)
-  endif()
-
-  #------------------------------------------------------------------------------
   # Performance counters
   #------------------------------------------------------------------------------
   hpx_option(HPX_PARCELPORT_LIBFABRIC_WITH_PERFORMANCE_COUNTERS BOOL
@@ -161,31 +162,6 @@ if (HPX_WITH_PARCELPORT_LIBFABRIC AND NOT TARGET hpx::libfabric)
   if (HPX_PARCELPORT_LIBFABRIC_WITH_PERFORMANCE_COUNTERS)
     hpx_add_config_define_namespace(
         DEFINE    HPX_PARCELPORT_LIBFABRIC_HAVE_PERFORMANCE_COUNTERS
-        NAMESPACE parcelport)
-  endif()
-
-  #------------------------------------------------------------------------------
-  # Throttling options
-  #------------------------------------------------------------------------------
-  hpx_option(HPX_PARCELPORT_LIBFABRIC_MAX_SENDS STRING
-    "Threshold of active sends at which throttling is enabled (default: 16)"
-    "16" CATEGORY "Parcelport" ADVANCED)
-
-  hpx_add_config_define_namespace(
-      DEFINE    HPX_PARCELPORT_LIBFABRIC_MAX_SENDS
-      VALUE     ${HPX_PARCELPORT_LIBFABRIC_MAX_SENDS}
-      NAMESPACE parcelport)
-
-  #------------------------------------------------------------------------------
-  # Custom Scheduler options
-  #------------------------------------------------------------------------------
-  hpx_option(HPX_PARCELPORT_LIBFABRIC_USE_CUSTOM_SCHEDULER BOOL
-    "Configure the parcelport to use a custom scheduler (default: OFF - Warning, experimental, may cause serious program errors)"
-    OFF CATEGORY "Parcelport" ADVANCED)
-
-  if (HPX_PARCELPORT_LIBFABRIC_USE_CUSTOM_SCHEDULER)
-    hpx_add_config_define_namespace(
-        DEFINE    HPX_PARCELPORT_LIBFABRIC_USE_CUSTOM_SCHEDULER
         NAMESPACE parcelport)
   endif()
 
@@ -250,5 +226,16 @@ if (HPX_WITH_PARCELPORT_LIBFABRIC AND NOT TARGET hpx::libfabric)
       VALUE     ${HPX_PARCELPORT_LIBFABRIC_MAX_PREPOSTS}
       NAMESPACE parcelport)
 
+  #------------------------------------------------------------------------------
+  # Throttling options
+  #------------------------------------------------------------------------------
+  hpx_option(HPX_PARCELPORT_LIBFABRIC_MAX_SENDS STRING
+    "Threshold of active sends at which throttling is enabled (default: 16)"
+    "16" CATEGORY "Parcelport" ADVANCED)
+
+  hpx_add_config_define_namespace(
+      DEFINE    HPX_PARCELPORT_LIBFABRIC_MAX_SENDS
+      VALUE     ${HPX_PARCELPORT_LIBFABRIC_MAX_SENDS}
+      NAMESPACE parcelport)
 
 endif()
