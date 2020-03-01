@@ -7,7 +7,7 @@
 # FIXME : in the future put it directly inside the cmake directory of the
 # corresponding plugin
 
-if(HPX_WITH_PARCELPORT_LIBFABRIC AND NOT TARGET Libfabric::libfabric)
+if(HPX_WITH_PARCELPORT_LIBFABRIC AND NOT TARGET hpx::libfabric)
   # ------------------------------------------------------------------------------
   # Add #define to global defines.hpp
   # ------------------------------------------------------------------------------
@@ -22,23 +22,40 @@ if(HPX_WITH_PARCELPORT_LIBFABRIC AND NOT TARGET Libfabric::libfabric)
     find_package(Libfabric REQUIRED)
   endif()
   # Setup Libfabric imported target
-  add_library(Libfabric::libfabric INTERFACE IMPORTED)
-  target_include_directories(
-    Libfabric::libfabric SYSTEM INTERFACE ${LIBFABRIC_INCLUDE_DIR}
+  add_library(hpx::libfabric INTERFACE IMPORTED)
+  set_property(
+    TARGET hpx::libfabric PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+                                   ${LIBFABRIC_INCLUDE_DIR}
   )
-  target_link_libraries(Libfabric::libfabric INTERFACE ${LIBFABRIC_LIBRARY})
 
+  if(${CMAKE_VERSION} VERSION_LESS "3.12.0")
+    set_property(
+      TARGET hpx::libfabric PROPERTY INTERFACE_LINK_LIBRARIES
+                                     ${LIBFABRIC_LIBRARY}
+    )
+  else()
+    target_link_libraries(hpx::libfabric INTERFACE ${LIBFABRIC_LIBRARY})
+  endif()
+
+  set(_libfabric_libraries hpx::libfabric)
+
+  # ------------------------------------------------------------------------------
   # Setup PMI imported target
-  find_package(PMI)
+  # ------------------------------------------------------------------------------
+  find_package(PMI QUIET)
   if(PMI_FOUND)
     hpx_add_config_define_namespace(
       DEFINE HPX_PARCELPORT_LIBFABRIC_HAVE_PMI NAMESPACE parcelport
     )
-  endif()
 
-  add_library(Pmi::pmi INTERFACE IMPORTED)
-  target_include_directories(Pmi::pmi SYSTEM INTERFACE ${PMI_INCLUDE_DIR})
-  target_link_libraries(Pmi::pmi INTERFACE ${PMI_LIBRARY})
+    add_library(hpx::pmi INTERFACE IMPORTED)
+    set_property(
+      TARGET hpx::pmi PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${PMI_INCLUDE_DIR}
+    )
+    set_property(
+      TARGET hpx::pmi PROPERTY INTERFACE_LINK_LIBRARIES ${PMI_LIBRARY}
+    )
+  endif()
 
   # ------------------------------------------------------------------------------
   # Logging
@@ -76,76 +93,6 @@ if(HPX_WITH_PARCELPORT_LIBFABRIC AND NOT TARGET Libfabric::libfabric)
   endif()
 
   # ------------------------------------------------------------------------------
-  # make sure boost log is linked correctly
-  # ------------------------------------------------------------------------------
-  if(HPX_PARCELPORT_LIBFABRIC_WITH_LOGGING
-     OR HPX_PARCELPORT_LIBFABRIC_WITH_DEV_MODE
-  )
-    if(NOT Boost_USE_STATIC_LIBS)
-      hpx_add_config_define_namespace(
-        DEFINE BOOST_LOG_DYN_LINK NAMESPACE parcelport
-      )
-    endif()
-  endif()
-
-  # ------------------------------------------------------------------------------
-  # Hardware device selection
-  # ------------------------------------------------------------------------------
-  hpx_option(
-    HPX_PARCELPORT_LIBFABRIC_PROVIDER STRING
-    "The provider (verbs/gni/psm2/sockets)" "verbs" CATEGORY "Parcelport"
-                                                             ADVANCED
-  )
-
-  hpx_add_config_define_namespace(
-    DEFINE HPX_PARCELPORT_LIBFABRIC_PROVIDER
-    VALUE "\"${HPX_PARCELPORT_LIBFABRIC_PROVIDER}\""
-    NAMESPACE parcelport
-  )
-
-  if(HPX_PARCELPORT_LIBFABRIC_PROVIDER MATCHES "verbs")
-    hpx_add_config_define_namespace(
-      DEFINE HPX_PARCELPORT_LIBFABRIC_VERBS NAMESPACE parcelport
-    )
-  elseif(HPX_PARCELPORT_LIBFABRIC_PROVIDER MATCHES "gni")
-    hpx_add_config_define_namespace(
-      DEFINE HPX_PARCELPORT_LIBFABRIC_GNI NAMESPACE parcelport
-    )
-  elseif(HPX_PARCELPORT_LIBFABRIC_PROVIDER MATCHES "sockets")
-    hpx_add_config_define_namespace(
-      DEFINE HPX_PARCELPORT_LIBFABRIC_SOCKETS NAMESPACE parcelport
-    )
-  elseif(HPX_PARCELPORT_LIBFABRIC_PROVIDER MATCHES "psm2")
-    hpx_add_config_define_namespace(
-      DEFINE HPX_PARCELPORT_LIBFABRIC_PSM2 NAMESPACE parcelport
-    )
-  endif()
-
-  hpx_option(
-    HPX_PARCELPORT_LIBFABRIC_DOMAIN STRING
-    "The libfabric domain (leave blank for default" "" CATEGORY "Parcelport"
-                                                                ADVANCED
-  )
-
-  hpx_add_config_define_namespace(
-    DEFINE HPX_PARCELPORT_LIBFABRIC_DOMAIN
-    VALUE "\"${HPX_PARCELPORT_LIBFABRIC_DOMAIN}\""
-    NAMESPACE parcelport
-  )
-
-  hpx_option(
-    HPX_PARCELPORT_LIBFABRIC_ENDPOINT STRING
-    "The libfabric endpoint type (leave blank for default" "rdm"
-    CATEGORY "Parcelport" ADVANCED
-  )
-
-  hpx_add_config_define_namespace(
-    DEFINE HPX_PARCELPORT_LIBFABRIC_ENDPOINT
-    VALUE "\"${HPX_PARCELPORT_LIBFABRIC_ENDPOINT}\""
-    NAMESPACE parcelport
-  )
-
-  # ------------------------------------------------------------------------------
   # Bootstrap options
   # ------------------------------------------------------------------------------
   hpx_option(
@@ -171,6 +118,72 @@ if(HPX_WITH_PARCELPORT_LIBFABRIC AND NOT TARGET Libfabric::libfabric)
   endif()
 
   # ------------------------------------------------------------------------------
+  # Hardware device selection
+  # ------------------------------------------------------------------------------
+  hpx_option(
+    HPX_PARCELPORT_LIBFABRIC_PROVIDER STRING
+    "The provider (verbs/gni/psm2/sockets)" "verbs" CATEGORY "Parcelport"
+                                                             ADVANCED
+  )
+
+  hpx_add_config_define_namespace(
+    DEFINE HPX_PARCELPORT_LIBFABRIC_PROVIDER
+    VALUE "\"${HPX_PARCELPORT_LIBFABRIC_PROVIDER}\""
+    NAMESPACE parcelport
+  )
+
+  if(HPX_PARCELPORT_LIBFABRIC_PROVIDER MATCHES "verbs")
+    hpx_add_config_define_namespace(
+      DEFINE HPX_PARCELPORT_LIBFABRIC_VERBS NAMESPACE parcelport
+    )
+  elseif(HPX_PARCELPORT_LIBFABRIC_PROVIDER MATCHES "gni")
+    hpx_add_config_define_namespace(
+      DEFINE HPX_PARCELPORT_LIBFABRIC_GNI NAMESPACE parcelport
+    )
+    # enable bootstrapping, add pmi library
+    set(HPX_PARCELPORT_LIBFABRIC_WITH_BOOTSTRAPPING ON)
+    set(_libfabric_libraries ${_libfabric_libraries} hpx::pmi)
+  elseif(HPX_PARCELPORT_LIBFABRIC_PROVIDER MATCHES "sockets")
+    hpx_add_config_define_namespace(
+      DEFINE HPX_PARCELPORT_LIBFABRIC_SOCKETS NAMESPACE parcelport
+    )
+    # enable bootstrapping
+    set(HPX_PARCELPORT_LIBFABRIC_WITH_BOOTSTRAPPING ON)
+  elseif(HPX_PARCELPORT_LIBFABRIC_PROVIDER MATCHES "psm2")
+    hpx_add_config_define_namespace(
+      DEFINE HPX_PARCELPORT_LIBFABRIC_PSM2 NAMESPACE parcelport
+    )
+  endif()
+
+  # ------------------------------------------------------------------------------
+  # Domain and endpoint are fixed, but used to be options leaving options in
+  # case they are needed again to support other platforms
+  # ------------------------------------------------------------------------------
+  hpx_option(
+    HPX_PARCELPORT_LIBFABRIC_DOMAIN STRING
+    "The libfabric domain (leave blank for default" "" CATEGORY "Parcelport"
+                                                                ADVANCED
+  )
+
+  hpx_add_config_define_namespace(
+    DEFINE HPX_PARCELPORT_LIBFABRIC_DOMAIN
+    VALUE "\"${HPX_PARCELPORT_LIBFABRIC_DOMAIN}\""
+    NAMESPACE parcelport
+  )
+
+  hpx_option(
+    HPX_PARCELPORT_LIBFABRIC_ENDPOINT STRING
+    "The libfabric endpoint type (leave blank for default" "rdm"
+    CATEGORY "Parcelport" ADVANCED
+  )
+
+  hpx_add_config_define_namespace(
+    DEFINE HPX_PARCELPORT_LIBFABRIC_ENDPOINT
+    VALUE "\"${HPX_PARCELPORT_LIBFABRIC_ENDPOINT}\""
+    NAMESPACE parcelport
+  )
+
+  # ------------------------------------------------------------------------------
   # Performance counters
   # ------------------------------------------------------------------------------
   hpx_option(
@@ -183,36 +196,6 @@ if(HPX_WITH_PARCELPORT_LIBFABRIC AND NOT TARGET Libfabric::libfabric)
     hpx_add_config_define_namespace(
       DEFINE HPX_PARCELPORT_LIBFABRIC_HAVE_PERFORMANCE_COUNTERS
       NAMESPACE parcelport
-    )
-  endif()
-
-  # ------------------------------------------------------------------------------
-  # Throttling options
-  #------------------------------------------------------------------------------
-  hpx_option(HPX_PARCELPORT_LIBFABRIC_MAX_SENDS STRING
-    "Threshold of active sends at which throttling is enabled (default: 16)"
-    "16" CATEGORY "Parcelport" ADVANCED
-  )
-
-  hpx_add_config_define_namespace(
-      DEFINE    HPX_PARCELPORT_LIBFABRIC_MAX_SENDS
-      VALUE     ${HPX_PARCELPORT_LIBFABRIC_MAX_SENDS}
-      NAMESPACE parcelport)
-
-  # ------------------------------------------------------------------------------
-  # Custom Scheduler options
-  # ------------------------------------------------------------------------------
-  hpx_option(
-    HPX_PARCELPORT_LIBFABRIC_USE_CUSTOM_SCHEDULER
-    BOOL
-    "Configure the parcelport to use a custom scheduler (default: OFF - Warning, experimental, may cause serious program errors)"
-    OFF
-    CATEGORY "Parcelport" ADVANCED
-  )
-
-  if(HPX_PARCELPORT_LIBFABRIC_USE_CUSTOM_SCHEDULER)
-    hpx_add_config_define_namespace(
-      DEFINE HPX_PARCELPORT_LIBFABRIC_USE_CUSTOM_SCHEDULER NAMESPACE parcelport
     )
   endif()
 
@@ -293,6 +276,21 @@ if(HPX_WITH_PARCELPORT_LIBFABRIC AND NOT TARGET Libfabric::libfabric)
   hpx_add_config_define_namespace(
     DEFINE HPX_PARCELPORT_LIBFABRIC_MAX_PREPOSTS
     VALUE ${HPX_PARCELPORT_LIBFABRIC_MAX_PREPOSTS}
+    NAMESPACE parcelport
+  )
+
+  # ------------------------------------------------------------------------------
+  # Throttling options
+  # ------------------------------------------------------------------------------
+  hpx_option(
+    HPX_PARCELPORT_LIBFABRIC_MAX_SENDS STRING
+    "Threshold of active sends at which throttling is enabled (default: 16)"
+    "16" CATEGORY "Parcelport" ADVANCED
+  )
+
+  hpx_add_config_define_namespace(
+    DEFINE HPX_PARCELPORT_LIBFABRIC_MAX_SENDS
+    VALUE ${HPX_PARCELPORT_LIBFABRIC_MAX_SENDS}
     NAMESPACE parcelport
   )
 

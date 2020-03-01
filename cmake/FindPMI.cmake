@@ -40,15 +40,10 @@ find_library(
   PATH_SUFFIXES lib lib64
 )
 
-# Set PMI_ROOT in case the other hints are used
-if(PMI_ROOT)
-  # The call to file is for compatibility with windows paths
-  file(TO_CMAKE_PATH ${PMI_ROOT} PMI_ROOT)
-elseif("$ENV{PMI_ROOT}")
-  file(TO_CMAKE_PATH $ENV{PMI_ROOT} PMI_ROOT)
-else()
-  file(TO_CMAKE_PATH "${PMI_INCLUDE_DIR}" PMI_INCLUDE_DIR)
-  string(REPLACE "/include" "" PMI_ROOT "${PMI_INCLUDE_DIR}")
+if(PMI_FIND_QUIETLY)
+  if(NOT PMI_LIBRARY OR NOT PMI_INCLUDE_DIR)
+    return()
+  endif()
 endif()
 
 if(NOT PMI_LIBRARY OR NOT PMI_INCLUDE_DIR)
@@ -60,5 +55,10 @@ endif()
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(PMI DEFAULT_MSG PMI_LIBRARY PMI_INCLUDE_DIR)
+
+# foreach(v PMI_ROOT) get_property(_type CACHE ${v} PROPERTY TYPE) if(_type)
+# set_property(CACHE ${v} PROPERTY ADVANCED 1) if("x${_type}" STREQUAL
+# "xUNINITIALIZED") set_property(CACHE ${v} PROPERTY TYPE PATH) endif() endif()
+# endforeach()
 
 mark_as_advanced(PMI_ROOT PMI_LIBRARY PMI_INCLUDE_DIR)
