@@ -11,6 +11,8 @@
 #include <hpx/runtime/parcelset/parcelport.hpp>
 #include <hpx/runtime/parcelset/rma/memory_region.hpp>
 #include <hpx/runtime/parcelset/rma/memory_pool.hpp>
+#include <hpx/runtime/parcelset_fwd.hpp>
+#include <hpx/runtime_distributed.hpp>
 //
 #include <memory>
 #include <vector>
@@ -122,7 +124,7 @@ namespace rma
     rma_object<T> make_rma_object_impl(T*, Args&&... args)
     {
         parcelset::parcelhandler &ph =
-            hpx::get_runtime().get_parcel_handler();
+            hpx::get_runtime_distributed().get_parcel_handler();
         auto pp = ph.get_default_parcelport();
 
         // get a memory region big enough to hold an object of type T

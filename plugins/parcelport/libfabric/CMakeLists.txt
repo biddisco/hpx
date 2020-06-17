@@ -84,7 +84,9 @@ add_parcelport(
     hpx_errors
     hpx_execution
     hpx_hardware
+    hpx_include
     hpx_memory
+    hpx_performance_counters
     hpx_plugin
     hpx_program_options
     hpx_serialization

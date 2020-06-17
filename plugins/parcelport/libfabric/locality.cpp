@@ -8,6 +8,8 @@
 #include <hpx/serialization/array.hpp>
 #include <plugins/parcelport/libfabric/parcelport_libfabric.hpp>
 #include <plugins/parcelport/libfabric/controller.hpp>
+#include <hpx/distributed/runtime.hpp>
+#include <hpx/runtime_distributed.hpp>
 //
 #include <utility>
 #include <cstring>
@@ -29,7 +31,7 @@ namespace libfabric
         ar >> data_;
         ar >> fi_address_;
         parcelset::parcelhandler &ph
-                = hpx::get_runtime().get_parcel_handler();
+                = hpx::get_runtime_distributed().get_parcel_handler();
         std::shared_ptr<parcelset::parcelport> pp
                 = ph.get_bootstrap_parcelport();
         std::shared_ptr<libfabric::parcelport> lf

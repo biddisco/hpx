@@ -16,7 +16,6 @@
 #include <hpx/threading_base/thread_data.hpp>
 
 // The memory pool specialization need to be pulled in before encode_parcels
-#include <hpx/runtime.hpp>
 #include <hpx/runtime/parcelset/parcelport.hpp>
 #include <hpx/runtime/parcelset/parcel_buffer.hpp>
 #include <hpx/plugins/parcelport_factory.hpp>

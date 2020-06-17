@@ -11,7 +11,7 @@
 #include <hpx/components/iostreams/standard_streams.hpp>
 #include <hpx/synchronization/detail/sliding_semaphore.hpp>
 #include <hpx/modules/testing.hpp>
-#include <hpx/basic_execution/this_thread.hpp>
+#include <hpx/execution_base/this_thread.hpp>
 #include <hpx/synchronization/barrier.hpp>
 //
 #include <hpx/runtime/parcelset/rma/rma_object.hpp>

@@ -49,7 +49,6 @@
 #if defined(HPX_PARCELPORT_LIBFABRIC_SOCKETS) && \
     defined(HPX_PARCELPORT_LIBFABRIC_HAVE_BOOTSTRAPPING)
  #include <plugins/parcelport/libfabric/parcelport_libfabric.hpp>
- #include <hpx/basic_execution/this_thread.hpp>
 #endif
 #include <cstddef>
 #include <cstdint>
@@ -801,7 +800,7 @@ void big_boot_barrier::wait_hosted(
 
     parcelset::locality here_ = here();
     std::shared_ptr<hpx::parcelset::parcelport> pp =
-            rt.get_parcel_handler().get_bootstrap_parcelport();
+            rtd.get_parcel_handler().get_bootstrap_parcelport();
     std::shared_ptr<hpx::parcelset::policies::libfabric::parcelport> lfpp =
             std::dynamic_pointer_cast<hpx::parcelset::policies::libfabric::parcelport>(pp);
 
@@ -810,7 +809,7 @@ void big_boot_barrier::wait_hosted(
     // wait until the agas node informs us that everyone has connected
     hpx::util::yield_while(
         [&lfpp](){
-            lfpp->background_work(0, 
+            lfpp->background_work(0,
                 hpx::parcelset::parcelport_background_mode_all);
             return lfpp->bootstrapping();
         }

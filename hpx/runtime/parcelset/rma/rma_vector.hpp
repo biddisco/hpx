@@ -10,6 +10,7 @@
 //
 #include <hpx/runtime/parcelset/rma/memory_region.hpp>
 #include <hpx/runtime/parcelset/rma/memory_pool.hpp>
+#include <hpx/runtime_distributed.hpp>
 //
 #include <boost/shared_array.hpp>
 //
@@ -344,7 +345,7 @@ namespace rma
             }
             //
             parcelset::parcelhandler &ph =
-                hpx::get_runtime().get_parcel_handler();
+                hpx::get_runtime_distributed().get_parcel_handler();
             auto pp = ph.get_default_parcelport();
 
             rma::allocator<char> *allocator = pp->get_allocator();

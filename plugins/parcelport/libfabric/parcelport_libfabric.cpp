@@ -16,9 +16,9 @@
 #include <hpx/command_line_handling/command_line_handling.hpp>
 #include <hpx/timing/high_resolution_timer.hpp>
 #include <hpx/runtime_configuration/runtime_configuration.hpp>
-#include <hpx/util/command_line_handling.hpp>
+#include <hpx/command_line_handling/command_line_handling.hpp>
 #include <hpx/util/get_entry_as.hpp>
-#include <hpx/basic_execution/this_thread.hpp>
+#include <hpx/execution_base/this_thread.hpp>
 
 // The memory pool specialization need to be pulled in before encode_parcels
 #include <hpx/plugins/parcelport_factory.hpp>
@@ -97,7 +97,7 @@ namespace libfabric
     // --------------------------------------------------------------------
     parcelport::parcelport(util::runtime_configuration const& ini,
         threads::policies::callback_notifier const& notifier)
-      : base_type(ini, locality(), notifier)
+      : base_type(ini, parcelset::locality(), notifier)
         , bootstrap_enabled_(false)
         , bootstrap_complete(false)
         , stopped_(false)
@@ -479,7 +479,7 @@ namespace libfabric
             //ppt_deb.error("Should only return agas locality when bootstrapping");
         }
         FUNC_END_DEBUG_MSG;
-        return controller_->agas_;
+        return parcelset::locality(controller_->agas_);
     }
 
     // --------------------------------------------------------------------

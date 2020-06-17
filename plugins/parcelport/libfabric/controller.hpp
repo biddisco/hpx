@@ -17,6 +17,7 @@
 //
 #include <hpx/runtime/parcelset/parcelport_impl.hpp>
 #include <hpx/runtime/agas/addressing_service.hpp>
+#include <hpx/runtime_local/runtime_local.hpp>
 //
 #include <hpx/runtime/parcelset/rma/detail/memory_region_impl.hpp>
 #include <hpx/runtime/parcelset/rma/memory_pool.hpp>

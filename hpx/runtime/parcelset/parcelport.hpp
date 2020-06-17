@@ -31,7 +31,6 @@
 #include <plugins/parcelport/unordered_map.hpp>
 //
 #include <hpx/datastructures/tuple.hpp>
-#include <hpx/util_fwd.hpp>
 
 #include <atomic>
 #include <cstddef>
