@@ -25,7 +25,7 @@
 #include <vector>
 
 // -------------------------------------------------------------
-// Legacy macros that will be removed once all places 
+// Legacy macros that will be removed once all places
 // using them have been cleaned up
 // -------------------------------------------------------------
 #define hexbyte(p)    p

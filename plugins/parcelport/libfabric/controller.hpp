@@ -97,7 +97,7 @@ struct iplocality
     friend std::ostream& operator<<(std::ostream& os, const iplocality& p)
     {
         os << std::dec
-           << hpx::debug::ipaddr(&p.data)
+           << hpx::debug::ipaddr(&p.data.ip_address())
            << ":" << hpx::debug::dec<>(p.data.port())
            << "(" << hpx::debug::dec<>(p.data.fi_address()) << ") ";
         return os;
