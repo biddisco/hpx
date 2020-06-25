@@ -851,7 +851,8 @@ namespace hpx { namespace util {
         hpx_port = cfgmap.get_value<std::uint16_t>(
             "hpx.parcel.port", initial_hpx_port);
 
-        run_agas_server = vm.count("hpx:run-agas-server") != 0;
+        run_agas_server = (vm.count("hpx:run-agas-server") != 0) ||
+            (vm.count("hpx:console") != 0);
         if (node == std::size_t(-1))
             node = env.retrieve_node_number();
 #else
@@ -1114,14 +1115,16 @@ namespace hpx { namespace util {
             {
                 // we assume that we need to run the agas server if the user
                 // asked for the same network addresses for HPX and AGAS
-                run_agas_server = rtcfg_.mode_ != runtime_mode::connect;
+                run_agas_server = (rtcfg_.mode_ != runtime_mode::connect) &&
+                    (rtcfg_.mode_ != runtime_mode::worker);
             }
             else if (run_agas_server)
             {
                 // otherwise, if the user instructed us to run the AGAS server,
                 // we set the AGAS network address to the same value as the HPX
                 // network address
-                if (agas_host == HPX_INITIAL_IP_ADDRESS)
+                if ((agas_host == HPX_INITIAL_IP_ADDRESS) &&
+                    (agas_port == HPX_INITIAL_IP_PORT))
                 {
                     agas_host = hpx_host;
                     agas_port = hpx_port;
