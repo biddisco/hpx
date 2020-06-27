@@ -30,8 +30,8 @@
 #endif
 
 #ifdef __APPLE__
-#include <unistd.h>
 #include <crt_externs.h>
+#include <unistd.h>
 #define environ (*_NSGetEnviron())
 #elif defined(HPX_WINDOWS)
 #include <winsock.h>
@@ -75,8 +75,7 @@ extern char** environ;
 
 // Used to wrap function call parameters to prevent evaluation
 // when debugging is disabled
-#define HPX_DP_LAZY(Expr, printer) \
-    printer.eval([&] { return Expr; })
+#define HPX_DP_LAZY(Expr, printer) printer.eval([&] { return Expr; })
 
 // ------------------------------------------------------------
 /// \cond NODETAIL
@@ -441,7 +440,6 @@ namespace hpx { namespace debug {
         }
     }    // namespace detail
 
-
     template <typename... Args>
     struct scoped_var
     {
@@ -587,8 +585,10 @@ namespace hpx { namespace debug {
         }
 
         template <typename Expr>
-        constexpr bool eval(Expr const &) { return true; }
-
+        constexpr bool eval(Expr const&)
+        {
+            return true;
+        }
     };
 
     // when true, debug statements produce valid output
@@ -706,7 +706,8 @@ namespace hpx { namespace debug {
         }
 
         template <typename Expr>
-        auto eval(Expr const &e) {
+        auto eval(Expr const& e)
+        {
             return e();
         }
     };
