@@ -21,8 +21,6 @@
 
 #include <mpi.h>
 
-#define WAIT_FOR_FUTURES
-
 // This test send a message from rank 0 to rank 1 and from R1->R2 in a ring
 // until the last rank which sends it back to R0.and completes an iteration
 //
@@ -108,32 +106,23 @@ int hpx_main(hpx::program_options::variables_map& vm)
 
         std::vector<int> tokens(max_tokens, -1);
 
-#ifdef WAIT_FOR_FUTURES
-        std::vector<hpx::future<void>> spare_futures;
-#endif
         hpx::util::high_resolution_timer t;
 
         for (std::uint64_t j = 0; (j != subloops) && (remainder > 0); ++j)
         {
-#ifdef WAIT_FOR_FUTURES
-            spare_futures.reserve(max_tokens);
-#endif
             std::atomic<int> counter(
                 (std::min)(std::uint64_t(max_tokens), remainder));
             for (std::uint64_t i = 0; (i != max_tokens) && (remainder > 0); ++i)
             {
                 tokens[i] = (rank == 0) ? 1 : -1;
                 int rank_from = (size + rank - 1) % size;
-                int rank_to   = (rank + 1) % size;
+                int rank_to = (rank + 1) % size;
 
                 // all ranks pre-post a receive
                 hpx::future<int> f_recv = hpx::async(
                     exec, MPI_Irecv, &tokens[i], 1, MPI_INT, rank_from, i);
 
                 // when the recv completes,
-#ifdef WAIT_FOR_FUTURES
-                auto f_wasted =
-#endif
                 f_recv.then([=, &tokens, &counter](auto&&) {
                     msg_recv(rank, size, rank_to, rank_from, tokens[i], i);
                     if (rank > 0)
@@ -157,30 +146,18 @@ int hpx_main(hpx::program_options::variables_map& vm)
                     }
                 });
 
-#ifdef WAIT_FOR_FUTURES
-                spare_futures.push_back(std::move(f_wasted));
-#endif
                 // rank 0 starts the process with a send
                 if (rank == 0)
                 {
                     auto f_send = hpx::async(
                         exec, MPI_Isend, &tokens[i], 1, MPI_INT, rank_to, i);
-#ifdef WAIT_FOR_FUTURES
-                    auto f_wasted =
-#endif
                     f_send.then([=, &tokens, &counter](auto&&) {
                         msg_send(rank, size, rank_to, rank_from, tokens[i], i);
                     });
-#ifdef WAIT_FOR_FUTURES
-                    spare_futures.push_back(std::move(f_wasted));
-#endif
                 }
                 --remainder;
             }
 
-#ifdef WAIT_FOR_FUTURES
-            when_all(spare_futures).get();
-#else
             // Our simple counter should reach zero when all send/recv pairs are done
             hpx::mpi::experimental::wait([&]() { return counter != 0; });
             if (rank == 0 && output)
@@ -188,7 +165,6 @@ int hpx_main(hpx::program_options::variables_map& vm)
                 std::cout << "remainder " << remainder << " j " << j
                           << std::endl;
             }
-#endif
         }
 
         if (rank == 0)
