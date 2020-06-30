@@ -30,11 +30,25 @@
 # define HPX_PARCELPORT_LIBFABRIC_LOCALITY_SOCKADDR
 #endif
 
+#include <hpx/debugging/print.hpp>
+namespace hpx {
+    // cppcheck-suppress ConfigurationNotChecked
+    static hpx::debug::enable_print<false> loc_deb("LOCALTY");
+}   // namespace hpx
+
 namespace hpx {
 namespace parcelset {
 namespace policies {
 namespace libfabric
 {
+
+    struct locality;
+
+    struct iplocality {
+        iplocality(const hpx::parcelset::policies::libfabric::locality& a);
+        const hpx::parcelset::policies::libfabric::locality& data;
+        friend std::ostream& operator<<(std::ostream& os, const iplocality& p);
+    };
 
 // --------------------------------------------------------------------
 // Locality, in this structure we store the informartion required by
@@ -61,42 +75,39 @@ struct locality {
     {
         std::memcpy(&data_[0], &in_data[0], array_size);
         fi_address_ = 0;
-        LOG_TRACE_MSG("explicit constructing locality " << iplocality((*this)));
+        loc_deb.trace(debug::str<>("explicit"), iplocality((*this)));
     }
 
     locality() {
         std::memset(&data_[0], 0x00, array_size);
         fi_address_ = 0;
-        LOG_TRACE_MSG("default constructing locality " << iplocality((*this)));
+        loc_deb.trace(debug::str<>("default"), iplocality((*this)));
     }
 
     locality(const locality &other)
         : data_(other.data_)
         , fi_address_(other.fi_address_)
     {
-        LOG_TRACE_MSG("copy constructing locality " << iplocality((*this)));
+        loc_deb.trace(debug::str<>("copy"), iplocality((*this)));
     }
 
     locality(const locality &other, fi_addr_t addr)
         : data_(other.data_)
         , fi_address_(addr)
     {
-        LOG_TRACE_MSG("copy constructing locality + fi_addr " << iplocality((*this)));
+        loc_deb.trace(debug::str<>("copy + fi_addr"), iplocality((*this)));
     }
 
     locality(locality &&other)
         : data_(std::move(other.data_))
         , fi_address_(other.fi_address_)
     {
-        LOG_TRACE_MSG("move constructing locality " << iplocality((*this)));
+        loc_deb.trace(debug::str<>("move"), iplocality((*this)));
     }
 
     // provided to support sockets mode bootstrap
     explicit locality(const std::string &address,  const std::string &portnum)
     {
-        LOG_TRACE_MSG("explicit constructing locality from "
-            << address << ":" << portnum);
-        //
         struct sockaddr_in socket_data;
         memset (&socket_data, 0, sizeof (socket_data));
         socket_data.sin_family      = AF_INET;
@@ -105,40 +116,40 @@ struct locality {
         //
         std::memcpy(&data_[0], &socket_data, array_size);
         fi_address_ = 0;
-        LOG_TRACE_MSG("string constructing locality " << iplocality((*this)));
+        loc_deb.trace(debug::str<>("string"), iplocality((*this)));
     }
 
     // some condition marking this locality as valid
     explicit inline operator bool() const {
-        LOG_TRACE_MSG("bool operator locality "
-                << iplocality((*this)));
+        loc_deb.trace(debug::str<>("bool operator")
+                , iplocality((*this)));
         return (ip_address() != 0);
     }
 
     inline bool valid() const {
-        LOG_TRACE_MSG("valid operator locality "
-                << iplocality((*this)));
+        loc_deb.trace(debug::str<>("valid operator")
+                , iplocality((*this)));
         return (ip_address() != 0);
     }
 
     locality & operator = (const locality &other) {
         data_       = other.data_;
         fi_address_ = other.fi_address_;
-        LOG_TRACE_MSG("copy operator locality " << iplocality((*this)));
+        loc_deb.trace(debug::str<>("copy operator"), iplocality((*this)));
         return *this;
     }
 
     bool operator == (const locality &other) {
-        LOG_TRACE_MSG("equality operator locality "
-                << iplocality((*this))
-                << iplocality(other));
+        loc_deb.trace(debug::str<>("equality operator")
+                , iplocality((*this))
+                , iplocality(other));
         return std::memcmp(&data_, &other.data_, array_size)==0;
     }
 
     bool less_than(const locality &other) {
-        LOG_TRACE_MSG("less_than operator locality "
-                << iplocality((*this))
-                << iplocality(other));
+        loc_deb.trace(debug::str<>("less_than operator")
+                , iplocality((*this))
+                , iplocality(other));
         if (ip_address() < other.ip_address()) return true;
         if (ip_address() ==other.ip_address()) return port()<other.port();
         return false;
@@ -197,10 +208,10 @@ struct locality {
 
 private:
     friend bool operator==(locality const & lhs, locality const & rhs) {
-        LOG_TRACE_MSG("equality operator locality friend "
-            << iplocality(lhs) << iplocality(rhs));
-        return ((lhs.data_ == rhs.data_)
-                && (lhs.fi_address_ == rhs.fi_address_));
+        loc_deb.trace(debug::str<>("equality friend")
+            , iplocality(lhs) , iplocality(rhs));
+        return (std::memcmp(&lhs.data_, &rhs.data_, array_size)==0)
+                && (lhs.fi_address_ == rhs.fi_address_);
     }
 
     friend bool operator<(locality const & lhs, locality const & rhs) {
@@ -208,8 +219,8 @@ private:
         const uint32_t &a2 = rhs.ip_address();
         const fi_addr_t &f1 = lhs.fi_address();
         const fi_addr_t &f2 = rhs.fi_address();
-        LOG_TRACE_MSG("less_than operator locality friend "
-            << iplocality(lhs) << iplocality(rhs));
+        loc_deb.trace(debug::str<>("less_than friend")
+            , iplocality(lhs) , iplocality(rhs));
         return (a1<a2) || (a1==a2 && f1<f2);
     }
 
@@ -225,6 +236,23 @@ private:
     locality_data data_;
     fi_addr_t     fi_address_;
 };
+
+// ------------------------------------------------------------------
+// format as ip address, port, libfabric address
+// ------------------------------------------------------------------
+inline iplocality::iplocality(const hpx::parcelset::policies::libfabric::locality& a)
+  : data(a)
+{
+}
+
+inline std::ostream& operator<<(std::ostream& os, const iplocality& p)
+{
+    os << std::dec
+       << hpx::debug::ipaddr(&p.data.ip_address())
+       << ":" << hpx::debug::dec<>(p.data.port())
+       << "(" << hpx::debug::dec<>(p.data.fi_address()) << ")";
+    return os;
+}
 
 }}}}
 

@@ -84,26 +84,6 @@ namespace hpx {
     static hpx::debug::enable_print<false> cnt_deb("CONTROL");
 }   // namespace hpx
 
-// ------------------------------------------------------------------
-// format as ip address, port, libfabric address
-// ------------------------------------------------------------------
-struct iplocality
-{
-    iplocality(const hpx::parcelset::policies::libfabric::locality& a)
-      : data(a)
-    {
-    }
-    const hpx::parcelset::policies::libfabric::locality& data;
-    friend std::ostream& operator<<(std::ostream& os, const iplocality& p)
-    {
-        os << std::dec
-           << hpx::debug::ipaddr(&p.data.ip_address())
-           << ":" << hpx::debug::dec<>(p.data.port())
-           << "(" << hpx::debug::dec<>(p.data.fi_address()) << ") ";
-        return os;
-    }
-};
-
 #ifdef HPX_PARCELPORT_LIBFABRIC_HAVE_PMI
 //
 # include <pmi2.h>
@@ -184,7 +164,7 @@ namespace libfabric
         controller(
             std::string const &provider,
             std::string const &domain,
-            std::string const &endpoint, parcelport *pp, bool bootstrap, int port=7910)
+            std::string const &endpoint, parcelport *pp, bool bootstrap, int port=HPX_INITIAL_IP_PORT)
           : fabric_info_(nullptr)
           , fabric_(nullptr)
           , fabric_domain_(nullptr)
@@ -201,7 +181,8 @@ namespace libfabric
           , bootstrap_counter_(0)
           , parcelport_(pp)
         {
-            FUNC_START_DEBUG_MSG;
+            auto scp = hpx::cnt_deb.scope(this, __func__);
+
             open_fabric(provider, domain, endpoint);
 
             // setup a passive listener, or an active RDM endpoint
@@ -226,7 +207,7 @@ namespace libfabric
                 boot_PMI();
 # endif
                 if (agas_ == here_) {
-                    std::cout << "Libfabric Parcelport boot-step complete" << std::endl;
+                    cnt_deb.debug(debug::str<>("AGAS"), "boot-step complete");
                 }
 #endif
             }
@@ -330,6 +311,7 @@ namespace libfabric
         // clean up all resources
         ~controller()
         {
+            auto scp = hpx::cnt_deb.scope(this, __func__);
             unsigned int messages_handled_ = 0;
             unsigned int acks_received_    = 0;
             unsigned int msg_plain_        = 0;
@@ -398,7 +380,7 @@ namespace libfabric
         void open_fabric(std::string const& provider, std::string const& domain,
             std::string const& endpoint_type)
         {
-            FUNC_START_DEBUG_MSG;
+            auto scp = hpx::cnt_deb.scope(this, __func__);
             struct fi_info *fabric_hints_ = fi_allocinfo();
             if (!fabric_hints_) {
                 throw fabric_error(-1, "Failed to allocate fabric hints");
@@ -406,23 +388,22 @@ namespace libfabric
             // we require message and RMA support, so ask for them
             // we also want receives to carry source address info
 #ifdef HPX_PARCELPORT_LIBFABRIC_SOCKETS
+            // what mode are we running in
+            std::string runtime_mode(get_runtime().get_config().get_entry("hpx.runtime_mode", ""));
+            auto mode = get_runtime_mode_from_name(runtime_mode);
+            cnt_deb.debug(debug::str<>("Runtime mode") , runtime_mode);
+
+            // get the root node address
             auto addr_agas = get_runtime().get_config().
                     get_entry("hpx.agas.address", HPX_INITIAL_IP_ADDRESS);
             auto port_agas = get_runtime().get_config().
                     get_entry("hpx.agas.port", HPX_INITIAL_IP_PORT);
             agas_ = locality(addr_agas, port_agas);
-            cnt_deb.debug("Created agas locality " , iplocality(agas_));
+            cnt_deb.debug(debug::str<>("agas locality") , iplocality(agas_));
 
-            auto addr_hpx = get_runtime().get_config().
-                    get_entry("hpx.parcel.address", HPX_INITIAL_IP_ADDRESS);
-            auto port_hpx = get_runtime().get_config().
-                    get_entry("hpx.parcel.port", HPX_CONNECTING_IP_PORT);
-            here_ = locality(addr_hpx, port_hpx);
-            cnt_deb.debug("Created here locality " , iplocality(here_));
-
-            // If we are the agas node, then create connection with the right port address
-            if (agas_ == here_) {
-                cnt_deb.debug("agas locality used as src endpoint "
+            if (mode == hpx::runtime_mode::console) {
+                here_ = agas_;
+                cnt_deb.debug(debug::str<>("src endpoint ")
                               , iplocality(agas_));
                 // this memory will (should) be deleted in hints destructor
                 struct sockaddr_in *socket_data1 = new struct sockaddr_in();
@@ -431,9 +412,27 @@ namespace libfabric
                 fabric_hints_->src_addr     = socket_data1;
                 fabric_hints_->src_addrlen  = sizeof(struct sockaddr_in);
             }
-            else {
-                cnt_deb.debug("agas locality used as dest endpoint "
+            else if (mode == hpx::runtime_mode::worker) {
+                // if we are a worker, we must connect to the root
+                cnt_deb.debug(debug::str<>("dest endpoint ")
                               , iplocality(agas_));
+                auto addr_hpx = get_runtime().get_config().
+                        get_entry("hpx.parcel.address", HPX_INITIAL_IP_ADDRESS);
+                auto port_hpx = get_runtime().get_config().
+                        get_entry("hpx.parcel.port", HPX_CONNECTING_IP_PORT);
+                here_ = locality(addr_hpx, port_hpx);
+                cnt_deb.debug(debug::str<>("here locality") , iplocality(here_));
+                if (here_ == agas_) {
+                    here_ = locality(addr_hpx,
+                                     std::to_string(std::stoi(port_hpx)+1));
+                    cnt_deb.debug(debug::str<>("here locality") , iplocality(here_));
+                }
+                struct sockaddr_in *socket_data1 = new struct sockaddr_in();
+                memcpy(socket_data1, here_.fabric_data(), here_.array_size);
+                fabric_hints_->addr_format  = FI_SOCKADDR_IN;
+                fabric_hints_->src_addr     = socket_data1;
+                fabric_hints_->src_addrlen  = sizeof(struct sockaddr_in);
+
                 // this memory will (should) be deleted in hints destructor
                 struct sockaddr_in *socket_data2 = new struct sockaddr_in();
                 memcpy(socket_data2, agas_.fabric_data(), agas_.array_size);
@@ -877,8 +876,9 @@ namespace libfabric
         // --------------------------------------------------------------------
         unsigned int poll_send_queue()
         {
-//            LOG_TIMED_INIT(poll);
-//            LOG_TIMED_BLOCK(poll, DEVEL, 5.0, { cnt_deb.debug("poll_send_queue"); });
+            static auto polling = cnt_deb.make_timer(1
+                    , hpx::debug::str<>("poll send queue"));
+            cnt_deb.timed(polling);
 
             fi_cq_msg_entry entry;
             int ret = fi_cq_read(txcq_, &entry, 1);
@@ -909,7 +909,7 @@ namespace libfabric
             }
             else if (ret==0 || ret==-FI_EAGAIN) {
                 // do nothing, we will try again on the next check
-//                LOG_TIMED_MSG(poll, DEVEL, 10, "txcq " , (ret==0?"---":"FI_EAGAIN"));
+                cnt_deb.timed(polling, "txcq" , (ret==0?"---":"FI_EAGAIN"));
             }
             else if (ret == -FI_EAVAIL) {
                 struct fi_cq_err_entry e = {};
@@ -953,8 +953,9 @@ namespace libfabric
         // --------------------------------------------------------------------
         unsigned int poll_recv_queue()
         {
-//            LOG_TIMED_INIT(poll);
-//            LOG_TIMED_BLOCK(poll, DEVEL, 5.0, { cnt_deb.debug("poll_recv_queue"); });
+            static auto polling = cnt_deb.make_timer(1
+                    , hpx::debug::str<>("poll recv queue"));
+            cnt_deb.timed(polling);
 
             int result = 0;
             fi_addr_t src_addr;

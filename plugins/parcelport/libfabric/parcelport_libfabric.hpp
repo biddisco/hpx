@@ -69,6 +69,12 @@
 #include <utility>
 #include <vector>
 
+#include <hpx/debugging/print.hpp>
+namespace hpx {
+    // cppcheck-suppress ConfigurationNotChecked
+    static hpx::debug::enable_print<false> ppt_deb("PPORT  ");
+}   // namespace hpx
+
 using namespace hpx::parcelset::policies;
 
 namespace hpx {
@@ -266,8 +272,13 @@ struct plugin_config_data<hpx::parcelset::policies::libfabric::parcelport> {
     // for example check for availability of devices etc.
     static void init(int *argc, char ***argv, util::command_line_handling &cfg) {
         FUNC_START_DEBUG_MSG;
-#ifdef HPX_PARCELPORT_LIBFABRIC_HAVE_BOOTSTRAPPING
+#if defined(HPX_PARCELPORT_LIBFABRIC_SOCKETS) || defined(HPX_PARCELPORT_LIBFABRIC_HAVE_BOOTSTRAPPING)
 //#ifdef HPX_PARCELPORT_LIBFABRIC_HAVE_PMI
+        if (ppt_deb.is_enabled()) {
+            // don't buffer std::cout
+            std::cout.setf(std::ios::unitbuf);
+        }
+        ppt_deb.debug("adding hpx.parcel.bootstrap!=libfabric to cfg");
         cfg.ini_config_.push_back("hpx.parcel.bootstrap!=libfabric");
 #endif
         FUNC_END_DEBUG_MSG;
