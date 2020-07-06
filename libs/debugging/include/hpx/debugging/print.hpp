@@ -27,6 +27,7 @@
 #if defined(__linux) || defined(linux) || defined(__linux__)
 #include <sys/mman.h>
 #include <unistd.h>
+#define DEBUGGING_PRINT_LINUX 1
 #elif defined(__APPLE__)
 #include <crt_externs.h>
 #include <unistd.h>
@@ -367,6 +368,10 @@ namespace hpx { namespace debug {
                     gethostname(hostname_, std::size_t(12));
                     std::string temp = "(" + std::to_string(guess_rank()) + ")";
                     std::strcat(hostname_, temp.c_str());
+#if defined(HPX_DEBUG)
+                    // to help see debugging statements immediately
+                    std::cout.setf(std::ios::unitbuf);
+#endif
                 }
                 return hostname_;
             }
@@ -377,12 +382,14 @@ namespace hpx { namespace debug {
                 for (char** current = environ; *current; current++)
                 {
                     auto e = std::string(*current);
+//                    std::cout << "Testing : " << e << std::endl;
                     for (auto s : env_strings)
                     {
+//                        std::cout << "Testing : " << e << " " << s << std::endl;
                         auto pos = e.find(s);
                         if (pos != std::string::npos)
                         {
-                            //std::cout << "Got a rank string : " << e << std::endl;
+//                            std::cout << "Got a rank string : " << e << std::endl;
                             return std::stoi(e.substr(pos + s.size(), 5));
                         }
                     }
