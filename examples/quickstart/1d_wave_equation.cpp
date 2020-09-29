@@ -21,15 +21,13 @@
 //
 
 // Include statements.
-#include <hpx/modules/format.hpp>
 #include <hpx/hpx_init.hpp>
+#include <hpx/chrono.hpp>
+#include <hpx/iostream.hpp>
 #include <hpx/include/async.hpp>
-#include <hpx/include/iostreams.hpp>
 #include <hpx/lcos/future_wait.hpp>
-#include <hpx/runtime/actions/plain_action.hpp>
-#include <hpx/modules/timing.hpp>
-
-#include <boost/math/constants/constants.hpp>
+#include <hpx/modules/actions_base.hpp>
+#include <hpx/modules/format.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -86,7 +84,7 @@ struct data
     }
 
     // Copy constructor: data d1; data d2(d1);
-    // We can't copy the mutex, because mutexs are noncopyable.
+    // We can't copy the mutex, because mutexes are noncopyable.
     data(data const& other)
       : mtx()
       , u_value(other.u_value)
@@ -196,7 +194,7 @@ double wave(std::uint64_t t, std::uint64_t x)
 int hpx_main(variables_map& vm)
 {
     here = find_here();
-    pi = boost::math::constants::pi<double>();
+    pi = 3.141592653589793238462643383279;
 
     //    dt = vm["dt-value"].as<double>();
     //    dx = vm["dx-value"].as<double>();

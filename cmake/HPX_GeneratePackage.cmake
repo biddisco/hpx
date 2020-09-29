@@ -41,6 +41,15 @@ export(
   FILE "${CMAKE_CURRENT_BINARY_DIR}/lib/cmake/${HPX_PACKAGE_NAME}/HPXTargets.cmake"
 )
 
+# Add aliases with the namespace for use within HPX
+foreach(export_target ${HPX_EXPORT_TARGETS})
+  add_library(HPX::${export_target} ALIAS ${export_target})
+endforeach()
+
+foreach(export_target ${HPX_EXPORT_INTERNAL_TARGETS})
+  add_library(HPXInternal::${export_target} ALIAS ${export_target})
+endforeach()
+
 # Export HPXTargets in the install directory
 install(
   EXPORT HPXTargets
@@ -52,7 +61,7 @@ install(
 if(NOT MSVC)
   add_library(hpx_pkgconfig_application INTERFACE)
   target_link_libraries(
-    hpx_pkgconfig_application INTERFACE hpx hpx_init hpx_wrap
+    hpx_pkgconfig_application INTERFACE hpx hpx_wrap hpx_init
   )
   target_compile_definitions(
     hpx_pkgconfig_application INTERFACE HPX_APPLICATION_EXPORTS

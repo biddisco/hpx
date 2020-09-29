@@ -65,9 +65,9 @@ endif()
 # Build all of HPX
 # ##############################################################################
 set(HPX_VERSION_MAJOR 1)
-set(HPX_VERSION_MINOR 5)
+set(HPX_VERSION_MINOR 6)
 set(HPX_VERSION_SUBMINOR 0)
-set(HPX_VERSION_DATE 20200212)
+set(HPX_VERSION_DATE 20200902)
 set(HPX_VERSION_TAG "-trunk")
 
 set(HPX_VERSION
@@ -126,6 +126,7 @@ unset(HPX_COMPONENTS CACHE)
 unset(HPX_EXPORT_TARGETS CACHE)
 unset(HPX_EXPORT_INTERNAL_TARGETS CACHE)
 unset(HPX_LIBS CACHE)
+unset(HPX_ENABLED_MODULES CACHE)
 unset(HPX_STATIC_PARCELPORT_PLUGINS CACHE)
 
 # ##############################################################################
@@ -194,8 +195,10 @@ hpx_option(
   HPX_WITH_DEPRECATION_WARNINGS BOOL
   "Enable warnings for deprecated facilities. (default: ON)" ON ADVANCED
 )
+
 if(HPX_WITH_DEPRECATION_WARNINGS)
-  hpx_add_config_define(HPX_HAVE_DEPRECATION_WARNINGS)
+  # enable deprecation warnings globally
+  hpx_add_config_cond_define(HPX_HAVE_DEPRECATION_WARNINGS 1)
 endif()
 
 # Generic build options
@@ -338,8 +341,36 @@ hpx_option(
   OFF
   ADVANCED
 )
-if(HPX_WITH_UNITY_BUILD AND (CMAKE_VERSION VERSION_LESS "3.16"))
-  hpx_error("HPX_WITH_UNITY_BUILD=ON but this requires CMake 3.16 or newer.")
+if(HPX_WITH_UNITY_BUILD)
+  if(CMAKE_VERSION VERSION_LESS "3.16")
+    hpx_error("HPX_WITH_UNITY_BUILD=ON but this requires CMake 3.16 or newer.")
+  endif()
+  set(HPX_WITH_UNITY_BUILD_OPTION UNITY_BUILD)
+endif()
+
+# ##############################################################################
+# Dynamic hpx_main
+# ##############################################################################
+
+set(HPX_WITH_DYNAMIC_HPX_MAIN_DEFAULT OFF)
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux" OR APPLE)
+  set(HPX_WITH_DYNAMIC_HPX_MAIN_DEFAULT ON)
+endif()
+
+hpx_option(
+  HPX_WITH_DYNAMIC_HPX_MAIN
+  BOOL
+  "Enable dynamic overload of system ``main()`` (Linux and Apple only, default: ON)"
+  ${HPX_WITH_DYNAMIC_HPX_MAIN_DEFAULT}
+  ADVANCED
+)
+if(HPX_WITH_DYNAMIC_HPX_MAIN)
+  if(NOT HPX_WITH_DYNAMIC_HPX_MAIN_DEFAULT)
+    hpx_error(
+      "HPX_WITH_DYNAMIC_HPX_MAIN was set to ON, but the option is only available on Linux and Apple (this is \"${CMAKE_SYSTEM_NAME}\")."
+    )
+  endif()
+  hpx_add_config_define(HPX_HAVE_DYNAMIC_HPX_MAIN)
 endif()
 
 # ##############################################################################
@@ -899,12 +930,6 @@ if(HPX_SCHEDULER_MAX_TERMINATED_THREADS GREATER 0)
 endif()
 
 hpx_option(
-  HPX_WITH_SWAP_CONTEXT_EMULATION BOOL
-  "Emulate SwapContext API for coroutines (default: OFF)" OFF
-  CATEGORY "Thread Manager" ADVANCED
-)
-
-hpx_option(
   HPX_WITH_SPINLOCK_DEADLOCK_DETECTION BOOL
   "Enable spinlock deadlock detection (default: OFF)" OFF
   CATEGORY "Thread Manager" ADVANCED
@@ -926,10 +951,37 @@ if(HPX_WITH_APEX)
     "Do not update code from remote APEX repository." OFF CATEGORY "Profiling"
   )
   hpx_option(
-    HPX_WITH_APEX_TAG STRING "APEX repository tag or branch" "v2.1.9"
+    HPX_WITH_APEX_TAG STRING "APEX repository tag or branch" "v2.2.0"
     CATEGORY "Profiling"
   )
 endif()
+
+# cmake-format: off
+# LibCDS option
+# NOTE: The libcds option is disabled for the 1.5.0 release as it is not ready
+# for public consumption yet.
+# hpx_option(
+#   HPX_WITH_LIBCDS BOOL "Enable LibCDS support (experimental)." OFF
+#   CATEGORY "Thread Manager" ADVANCED
+# )
+# if(HPX_WITH_LIBCDS)
+#   hpx_option(
+#     HPX_WITH_LIBCDS_GIT_REPOSITORY STRING
+#     "Define the LibCDS git repository to use."
+#     https://github.com/STEllAR-GROUP/libcds CATEGORY "Thread Manager" ADVANCED
+#   )
+#   hpx_option(
+#     HPX_WITH_LIBCDS_GIT_TAG STRING "Define the LibCDS git tag to use." hpx-1.5
+#     CATEGORY "Thread Manager" ADVANCED
+#   )
+#   include(HPX_SetupLibCDS)
+#   if(NOT libcds_POPULATED)
+#     hpx_error("HPX_WITH_LIBCDS was set to ON, but HPX failed to fetch LibCDS")
+#   endif()
+#   hpx_add_config_define(HPX_HAVE_LIBCDS) # tell HPX that we use LibCDS
+# endif()
+# cmake-format: on
+
 hpx_option(
   HPX_WITH_PAPI BOOL "Enable the PAPI based performance counter." OFF
   CATEGORY "Profiling"
@@ -938,6 +990,11 @@ if(HPX_WITH_PAPI)
   if(NOT HPX_WITH_DISTRIBUTED_RUNTIME)
     hpx_error(
       "HPX_WITH_PAPI was set to ON, but PAPI cannot currently be used with HPX_WITH_DISTRIBUTED_RUNTIME=OFF"
+    )
+  endif()
+  if(NOT "${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+    hpx_error(
+      "HPX_WITH_PAPI was set to ON, but PAPI can only be used on Linux (this is ${CMAKE_SYSTEM_NAME})"
     )
   endif()
   hpx_add_config_define(HPX_HAVE_PAPI)
@@ -957,10 +1014,14 @@ hpx_option(
 # ##############################################################################
 # enable OpenMP emulation
 # ##############################################################################
+# Deprecated in 1.5.0
 hpx_option(
   HPX_WITH_HPXMP BOOL "Enable hpxMP OpenMP emulation." OFF CATEGORY "OpenMP"
 )
 if(HPX_WITH_HPXMP)
+  hpx_warn(
+    "HPXMP support is deprecated. This option will be removed in a future release."
+  )
   if(NOT MSVC AND (("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
                    OR ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU"))
   )
@@ -1142,7 +1203,7 @@ if(HPX_WITH_NETWORKING)
 
   # we have to decide here whether we want to have MPI futures
   hpx_option(
-    HPX_MPI_WITH_FUTURES
+    HPX_WITH_ASYNC_MPI
     BOOL
     "Enable support for returning futures from MPI asynchronous calls (default: ON if networking+MPI already enabled)"
     ${HPX_WITH_PARCELPORT_MPI}
@@ -1170,7 +1231,7 @@ else(HPX_WITH_NETWORKING)
   # if networking is off,  then allow the option of using our asynchronous MPI
   # features
   hpx_option(
-    HPX_MPI_WITH_FUTURES
+    HPX_WITH_ASYNC_MPI
     BOOL
     "Enable support for returning futures from MPI asynchronous calls (default: ON if networking+MPI already enabled)"
     OFF
@@ -1178,7 +1239,7 @@ else(HPX_WITH_NETWORKING)
   )
 endif(HPX_WITH_NETWORKING)
 
-if((HPX_WITH_NETWORKING AND HPX_WITH_PARCELPORT_MPI) OR HPX_MPI_WITH_FUTURES)
+if((HPX_WITH_NETWORKING AND HPX_WITH_PARCELPORT_MPI) OR HPX_WITH_ASYNC_MPI)
   # mpi parcelport settings
   hpx_option(
     HPX_WITH_PARCELPORT_MPI_ENV
@@ -2212,27 +2273,6 @@ if(HPX_WITH_GENERIC_CONTEXT_COROUTINES)
 endif()
 
 # ##############################################################################
-# Emulation of SwapContext on Windows
-# ##############################################################################
-if(WIN32)
-  if(HPX_WITH_SWAP_CONTEXT_EMULATION)
-    if(NOT CMAKE_ASM_MASM_COMPILER)
-      hpx_error(
-        "SwitchToFiber emulation can not be enabled. The masm compiler \
-      could not be found. Try setting the ASM_MASM environment variable to the \
-      assembler executable (ml.exe/ml64.exe) or disable the emulation by setting \
-      HPX_WITH_SWAP_CONTEXT_EMULATION to Off"
-      )
-    else()
-      hpx_info(
-        "SwitchToFiber emulation is enabled, using compiler: '${CMAKE_ASM_MASM_COMPILER}'"
-      )
-      hpx_add_config_define(HPX_HAVE_SWAP_CONTEXT_EMULATION)
-    endif()
-  endif()
-endif()
-
-# ##############################################################################
 
 # ##############################################################################
 # HPX_PREFIX The prefix is the default search path for HPX plugins
@@ -2244,6 +2284,12 @@ else()
   set(HPX_PREFIX "${CMAKE_INSTALL_PREFIX}")
   set(HPX_BUILD_PREFIX "${PROJECT_BINARY_DIR}")
 endif()
+
+# Note: on windows systems the ':' will be converted to a ';' at runtime
+hpx_add_config_cond_define(
+  HPX_DEFAULT_COMPONENT_PATH_SUFFIXES
+  "\"/${CMAKE_INSTALL_BINDIR}/hpx:/lib/hpx:/bin/hpx\""
+)
 
 # ##############################################################################
 # search path configuration
@@ -2313,11 +2359,6 @@ if(HPX_WITH_DISTRIBUTED_RUNTIME)
 endif()
 
 # ##############################################################################
-# Add libraries
-# ##############################################################################
-add_subdirectory(libs)
-
-# ##############################################################################
 # Add core dependency
 # ##############################################################################
 add_hpx_pseudo_target(core)
@@ -2333,6 +2374,18 @@ add_hpx_pseudo_target(plugins)
 add_subdirectory(plugins)
 
 # ##############################################################################
+# Add libraries
+# ##############################################################################
+add_subdirectory(src)
+add_subdirectory(libs)
+
+# ##############################################################################
+# Add static init and wrap library
+# ##############################################################################
+add_subdirectory(init)
+add_subdirectory(wrap)
+
+# ##############################################################################
 # Documentation toolchain (Sphinx, Doxygen, Breathe)
 # ##############################################################################
 hpx_include(Documentation)
@@ -2340,9 +2393,6 @@ hpx_include(Documentation)
 # ##############################################################################
 # Target specification
 # ##############################################################################
-# Recurse into some subdirectories. This does not actually cause another cmake
-# executable to run. The same process will walk through the project's entire
-# directory structure.
 if(HPX_WITH_TOOLS)
   add_hpx_pseudo_target(tools)
   add_subdirectory(tools)
@@ -2351,13 +2401,6 @@ endif()
 # ##############################################################################
 # Add core configuration
 # ##############################################################################
-add_subdirectory(src)
-
-# ##############################################################################
-# Add static init and wrap library
-# ##############################################################################
-add_subdirectory(init)
-add_subdirectory(wrap)
 
 # ##############################################################################
 # Add components

@@ -9,6 +9,7 @@
 // config
 #include <hpx/config.hpp>
 // util
+#include <hpx/functional/function.hpp>
 #include <hpx/command_line_handling/command_line_handling.hpp>
 #include <hpx/modules/format.hpp>
 #include <hpx/runtime_configuration/runtime_configuration.hpp>

@@ -6,9 +6,9 @@
 
 #include <hpx/hpx_init.hpp>
 #include <hpx/hpx.hpp>
-#include <hpx/include/parallel_numeric.hpp>
-#include <hpx/include/parallel_algorithm.hpp>
-#include <hpx/include/iostreams.hpp>
+#include <hpx/numeric.hpp>
+#include <hpx/algorithm.hpp>
+#include <hpx/iostream.hpp>
 
 #include <iterator>
 #include <string>
@@ -24,12 +24,12 @@ int hpx_main()
     std::fill(std::begin(yvalues), std::end(yvalues), 1.0);
 
     using hpx::util::make_zip_iterator;
-    using hpx::util::tuple;
-    using hpx::util::get;
+    using hpx::tuple;
+    using hpx::get;
 
     double result =
-        hpx::parallel::transform_reduce(
-            hpx::parallel::execution::par,
+        hpx::transform_reduce(
+            hpx::execution::par,
             make_zip_iterator(std::begin(xvalues), std::begin(yvalues)),
             make_zip_iterator(std::end(xvalues), std::end(yvalues)),
             0.0,

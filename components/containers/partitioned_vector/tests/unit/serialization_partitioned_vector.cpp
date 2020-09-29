@@ -31,23 +31,23 @@ void test(T minval, T maxval)
     {
         std::vector<char> buffer;
 
-        hpx::serialization::output_archive oarchive(buffer,
-            hpx::serialization::disable_data_chunking);
+        hpx::serialization::output_archive oarchive(
+            buffer, hpx::serialization::disable_data_chunking);
 
-        std::size_t sz = static_cast<std::size_t>(maxval-minval);
+        std::size_t sz = static_cast<std::size_t>(maxval - minval);
 
         hpx::partitioned_vector<T> os(sz);
         os.register_as("test_vector");
-        hpx::parallel::fill(
-            hpx::parallel::execution::par, std::begin(os), std::end(os), 42);
+        hpx::fill(
+            hpx::execution::par, std::begin(os), std::end(os), 42);
 
         oarchive << os;
 
         hpx::serialization::input_archive iarchive(buffer);
 
         hpx::partitioned_vector<T> is(os.size());
-        hpx::parallel::fill(
-            hpx::parallel::execution::par, std::begin(is), std::end(is), 0);
+        hpx::fill(
+            hpx::execution::par, std::begin(is), std::end(is), 0);
 
         iarchive >> is;
 
@@ -85,4 +85,3 @@ int main()
 
     return hpx::util::report_errors();
 }
-

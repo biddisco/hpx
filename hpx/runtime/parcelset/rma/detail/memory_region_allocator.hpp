@@ -12,6 +12,7 @@
 //
 #include <hpx/config/parcelport_defines.hpp>
 //
+#include <plugins/parcelport/parcelport_logging.hpp>
 #include <hpx/runtime/parcelset/rma/detail/memory_region_impl.hpp>
 #include <plugins/parcelport/performance_counter.hpp>
 //

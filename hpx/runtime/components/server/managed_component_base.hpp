@@ -10,16 +10,16 @@
 #include <hpx/config.hpp>
 
 #include <hpx/assert.hpp>
+#include <hpx/components_base/traits/is_component.hpp>
+#include <hpx/functional/unique_function.hpp>
+#include <hpx/modules/errors.hpp>
 #include <hpx/runtime/components/component_type.hpp>
 #include <hpx/runtime/components/server/component_heap.hpp>
 #include <hpx/runtime/components/server/create_component_fwd.hpp>
 #include <hpx/runtime/components/server/wrapper_heap.hpp>
 #include <hpx/runtime/components/server/wrapper_heap_list.hpp>
 #include <hpx/runtime/components_fwd.hpp>
-#include <hpx/modules/errors.hpp>
-#include <hpx/traits/is_component.hpp>
 #include <hpx/traits/managed_component_policies.hpp>
-#include <hpx/functional/unique_function.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -253,14 +253,6 @@ namespace hpx { namespace components
         naming::id_type get_unmanaged_id() const;
         naming::id_type get_id() const;
 
-#if defined(HPX_HAVE_COMPONENT_GET_GID_COMPATIBILITY)
-        HPX_DEPRECATED(HPX_DEPRECATED_MSG)
-        naming::id_type get_gid() const
-        {
-            return get_unmanaged_id();
-        }
-#endif
-
     protected:
         naming::gid_type get_base_gid() const;
 
@@ -452,14 +444,6 @@ namespace hpx { namespace components
         {
             return naming::id_type(get_base_gid(), naming::id_type::unmanaged);
         }
-
-#if defined(HPX_HAVE_COMPONENT_GET_GID_COMPATIBILITY)
-        HPX_DEPRECATED(HPX_DEPRECATED_MSG)
-        naming::id_type get_gid() const
-        {
-            return get_unmanaged_id();
-        }
-#endif
 
     private:
 #if !defined(__NVCC__) && !defined(__CUDACC__)

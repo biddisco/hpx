@@ -8,8 +8,9 @@
 
 #pragma once
 
+#include <hpx/modules/actions.hpp>
+#include <hpx/modules/actions_base.hpp>
 #include <hpx/runtime/components/server/simple_component_base.hpp>
-#include <hpx/runtime/actions/component_action.hpp>
 
 #include <cstdint>
 

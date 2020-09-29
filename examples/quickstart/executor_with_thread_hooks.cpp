@@ -12,10 +12,9 @@
 
 #include <hpx/hpx_main.hpp>
 
-#include <hpx/modules/algorithms.hpp>
+#include <hpx/algorithm.hpp>
 #include <hpx/assert.hpp>
-#include <hpx/modules/execution.hpp>
-#include <hpx/modules/functional.hpp>
+#include <hpx/execution.hpp>
 
 #include <algorithm>
 #include <atomic>
@@ -225,10 +224,10 @@ int main()
     auto on_stop = [&]() { ++stops; };
 
     auto exec = executor_example::make_executor_with_thread_hooks(
-        hpx::parallel::execution::par.executor(), on_start, on_stop);
+        hpx::execution::par.executor(), on_start, on_stop);
 
-    hpx::parallel::for_loop(hpx::parallel::execution::par.on(exec), 0, v.size(),
-        [](std::size_t i) {});
+    hpx::for_loop(
+        hpx::execution::par.on(exec), 0, v.size(), [](std::size_t i) {});
 
     std::cout << "Executed " << starts.load() << " starts and " << stops.load()
               << " stops\n";

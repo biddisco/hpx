@@ -9,10 +9,7 @@
 # ##############################################################################
 # gather sources
 
-set(hpx_SOURCES
-    lcos/future.cpp runtime/threads/thread_pool_suspension_helpers.cpp
-    util/serialize_exception.cpp
-)
+set(hpx_SOURCES runtime/threads/thread_pool_suspension_helpers.cpp)
 
 if(HPX_WITH_DISTRIBUTED_RUNTIME)
   list(
@@ -24,9 +21,7 @@ if(HPX_WITH_DISTRIBUTED_RUNTIME)
     lcos/base_lco_with_value_3.cpp
     lcos/base_lco_with_value.cpp
     lcos/promise.cpp
-    runtime/actions/base_action.cpp
     runtime/actions/continuation.cpp
-    runtime/actions/detail/action_factory.cpp
     runtime/actions/detail/invocation_count_registry.cpp
     runtime/agas/addressing_service.cpp
     runtime/agas/big_boot_barrier.cpp
@@ -72,6 +67,7 @@ if(HPX_WITH_DISTRIBUTED_RUNTIME)
     runtime/parcelset/parcelhandler.cpp
     runtime/parcelset/parcelport.cpp
     runtime/parcelset/put_parcel.cpp
+    runtime/serialization/detail/preprocess_gid_types.cpp
     runtime/set_parcel_write_handler.cpp
     runtime/threads/threadmanager_counters.cpp
     runtime/trigger_lco.cpp
@@ -90,31 +86,8 @@ endif()
 list(TRANSFORM hpx_SOURCES PREPEND ${PROJECT_SOURCE_DIR}/src/)
 
 set(hpx_external_objects_SOURCES)
-if(MSVC)
-  if(HPX_WITH_SWAP_CONTEXT_EMULATION)
-    enable_language(ASM)
-    set(switch_to_fiber_source
-        "${PROJECT_SOURCE_DIR}/libs/coroutines/src/switch_to_fiber.asm"
-    )
-    list(APPEND hpx_external_objects_SOURCES "${switch_to_fiber_source}")
-    add_hpx_library_sources(
-      hpx_external_objects GLOB GLOBS "${switch_to_fiber_source}"
-    )
-    add_custom_command(
-      OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/switch_to_fiber.obj"
-      COMMAND
-        "${CMAKE_ASM_MASM_COMPILER}" /Fo
-        "${CMAKE_CURRENT_BINARY_DIR}/switch_to_fiber.obj" /nologo /c
-        "${switch_to_fiber_source}"
-      DEPENDS "${switch_to_fiber_source}"
-      VERBATIM
-    )
-    set(hpx_external_OBJECTS
-        "${CMAKE_CURRENT_BINARY_DIR}/switch_to_fiber.obj"
-        CACHE INTERNAL "External object files for HPX." FORCE
-    )
-  endif()
 
+if(MSVC)
   # add natvis files to solution (supported starting VS2015)
   if(MSVC14)
     add_hpx_library_sources(
@@ -123,7 +96,6 @@ if(MSVC)
     list(APPEND hpx_external_OBJECTS ${hpx_natvis_files_SOURCES})
     source_group("Natvis Files" FILES ${hpx_natvis_files_SOURCES})
   endif()
-
 endif()
 
 set(hpx_external_SOURCES)
@@ -138,13 +110,9 @@ endif()
 
 # List all headers (local and distributed)
 set(hpx_HEADERS
-    hpx/lcos_fwd.hpp
-    hpx/runtime/serialization/detail/preprocess_futures.hpp
-    hpx/runtime/serialization/detail/preprocess_gid_types.hpp
-    hpx/traits/managed_component_policies.hpp
-    hpx/traits/pointer_category.hpp
+    hpx/lcos_fwd.hpp hpx/runtime/serialization/detail/preprocess_gid_types.hpp
+    hpx/traits/managed_component_policies.hpp hpx/traits/pointer_category.hpp
     hpx/traits/rma_memory_region_traits.hpp
-    hpx/util/serialize_exception.hpp
 )
 
 if(HPX_WITH_DISTRIBUTED_RUNTIME)
@@ -186,28 +154,13 @@ if(HPX_WITH_DISTRIBUTED_RUNTIME)
     hpx/plugins/plugin_registry.hpp
     hpx/plugins/unique_plugin_name.hpp
     hpx/runtime_fwd.hpp
-    hpx/runtime/actions/action_priority.hpp
-    hpx/runtime/actions/action_support.hpp
-    hpx/runtime/actions/base_action.hpp
-    hpx/runtime/actions/basic_action_fwd.hpp
-    hpx/runtime/actions/basic_action.hpp
-    hpx/runtime/actions/component_action.hpp
     hpx/runtime/actions/continuation2_impl.hpp
-    hpx/runtime/actions/continuation_fwd.hpp
     hpx/runtime/actions/continuation.hpp
     hpx/runtime/actions/continuation_impl.hpp
-    hpx/runtime/actions/detail/action_factory.hpp
     hpx/runtime/actions/detail/invocation_count_registry.hpp
-    hpx/runtime/actions_fwd.hpp
     hpx/runtime/actions/lambda_to_action.hpp
     hpx/runtime/actions/make_continuation.hpp
-    hpx/runtime/actions/manage_object_action.hpp
-    hpx/runtime/actions/plain_action.hpp
-    hpx/runtime/actions/preassigned_action_id.hpp
     hpx/runtime/actions/set_lco_value_continuation.hpp
-    hpx/runtime/actions/transfer_action.hpp
-    hpx/runtime/actions/transfer_base_action.hpp
-    hpx/runtime/actions/transfer_continuation_action.hpp
     hpx/runtime/actions/trigger.hpp
     hpx/runtime/agas/addressing_service.hpp
     hpx/runtime/agas/big_boot_barrier.hpp
@@ -249,7 +202,6 @@ if(HPX_WITH_DISTRIBUTED_RUNTIME)
     hpx/runtime/components_fwd.hpp
     hpx/runtime/components/make_client.hpp
     hpx/runtime/components/migrate_component.hpp
-    hpx/runtime/components/pinned_ptr.hpp
     hpx/runtime/components/runtime_support.hpp
     hpx/runtime/components/server/abstract_component_base.hpp
     hpx/runtime/components/server/abstract_migration_support.hpp
@@ -285,7 +237,6 @@ if(HPX_WITH_DISTRIBUTED_RUNTIME)
     hpx/runtime/find_localities.hpp
     hpx/runtime/get_colocation_id.hpp
     hpx/runtime/get_locality_name.hpp
-    hpx/runtime/get_lva.hpp
     hpx/runtime/get_ptr.hpp
     hpx/runtime/message_handler_fwd.hpp
     hpx/runtime/naming/address.hpp
@@ -318,28 +269,20 @@ if(HPX_WITH_DISTRIBUTED_RUNTIME)
     hpx/runtime/threads/threadmanager_counters.hpp
     hpx/runtime/trigger_lco.hpp
     hpx/state.hpp
-    hpx/traits/action_continuation.hpp
     hpx/traits/action_decorate_continuation.hpp
     hpx/traits/action_decorate_function.hpp
     hpx/traits/action_does_termination_detection.hpp
     hpx/traits/action_is_target_valid.hpp
     hpx/traits/action_message_handler.hpp
-    hpx/traits/action_priority.hpp
-    hpx/traits/action_remote_result.hpp
     hpx/traits/action_schedule_thread.hpp
-    hpx/traits/action_select_direct_execution.hpp
     hpx/traits/action_serialization_filter.hpp
-    hpx/traits/action_stacksize.hpp
     hpx/traits/action_was_object_migrated.hpp
     hpx/traits/component_config_data.hpp
     hpx/traits/component_heap_type.hpp
-    hpx/traits/component_pin_support.hpp
     hpx/traits/component_supports_migration.hpp
     hpx/traits/component_type_database.hpp
     hpx/traits/component_type_is_compatible.hpp
-    hpx/traits/extract_action.hpp
     hpx/traits/is_client.hpp
-    hpx/traits/is_component.hpp
     hpx/traits/is_continuation.hpp
     hpx/traits/is_distribution_policy.hpp
     hpx/traits/is_valid_action.hpp
@@ -350,8 +293,6 @@ if(HPX_WITH_DISTRIBUTED_RUNTIME)
     hpx/util/functional/segmented_iterator_helpers.hpp
     hpx/util/generate_unique_ids.hpp
     hpx/util/init_logging.hpp
-    hpx/util/integer/cover_operators.hpp
-    hpx/util/integer/endian.hpp
     hpx/util/one_size_heap_list.hpp
     hpx/util/pool_timer.hpp
     hpx/util/query_counters.hpp
@@ -388,7 +329,6 @@ add_hpx_source_group(
   NAME hpx_generated
   CLASS "Source Files"
   ROOT "${PROJECT_BINARY_DIR}/libs"
-  TARGETS ${hpx_generated_SOURCES}
 )
 
 add_hpx_source_group(
@@ -418,20 +358,25 @@ endif()
 # ##############################################################################
 # libhpx
 add_library(
-  hpx_core ${hpx_library_link_mode_core} ${hpx_SOURCES} ${hpx_external_SOURCES}
-           ${hpx_generated_SOURCES} ${hpx_external_OBJECTS} ${hpx_HEADERS}
+  hpx_full ${hpx_library_link_mode_core} ${hpx_SOURCES} ${hpx_external_SOURCES}
+           ${hpx_external_OBJECTS} ${hpx_HEADERS}
 )
 
+if(HPX_WITH_UNITY_BUILD)
+  set_target_properties(hpx_full PROPERTIES UNITY_BUILD ON)
+endif()
+
 target_link_libraries(
-  hpx_core
+  hpx_full
   PUBLIC hpx_public_flags
   PRIVATE hpx_private_flags
 )
-target_link_libraries(hpx_core PUBLIC hpx_dependencies_boost)
+target_link_libraries(hpx_full PUBLIC hpx_core hpx_parallelism)
+target_link_libraries(hpx_full PUBLIC hpx_dependencies_boost)
 
 # Set the basic search paths for the HPX headers
 target_include_directories(
-  hpx_core
+  hpx_full
   PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
          $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}> $<INSTALL_INTERFACE:include>
 )
@@ -441,24 +386,16 @@ target_include_directories(
 # should be removed when we make the modules object libraries that we publicly
 # link to hpx
 if(HPX_PROGRAM_OPTIONS_WITH_BOOST_PROGRAM_OPTIONS_COMPATIBILITY)
-  target_link_libraries(hpx_core PUBLIC Boost::program_options)
+  target_link_libraries(hpx_full PUBLIC Boost::program_options)
 endif()
-if(HPX_FILESYSTEM_WITH_BOOST_FILESYSTEM_COMPATIBILITY)
-  target_link_libraries(hpx_core PUBLIC Boost::filesystem)
-endif()
-
-target_link_libraries(hpx_core PUBLIC hpx_dependencies_allocator)
-
-# Hwloc PUBLIC because used by exported target hpx_topology
-target_link_libraries(hpx_core PUBLIC Hwloc::hwloc)
 
 # Enable SIMD via VC if it is available
 if(TARGET Vc::vc)
-  target_link_libraries(hpx_core PUBLIC Vc::vc)
+  target_link_libraries(hpx_full PUBLIC Vc::vc)
 endif()
 
 if(TARGET Amplifier::amplifier)
-  target_link_libraries(hpx_core PRIVATE Amplifier::amplifier)
+  target_link_libraries(hpx_full PRIVATE Amplifier::amplifier)
 endif()
 
 if(TARGET APEX::apex)
@@ -466,84 +403,43 @@ if(TARGET APEX::apex)
   # want to add the APEX link commands to all executables, so we use the
   # "INTERFACE" option for target_link_libraries. Because libhpx_apex is a
   # shared object library, we don't need to specify the whole archive.
-  target_link_libraries(hpx_core INTERFACE APEX::apex)
+  target_link_libraries(hpx_full INTERFACE APEX::apex)
 endif()
 
 if(TARGET Gperftools::gperftools)
-  target_link_libraries(hpx_core PRIVATE Gperftools::gperftools)
+  target_link_libraries(hpx_full PRIVATE Gperftools::gperftools)
 endif()
 
 if(TARGET Valgrind::valgrind)
-  target_link_libraries(hpx_core PRIVATE Valgrind::valgrind)
+  target_link_libraries(hpx_full PRIVATE Valgrind::valgrind)
 endif()
 
 if("${HPX_PLATFORM_UC}" STREQUAL "ANDROID")
   set_target_properties(
-    hpx_core PROPERTIES CLEAN_DIRECT_OUTPUT 1 OUTPUT_NAME hpx FOLDER "Core"
+    hpx_full PROPERTIES CLEAN_DIRECT_OUTPUT 1 OUTPUT_NAME hpx FOLDER "Core"
   )
 else()
   set_target_properties(
-    hpx_core PROPERTIES VERSION ${HPX_VERSION} SOVERSION ${HPX_SOVERSION}
+    hpx_full PROPERTIES VERSION ${HPX_VERSION} SOVERSION ${HPX_SOVERSION}
                         CLEAN_DIRECT_OUTPUT 1 OUTPUT_NAME hpx FOLDER "Core"
   )
 endif()
 
-target_link_libraries(hpx_core PUBLIC hpx_base_libraries)
+target_link_libraries(hpx_full PUBLIC hpx_base_libraries)
 
 # Link to each parcelport plugin
+hpx_warn("HPX_STATIC_PARCELPORT_PLUGINS=\"${HPX_STATIC_PARCELPORT_PLUGINS}\"")
 foreach(_parcelport_plugin ${HPX_STATIC_PARCELPORT_PLUGINS})
-  target_link_libraries(hpx_core PRIVATE ${_parcelport_plugin})
-endforeach()
-
-# integrate the hpx modules with the main library
-foreach(_module ${HPX_LIBS})
-
-  set(_module_target hpx_${_module})
-  if(UNIX)
-    # add the full archive (some are not used directly in libhpx and need to be
-    # forced into libhpx with this option)
-    if(APPLE)
-      set(_module_target "-Wl,-all_load" "${_module_target}")
-    else(APPLE) # not apple, regular linux
-      set(_module_target "-Wl,--whole-archive" "${_module_target}"
-                         "-Wl,--no-whole-archive"
-      )
-    endif(APPLE)
-  elseif(MSVC)
-    set(_module_target -WHOLEARCHIVE:$<TARGET_FILE:${_module_target}>)
-  endif()
-
-  # add module binaries as PRIVATE dependencies to the core hpx library to avoid
-  # dependent applications have to link against those
-  target_link_libraries(hpx_core PRIVATE ${_module_target})
-
-  # add module include directories as PUBLIC to core hpx library to enable
-  # compilation against indirectly included headers
-  get_target_property(
-    _module_includes hpx_${_module} INTERFACE_INCLUDE_DIRECTORIES
-  )
-  target_include_directories(hpx_core PUBLIC ${_module_includes})
-
+  target_link_libraries(hpx_full PRIVATE ${_parcelport_plugin})
 endforeach()
 
 if((NOT HPX_WITH_STATIC_LINKING) AND (("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
                                       OR (APPLE))
 )
-  set_target_properties(hpx_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+  set_target_properties(hpx_full PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
 
-target_compile_definitions(hpx_core PRIVATE HPX_COMPONENT_NAME=hpx HPX_EXPORTS)
-
-if(HPX_WITH_UNITY_BUILD)
-  set_target_properties(hpx_core PROPERTIES UNITY_BUILD ON)
-endif()
-
-# ##############################################################################
-# Emulation of SwapContext on Windows
-# ##############################################################################
-if(MSVC AND HPX_WITH_SWAP_CONTEXT_EMULATION)
-  target_link_options(hpx_core PRIVATE "/EXPORT:switch_to_fiber")
-endif()
+target_compile_definitions(hpx_full PRIVATE HPX_COMPONENT_NAME=hpx HPX_EXPORTS)
 
 # ##############################################################################
 # Exported targets
@@ -554,54 +450,41 @@ set(_library_types
 set(_is_executable "$<STREQUAL:$<TARGET_PROPERTY:TYPE>,EXECUTABLE>")
 set(_is_library "$<IN_LIST:$<TARGET_PROPERTY:TYPE>,${_library_types}>")
 
-add_library(hpx_no_wrap_main INTERFACE)
 add_library(hpx INTERFACE)
+add_library(wrap_main INTERFACE)
 
-target_link_libraries(hpx_no_wrap_main INTERFACE hpx_core)
-target_link_libraries(hpx INTERFACE hpx_core)
+target_link_libraries(hpx INTERFACE hpx_full)
 
-# hpx_interface and hpx_interface_no_wrap_main contain additional interface
-# options to be passed to dependent targets. We create these as separate targets
-# to easily filter out the generator expressions that can't be handled by the
+# hpx_interface and hpx_interface_wrap_main contain additional interface options
+# to be passed to dependent targets. We create these as separate targets to
+# easily filter out the generator expressions that can't be handled by the
 # pkgconfig file generation.
-add_library(hpx_interface_no_wrap_main INTERFACE)
+add_library(hpx_interface INTERFACE)
 target_link_libraries(
-  hpx_interface_no_wrap_main
-  INTERFACE $<${_is_executable}:$<TARGET_NAME_IF_EXISTS:hpx_init>>
-)
-target_link_libraries(
-  hpx_interface_no_wrap_main
-  INTERFACE $<${_is_executable}:$<TARGET_NAME_IF_EXISTS:HPXInternal::hpx_init>>
+  hpx_interface INTERFACE $<${_is_executable}:HPXInternal::hpx_init>
 )
 target_compile_definitions(
-  hpx_interface_no_wrap_main
+  hpx_interface
   INTERFACE
     "$<${_is_executable}:HPX_APPLICATION_NAME_DEFAULT=$<TARGET_PROPERTY:NAME>>"
 )
 target_compile_definitions(
-  hpx_interface_no_wrap_main
+  hpx_interface
   INTERFACE "$<${_is_executable}:HPX_PREFIX_DEFAULT=\"${HPX_PREFIX}\">"
 )
 target_compile_definitions(
-  hpx_interface_no_wrap_main
-  INTERFACE "$<${_is_executable}:HPX_APPLICATION_EXPORTS>"
+  hpx_interface INTERFACE "$<${_is_executable}:HPX_APPLICATION_EXPORTS>"
 )
 target_compile_definitions(
-  hpx_interface_no_wrap_main INTERFACE "$<${_is_library}:HPX_LIBRARY_EXPORTS>"
+  hpx_interface INTERFACE "$<${_is_library}:HPX_LIBRARY_EXPORTS>"
 )
 
-add_library(hpx_interface INTERFACE)
-target_link_libraries(hpx_interface INTERFACE hpx_interface_no_wrap_main)
+add_library(hpx_interface_wrap_main INTERFACE)
 target_link_libraries(
-  hpx_interface
-  INTERFACE $<${_is_executable}:$<TARGET_NAME_IF_EXISTS:hpx_wrap>>
-)
-target_link_libraries(
-  hpx_interface
-  INTERFACE $<${_is_executable}:$<TARGET_NAME_IF_EXISTS:HPXInternal::hpx_wrap>>
+  hpx_interface_wrap_main INTERFACE $<${_is_executable}:HPXInternal::hpx_wrap>
 )
 
-target_link_libraries(hpx_no_wrap_main INTERFACE hpx_interface_no_wrap_main)
+target_link_libraries(wrap_main INTERFACE hpx_interface_wrap_main)
 target_link_libraries(hpx INTERFACE hpx_interface)
 
 # HPX::component is to be linked privately to all HPX components NOTE: The
@@ -628,8 +511,8 @@ target_compile_definitions(
     "$<${_is_library}:HPX_PLUGIN_NAME_DEFAULT=hpx_$<TARGET_PROPERTY:NAME>>"
 )
 
-set(hpx_targets hpx hpx_no_wrap_main plugin component)
-set(hpx_internal_targets hpx_core hpx_interface hpx_interface_no_wrap_main)
+set(hpx_targets hpx wrap_main plugin component)
+set(hpx_internal_targets hpx_full hpx_interface hpx_interface_wrap_main)
 
 install(
   TARGETS ${hpx_targets}
@@ -654,7 +537,7 @@ install(
 # install PDB if needed
 if(MSVC)
   install(
-    FILES $<TARGET_PDB_FILE:hpx_core>
+    FILES $<TARGET_PDB_FILE:hpx_full>
     DESTINATION ${CMAKE_INSTALL_BINDIR}
     CONFIGURATIONS Debug RelWithDebInfo
     OPTIONAL

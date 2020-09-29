@@ -180,6 +180,7 @@ namespace libfabric
           , immediate_(false)
           , bootstrap_counter_(0)
           , parcelport_(pp)
+          , event_pause_(0)
         {
             auto scp = hpx::cnt_deb.scope(this, __func__);
 

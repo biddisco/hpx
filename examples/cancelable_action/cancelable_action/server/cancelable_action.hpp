@@ -7,11 +7,10 @@
 #pragma once
 
 #include <hpx/hpx.hpp>
-#include <hpx/include/components.hpp>
 #include <hpx/include/actions.hpp>
+#include <hpx/include/components.hpp>
 #include <hpx/include/threads.hpp>
 #include <hpx/include/util.hpp>
-#include <hpx/type_support/unused.hpp>
 
 #include <atomic>
 
@@ -24,6 +23,7 @@ namespace examples { namespace server
         double volatile d = 0.;
         for (int i = 0; i < c; ++i)
             d += 1 / (2. * i + 1);
+        (void) d;
     }
 
     ///////////////////////////////////////////////////////////////////////////

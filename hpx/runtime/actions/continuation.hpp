@@ -1,4 +1,4 @@
-//  Copyright (c) 2007-2016 Hartmut Kaiser
+//  Copyright (c) 2007-2020 Hartmut Kaiser
 //  Copyright (c) 2016 Thomas Heller
 //
 //  SPDX-License-Identifier: BSL-1.0
@@ -8,24 +8,24 @@
 #pragma once
 
 #include <hpx/config.hpp>
+#include <hpx/actions_base/action_priority.hpp>
+#include <hpx/actions_base/basic_action_fwd.hpp>
+#include <hpx/actions_base/continuation_fwd.hpp>
+#include <hpx/actions_base/traits/action_remote_result.hpp>
+#include <hpx/functional/serialization/serializable_unique_function.hpp>
+#include <hpx/futures/traits/future_traits.hpp>
+#include <hpx/modules/errors.hpp>
 #include <hpx/modules/logging.hpp>
 #include <hpx/preprocessor/stringize.hpp>
-#include <hpx/runtime/actions/action_priority.hpp>
-#include <hpx/runtime/actions/basic_action_fwd.hpp>
-#include <hpx/runtime/actions/continuation_fwd.hpp>
 #include <hpx/runtime/actions/trigger.hpp>
 #include <hpx/runtime/agas/interface.hpp>
 #include <hpx/runtime/naming/id_type.hpp>
 #include <hpx/runtime/naming/name.hpp>
+#include <hpx/runtime/trigger_lco.hpp>
 #include <hpx/serialization/base_object.hpp>
 #include <hpx/serialization/serialize.hpp>
-#include <hpx/runtime/trigger_lco.hpp>
-#include <hpx/modules/errors.hpp>
-#include <hpx/traits/action_remote_result.hpp>
-#include <hpx/futures/traits/future_traits.hpp>
 #include <hpx/traits/is_continuation.hpp>
 #include <hpx/type_support/decay.hpp>
-#include <hpx/functional/serialization/serializable_unique_function.hpp>
 
 #include <exception>
 #include <type_traits>
@@ -62,14 +62,6 @@ namespace hpx { namespace actions
         // serialization support
         void serialize(hpx::serialization::input_archive& ar, unsigned);
         void serialize(hpx::serialization::output_archive& ar, unsigned);
-
-#if defined(HPX_HAVE_COMPONENT_GET_GID_COMPATIBILITY)
-        HPX_DEPRECATED(HPX_DEPRECATED_MSG)
-        naming::id_type const& get_gid() const
-        {
-            return gid_;
-        }
-#endif
 
         naming::id_type const& get_id() const
         {

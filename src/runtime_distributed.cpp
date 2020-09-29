@@ -126,10 +126,10 @@ namespace hpx {
 #if defined(HPX_HAVE_NETWORKING)
     // There is no need to protect these global from thread concurrent access
     // as they are access during early startup only.
-    std::vector<hpx::util::tuple<char const*, char const*>>&
+    std::vector<hpx::tuple<char const*, char const*>>&
     get_message_handler_registrations()
     {
-        static std::vector<hpx::util::tuple<char const*, char const*>>
+        static std::vector<hpx::tuple<char const*, char const*>>
             message_handler_registrations;
         return message_handler_registrations;
     }
@@ -140,7 +140,7 @@ namespace hpx {
         for (auto const& t : get_message_handler_registrations())
         {
             error_code ec(lightweight);
-            rtd.register_message_handler(util::get<0>(t), util::get<1>(t), ec);
+            rtd.register_message_handler(hpx::get<0>(t), hpx::get<1>(t), ec);
         }
         lbt_ << "(3rd stage) pre_main: registered message handlers";
     }
@@ -805,31 +805,11 @@ namespace hpx {
 
     int runtime_distributed::suspend()
     {
-#if defined(HPX_HAVE_NETWORKING)
-        std::uint32_t initial_num_localities = get_initial_num_localities();
-        if (initial_num_localities > 1)
-        {
-            HPX_THROW_EXCEPTION(invalid_status, "runtime_distributed::suspend",
-                "Can only suspend runtime when number of localities is 1");
-            return -1;
-        }
-#endif
-
         return runtime::suspend();
     }
 
     int runtime_distributed::resume()
     {
-#if defined(HPX_HAVE_NETWORKING)
-        std::uint32_t initial_num_localities = get_initial_num_localities();
-        if (initial_num_localities > 1)
-        {
-            HPX_THROW_EXCEPTION(invalid_status, "runtime_distributed::resume",
-                "Can only suspend runtime when number of localities is 1");
-            return -1;
-        }
-#endif
-
         return runtime::resume();
     }
 
@@ -1765,7 +1745,7 @@ namespace hpx {
 
         // store the request for later
         get_message_handler_registrations().push_back(
-            hpx::util::make_tuple(message_handler_type, action));
+            hpx::make_tuple(message_handler_type, action));
     }
 
     parcelset::policies::message_handler* create_message_handler(

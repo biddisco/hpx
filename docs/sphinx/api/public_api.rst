@@ -1,5 +1,5 @@
 ..
-    Copyright (C) 2020 Mikael Simberg
+    Copyright (C) 2020 ETH Zurich
 
     SPDX-License-Identifier: BSL-1.0
     Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -32,40 +32,41 @@ Functions
 ---------
 
 - :cpp:func:`hpx::parallel::v1::adjacent_find`
-- :cpp:func:`hpx::parallel::v1::all_of`
-- :cpp:func:`hpx::parallel::v1::any_of`
-- :cpp:func:`hpx::parallel::v1::copy`
-- :cpp:func:`hpx::parallel::v1::copy_if`
-- :cpp:func:`hpx::parallel::v1::copy_n`
-- :cpp:func:`hpx::parallel::v1::count`
-- :cpp:func:`hpx::parallel::v1::count_if`
-- :cpp:func:`hpx::parallel::v1::equal`
-- :cpp:func:`hpx::parallel::v1::fill`
-- :cpp:func:`hpx::parallel::v1::fill_n`
-- :cpp:func:`hpx::parallel::v1::find`
-- :cpp:func:`hpx::parallel::v1::find_end`
-- :cpp:func:`hpx::parallel::v1::find_first_of`
-- :cpp:func:`hpx::parallel::v1::find_if`
-- :cpp:func:`hpx::parallel::v1::find_if_not`
-- :cpp:func:`hpx::parallel::v1::for_each`
-- :cpp:func:`hpx::parallel::v1::for_each_n`
-- :cpp:func:`hpx::parallel::v1::generate`
-- :cpp:func:`hpx::parallel::v1::generate_n`
-- :cpp:func:`hpx::parallel::v1::includes`
-- :cpp:func:`hpx::parallel::v1::inplace_merge`
-- :cpp:func:`hpx::parallel::v1::is_heap`
-- :cpp:func:`hpx::parallel::v1::is_heap_until`
+- :cpp:func:`hpx::all_of`
+- :cpp:func:`hpx::any_of`
+- :cpp:func:`hpx::copy`
+- :cpp:func:`hpx::copy_if`
+- :cpp:func:`hpx::copy_n`
+- :cpp:func:`hpx::count`
+- :cpp:func:`hpx::count_if`
+- :cpp:func:`hpx::equal`
+- :cpp:func:`hpx::fill`
+- :cpp:func:`hpx::fill_n`
+- :cpp:func:`hpx::find`
+- :cpp:func:`hpx::find_end`
+- :cpp:func:`hpx::find_first_of`
+- :cpp:func:`hpx::find_if`
+- :cpp:func:`hpx::find_if_not`
+- :cpp:func:`hpx::for_each`
+- :cpp:func:`hpx::for_each_n`
+- :cpp:func:`hpx::generate`
+- :cpp:func:`hpx::generate_n`
+- :cpp:func:`hpx::includes`
+- :cpp:func:`hpx::inplace_merge`
+- :cpp:func:`hpx::is_heap`
+- :cpp:func:`hpx::is_heap_until`
 - :cpp:func:`hpx::parallel::v1::is_partitioned`
 - :cpp:func:`hpx::parallel::v1::is_sorted`
 - :cpp:func:`hpx::parallel::v1::is_sorted_until`
 - :cpp:func:`hpx::parallel::v1::lexicographical_compare`
+- :cpp:func:`hpx::make_heap`
 - :cpp:func:`hpx::parallel::v1::max_element`
-- :cpp:func:`hpx::parallel::v1::merge`
+- :cpp:func:`hpx::merge`
 - :cpp:func:`hpx::parallel::v1::min_element`
 - :cpp:func:`hpx::parallel::v1::minmax_element`
 - :cpp:func:`hpx::parallel::v1::mismatch`
-- :cpp:func:`hpx::parallel::v1::move`
-- :cpp:func:`hpx::parallel::v1::none_of`
+- :cpp:func:`hpx::move`
+- :cpp:func:`hpx::none_of`
 - :cpp:func:`hpx::parallel::v1::partition`
 - :cpp:func:`hpx::parallel::v1::partition_copy`
 - :cpp:func:`hpx::parallel::v1::remove`
@@ -82,19 +83,52 @@ Functions
 - :cpp:func:`hpx::parallel::v1::rotate_copy`
 - :cpp:func:`hpx::parallel::v1::search`
 - :cpp:func:`hpx::parallel::v1::search_n`
-- :cpp:func:`hpx::parallel::v1::set_difference`
-- :cpp:func:`hpx::parallel::v1::set_intersection`
-- :cpp:func:`hpx::parallel::v1::set_symmetric_difference`
-- :cpp:func:`hpx::parallel::v1::set_union`
+- :cpp:func:`hpx::set_difference`
+- :cpp:func:`hpx::set_intersection`
+- :cpp:func:`hpx::set_symmetric_difference`
+- :cpp:func:`hpx::set_union`
 - :cpp:func:`hpx::parallel::v1::sort`
 - :cpp:func:`hpx::parallel::v1::stable_partition`
+- :cpp:func:`hpx::parallel::v1::stable_sort`
 - :cpp:func:`hpx::parallel::v1::swap_ranges`
 - :cpp:func:`hpx::parallel::v1::unique`
 - :cpp:func:`hpx::parallel::v1::unique_copy`
-- :cpp:func:`hpx::parallel::v2::for_loop`
-- :cpp:func:`hpx::parallel::v2::for_loop_strided`
-- :cpp:func:`hpx::parallel::v2::for_loop_n`
-- :cpp:func:`hpx::parallel::v2::for_loop_n_strided`
+- :cpp:func:`hpx::for_loop`
+- :cpp:func:`hpx::for_loop_strided`
+- :cpp:func:`hpx::for_loop_n`
+- :cpp:func:`hpx::for_loop_n_strided`
+
+- :cpp:func:`hpx::ranges::all_of`
+- :cpp:func:`hpx::ranges::any_of`
+- :cpp:func:`hpx::ranges::copy`
+- :cpp:func:`hpx::ranges::copy_if`
+- :cpp:func:`hpx::ranges::copy_n`
+- :cpp:func:`hpx::ranges::count`
+- :cpp:func:`hpx::ranges::count_if`
+- :cpp:func:`hpx::ranges::equal`
+- :cpp:func:`hpx::ranges::fill`
+- :cpp:func:`hpx::ranges::fill_n`
+- :cpp:func:`hpx::ranges::find`
+- :cpp:func:`hpx::ranges::find_end`
+- :cpp:func:`hpx::ranges::find_first_of`
+- :cpp:func:`hpx::ranges::find_if`
+- :cpp:func:`hpx::ranges::find_if_not`
+- :cpp:func:`hpx::ranges::for_each`
+- :cpp:func:`hpx::ranges::for_each_n`
+- :cpp:func:`hpx::ranges::generate`
+- :cpp:func:`hpx::ranges::generate_n`
+- :cpp:func:`hpx::ranges::includes`
+- :cpp:func:`hpx::ranges::inplace_merge`
+- :cpp:func:`hpx::ranges::is_heap`
+- :cpp:func:`hpx::ranges::is_heap_until`
+- :cpp:func:`hpx::ranges::make_heap`
+- :cpp:func:`hpx::ranges::merge`
+- :cpp:func:`hpx::ranges::move`
+- :cpp:func:`hpx::ranges::none_of`
+- :cpp:func:`hpx::ranges::set_difference`
+- :cpp:func:`hpx::ranges::set_intersection`
+- :cpp:func:`hpx::ranges::set_symmetric_difference`
+- :cpp:func:`hpx::ranges::set_union`
 
 Header ``hpx/any.hpp``
 ======================
@@ -130,33 +164,97 @@ Macros
 - :c:macro:`HPX_ASSERT`
 - :c:macro:`HPX_ASSERT_MSG`
 
+Header ``hpx/barrier.hpp``
+==========================
+
+This header includes :ref:`public_api_header_hpx_local_barrier` and
+:ref:`public_api_header_hpx_distributed_barrier`.
+
+.. _public_api_header_hpx_local_barrier:
+
+Header ``hpx/local/barrier.hpp``
+================================
+
+Corresponds to the C++ standard library header :cppreference-header:`barrier`.
+
+Classes
+-------
+
+- :cpp:class:`hpx::lcos::local::cpp20_barrier`
+
+.. _public_api_header_hpx_distributed_barrier:
+
+Header ``hpx/distributed/barrier.hpp``
+======================================
+
+Contains a distributed barrier implementation. This functionality is also
+exposed through the ``hpx::distributed`` namespace. The name in
+``hpx::distributed`` should be preferred.
+
+Classes
+-------
+
+- :cpp:class:`hpx::lcos::barrier`
+
+Header ``hpx/channel.hpp``
+==========================
+
+This header includes :ref:`public_api_header_hpx_local_channel` and
+:ref:`public_api_header_hpx_distributed_channel`.
+
+.. _public_api_header_hpx_local_channel:
+
+Header ``hpx/local/channel.hpp``
+================================
+
+Contains a local channel implementation.
+
+Classes
+-------
+
+- :cpp:class:`hpx::lcos::local::channel`
+
+.. _public_api_header_hpx_distributed_channel:
+
+Header ``hpx/distributed/channel.hpp``
+======================================
+
+Contains a distributed channel implementation. This functionality is also
+exposed through the ``hpx::distributed`` namespace. The name in
+``hpx::distributed`` should be preferred.
+
+Classes
+-------
+
+- :cpp:class:`hpx::lcos::channel`
+
 Header ``hpx/chrono.hpp``
 =========================
 
 Corresponds to the C++ standard library header :cppreference-header:`chrono`.
 The following replacements and extensions are provided compared to
-:cppreference-header:`chrono`:
+:cppreference-header:`chrono`. The classes below are also available in the
+``hpx::chrono`` namespace, not in the top-level ``hpx`` namespace.
 
 Classes
 -------
 
 - :cpp:class:`hpx::util::high_resolution_clock`
 - :cpp:class:`hpx::util::high_resolution_timer`
+- :cpp:class:`hpx::util::steady_time_point`
 
-Header ``hpx/distributed/runtime.hpp``
-======================================
+Header ``hpx/condition_variable.hpp``
+=====================================
 
-This header functions for accessing distributed runtime information.
+Corresponds to the C++ standard library header
+:cppreference-header:`condition_variable`.
 
-Functions
----------
+Classes
+-------
 
-- :cpp:func:`hpx::find_root_locality`
-- :cpp:func:`hpx::find_all_localities`
-- :cpp:func:`hpx::find_remote_localities`
-- :cpp:func:`hpx::find_locality`
-- :cpp:func:`hpx::get_colocation_id`
-- :cpp:func:`hpx::get_locality_id`
+- :cpp:class:`hpx::lcos::local::condition_variable`
+- :cpp:class:`hpx::lcos::local::condition_variable_any`
+- :cpp:class:`hpx::lcos::local::cv_status`
 
 Header ``hpx/exception.hpp``
 ============================
@@ -185,30 +283,30 @@ for more information about execution policies and executor parameters.
 
 .. note::
 
-   These names are also available in the ``hpx::execution`` namespace, not in
+   These names are only available in the ``hpx::execution`` namespace, not in
    the top-level ``hpx`` namespace.
 
 Constants
 ---------
 
-- :cpp:var:`hpx::parallel::execution::seq`
-- :cpp:var:`hpx::parallel::execution::par`
-- :cpp:var:`hpx::parallel::execution::par_unseq`
-- :cpp:var:`hpx::parallel::execution::task`
+- :cpp:var:`hpx::execution::seq`
+- :cpp:var:`hpx::execution::par`
+- :cpp:var:`hpx::execution::par_unseq`
+- :cpp:var:`hpx::execution::task`
 
 Classes
 -------
 
-- :cpp:class:`hpx::parallel::execution::sequenced_policy`
-- :cpp:class:`hpx::parallel::execution::parallel_policy`
-- :cpp:class:`hpx::parallel::execution::parallel_unsequenced_policy`
-- :cpp:class:`hpx::parallel::execution::sequenced_task_policy`
-- :cpp:class:`hpx::parallel::execution::parallel_task_policy`
-- :cpp:class:`hpx::parallel::execution::auto_chunk_size`
-- :cpp:class:`hpx::parallel::execution::dynamic_chunk_size`
-- :cpp:class:`hpx::parallel::execution::guided_chunk_size`
-- :cpp:class:`hpx::parallel::execution::persistent_auto_chunk_size`
-- :cpp:class:`hpx::parallel::execution::static_chunk_size`
+- :cpp:class:`hpx::execution::sequenced_policy`
+- :cpp:class:`hpx::execution::parallel_policy`
+- :cpp:class:`hpx::execution::parallel_unsequenced_policy`
+- :cpp:class:`hpx::execution::sequenced_task_policy`
+- :cpp:class:`hpx::execution::parallel_task_policy`
+- :cpp:class:`hpx::execution::auto_chunk_size`
+- :cpp:class:`hpx::execution::dynamic_chunk_size`
+- :cpp:class:`hpx::execution::guided_chunk_size`
+- :cpp:class:`hpx::execution::persistent_auto_chunk_size`
+- :cpp:class:`hpx::execution::static_chunk_size`
 
 Header ``hpx/functional.hpp``
 =============================
@@ -252,9 +350,17 @@ Functions
 Header ``hpx/future.hpp``
 =========================
 
+This header includes :ref:`public_api_header_hpx_local_future` and
+:ref:`public_api_header_hpx_distributed_future`.
+
+.. _public_api_header_hpx_local_future:
+
+Header ``hpx/local/future.hpp``
+===============================
+
 Corresponds to the C++ standard library header :cppreference-header:`future`.
-See :ref:`parallel`, :ref:`parallel_algorithms` and :ref:`executor_parameters`
-for more information about execution policies and executor parameters.
+See :ref:`extend_futures` for more information about extensions to futures
+compared to the C++ standard library.
 
 .. note::
 
@@ -294,17 +400,45 @@ Functions
 Examples
 --------
 
-.. literalinclude:: ../libs/tests/unit/api_future.hpp
+.. literalinclude:: ../../libs/full/include/tests/unit/api_future.cpp
    :language: c++
    :lines: 7-
+
+.. _public_api_header_hpx_distributed_future:
+
+Header ``hpx/distributed/future.hpp``
+=====================================
+
+Contains overloads of :cpp:func:`hpx::async`, :cpp:func:`hpx::apply`,
+:cpp:func:`hpx::sync`, and :cpp:func:`hpx::dataflow` that can be used with
+actions. See :ref:`action_invocation` for more information about invoking
+actions.
+
+.. note::
+
+   The alias from ``hpx::promise`` to :cpp:class:`hpx::lcos::promise` is
+   deprecated and will be removed in a future release. The alias
+   ``hpx::distributed::promise`` should be used in new applications.
+
+Classes
+-------
+
+- :cpp:class:`hpx::lcos::promise`
+
+Functions
+---------
+
+- :cpp:func:`hpx::async`
+- :cpp:func:`hpx::apply`
+- :cpp:func:`hpx::sync`
+- :cpp:func:`hpx::dataflow`
 
 Header ``hpx/init.hpp``
 =======================
 
 This header contains functionality for starting, stopping, suspending, and
-resuming the |hpx| runtime. This is the main way to explicitly starting the
-|hpx| runtime. See :ref:`starting_hpx` for more details on starting the |hpx|
-runtime.
+resuming the |hpx| runtime. This is the main way to explicitly start the |hpx|
+runtime. See :ref:`starting_hpx` for more details on starting the |hpx| runtime.
 
 Classes
 -------
@@ -321,6 +455,59 @@ Functions
 - :cpp:func:`hpx::disconnect`
 - :cpp:func:`hpx::suspend`
 - :cpp:func:`hpx::resume`
+
+Header ``hpx/latch.hpp``
+========================
+
+This header includes :ref:`public_api_header_hpx_local_latch` and
+:ref:`public_api_header_hpx_distributed_latch`.
+
+.. _public_api_header_hpx_local_latch:
+
+Header ``hpx/local/latch.hpp``
+==============================
+
+Corresponds to the C++ standard library header :cppreference-header:`latch`.
+
+Classes
+-------
+
+- :cpp:class:`hpx::lcos::local::cpp20_latch`
+
+.. _public_api_header_hpx_distributed_latch:
+
+Header ``hpx/distributed/latch.hpp``
+====================================
+
+Contains a distributed latch implementation. This functionality is also exposed
+through the ``hpx::distributed`` namespace. The name in ``hpx::distributed``
+should be preferred.
+
+Classes
+-------
+
+- :cpp:class:`hpx::lcos::latch`
+
+Header ``hpx/mutex.hpp``
+========================
+
+Corresponds to the C++ standard library header :cppreference-header:`mutex`.
+
+Classes
+-------
+
+- :cpp:class:`hpx::lcos::local::mutex`
+- :cpp:class:`hpx::lcos::local::no_mutex`
+- :cpp:class:`hpx::lcos::local::once_flag`
+- :cpp:class:`hpx::lcos::local::recursive_mutex`
+- :cpp:class:`hpx::lcos::local::spinlock`
+- :cpp:class:`hpx::lcos::local::timed_mutex`
+- :cpp:class:`hpx::lcos::local::unlock_guard`
+
+Functions
+---------
+
+- :cpp:func:`hpx::lcos::local::call_once`
 
 Header ``hpx/memory.hpp``
 =========================
@@ -343,6 +530,24 @@ Functions
 - :cpp:func:`hpx::parallel::v1::uninitialized_move_n`
 - :cpp:func:`hpx::parallel::v1::uninitialized_value_construct`
 - :cpp:func:`hpx::parallel::v1::uninitialized_value_construct_n`
+
+Header ``hpx/numeric.hpp``
+==========================
+
+Corresponds to the C++ standard library header :cppreference-header:`numeric`.
+See :ref:`parallel_algorithms` for more information about the parallel
+algorithms.
+
+Functions
+---------
+
+- :cpp:func:`hpx::parallel::v1::adjacent_difference`
+- :cpp:func:`hpx::parallel::v1::exclusive_scan`
+- :cpp:func:`hpx::parallel::v1::inclusive_scan`
+- :cpp:func:`hpx::reduce`
+- :cpp:func:`hpx::parallel::v1::transform_exclusive_scan`
+- :cpp:func:`hpx::parallel::v1::transform_inclusive_scan`
+- :cpp:func:`hpx::transform_reduce`
 
 Header ``hpx/optional.hpp``
 ===========================
@@ -370,7 +575,15 @@ Functions
 Header ``hpx/runtime.hpp``
 ==========================
 
-This header functions for accessing runtime information.
+This header includes :ref:`public_api_header_hpx_local_runtime` and
+:ref:`public_api_header_hpx_distributed_runtime`.
+
+.. _public_api_header_hpx_local_runtime:
+
+Header ``hpx/local/runtime.hpp``
+================================
+
+This header contains functions for accessing local runtime information.
 
 Typedefs
 --------
@@ -391,6 +604,23 @@ Functions
 - :cpp:func:`hpx::get_num_localities`
 - :cpp:func:`hpx::get_locality_name`
 
+.. _public_api_header_hpx_distributed_runtime:
+
+Header ``hpx/distributed/runtime.hpp``
+======================================
+
+This header contains functions for accessing distributed runtime information.
+
+Functions
+---------
+
+- :cpp:func:`hpx::find_root_locality`
+- :cpp:func:`hpx::find_all_localities`
+- :cpp:func:`hpx::find_remote_localities`
+- :cpp:func:`hpx::find_locality`
+- :cpp:func:`hpx::get_colocation_id`
+- :cpp:func:`hpx::get_locality_id`
+
 Header ``hpx/system_error.hpp``
 ===============================
 
@@ -403,7 +633,7 @@ Classes
 - :cpp:class:`hpx::error_code`
 
 Header ``hpx/task_block.hpp``
-=========================
+=============================
 
 Corresponds to the ``task_block`` feature in |cpp11_n4088|_. See
 :ref:`using_task_block` for more details on using task blocks.
@@ -442,48 +672,90 @@ Functions
 - :cpp:func:`hpx::this_thread::sleep_for`
 - :cpp:func:`hpx::this_thread::sleep_until`
 
-Header ``hpx/tuple.hpp``
-========================
+Header ``hpx/semaphore.hpp``
+============================
 
-Corresponds to the C++ standard library header :cppreference-header:`tuple`.
-:cpp:class:`hpx::util::tuple` can be used in CUDA device code, unlike
-``std::tuple``.
+Corresponds to the C++ standard library header
+:cppreference-header:`semaphore`.
+
+Classes
+-------
+
+- :cpp:class:`hpx::lcos::local::cpp20_binary_semaphore`
+- :cpp:class:`hpx::lcos::local::cpp20_counting_semaphore`
+
+Header ``hpx/shared_mutex.hpp``
+===============================
+
+Corresponds to the C++ standard library header
+:cppreference-header:`shared_mutex`.
+
+Classes
+-------
+
+- :cpp:class:`hpx::lcos::local::shared_mutex`
+
+Header ``hpx/stop_token.hpp``
+=============================
+
+Corresponds to the C++ standard library header
+:cppreference-header:`stop_token`.
 
 Constants
 ---------
 
-- :cpp:var:`hpx::util::ignore`
+- :cpp:var:`hpx::nostopstate`
 
 Classes
 -------
 
-- :cpp:struct:`hpx::util::tuple`
-- :cpp:struct:`hpx::util::tuple_size`
-- :cpp:struct:`hpx::util::tuple_element`
+- :cpp:class:`hpx::stop_callback`
+- :cpp:class:`hpx::stop_source`
+- :cpp:class:`hpx::stop_token`
+- :cpp:struct:`hpx::nostopstate_t`
+
+Header ``hpx/tuple.hpp``
+========================
+
+Corresponds to the C++ standard library header :cppreference-header:`tuple`.
+:cpp:class:`hpx::tuple` can be used in CUDA device code, unlike ``std::tuple``.
+
+Constants
+---------
+
+- :cpp:var:`hpx::ignore`
+
+Classes
+-------
+
+- :cpp:struct:`hpx::tuple`
+- :cpp:struct:`hpx::tuple_size`
+- :cpp:struct:`hpx::tuple_element`
 
 Functions
 ---------
 
-- :cpp:func:`hpx::util::make_tuple`
-- :cpp:func:`hpx::util::tie`
-- :cpp:func:`hpx::util::forward_as_tuple`
-- :cpp:func:`hpx::util::tuple_cat`
-- :cpp:func:`hpx::util::get`
+- :cpp:func:`hpx::make_tuple`
+- :cpp:func:`hpx::tie`
+- :cpp:func:`hpx::forward_as_tuple`
+- :cpp:func:`hpx::tuple_cat`
+- :cpp:func:`hpx::get`
 
 Header ``hpx/type_traits.hpp``
-=============================
+==============================
 
 Corresponds to the C++ standard library header
-:cppreference-header:`type_traits`. Provides :cpp:class:`hpx::util::result_of`
-as a replacement for ``std::result_of``.
+:cppreference-header:`type_traits`. Provides
+:cpp:class:`hpx::util::invoke_result` as a replacement for
+``std::invoke_result``.
 
 Classes
 -------
 
-- :cpp:struct:`hpx::util::result_of`
+- :cpp:struct:`hpx::util::invoke_result`
 
 Header ``hpx/version.hpp``
-============================
+==========================
 
 This header provides version information about |hpx|.
 
@@ -510,12 +782,6 @@ Functions
 - :cpp:func:`hpx::agas_version`
 - :cpp:func:`hpx::build_type`
 - :cpp:func:`hpx::build_date_time`
-
-Classes
--------
-
-- :cpp:struct:`hpx::util::invoke_result`
-- :cpp:struct:`hpx::util::result_of`
 
 Header ``hpx/wrap_main.hpp``
 ============================

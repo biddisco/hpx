@@ -11,18 +11,21 @@
 #pragma once
 
 #include <hpx/config.hpp>
+#include <hpx/actions/base_action.hpp>
+#include <hpx/actions/transfer_action.hpp>
+#include <hpx/actions/transfer_continuation_action.hpp>
+#include <hpx/actions_base/component_action.hpp>
+#include <hpx/allocator_support/internal_allocator.hpp>
+#include <hpx/datastructures/tuple.hpp>
 #include <hpx/lcos/base_lco_with_value.hpp>
-#include <hpx/synchronization/condition_variable.hpp>
-#include <hpx/runtime/agas_fwd.hpp>
 #include <hpx/runtime/agas/gva.hpp>
-#include <hpx/runtime/actions/component_action.hpp>
+#include <hpx/runtime/agas_fwd.hpp>
 #include <hpx/runtime/components/server/fixed_component_base.hpp>
 #include <hpx/runtime/naming/id_type.hpp>
 #include <hpx/runtime/naming/name.hpp>
+#include <hpx/synchronization/condition_variable.hpp>
 #include <hpx/traits/action_message_handler.hpp>
 #include <hpx/traits/action_serialization_filter.hpp>
-#include <hpx/allocator_support/internal_allocator.hpp>
-#include <hpx/datastructures/tuple.hpp>
 
 #include <atomic>
 #include <cstddef>
@@ -123,7 +126,7 @@ struct HPX_EXPORT primary_namespace
     typedef std::map<naming::gid_type, gva_table_data_type> gva_table_type;
     typedef std::map<naming::gid_type, std::int64_t> refcnt_table_type;
 
-    typedef hpx::util::tuple<naming::gid_type, gva, naming::gid_type>
+    typedef hpx::tuple<naming::gid_type, gva, naming::gid_type>
         resolved_type;
     // }}}
 
@@ -136,7 +139,7 @@ struct HPX_EXPORT primary_namespace
     refcnt_table_type refcnts_;
     typedef std::map<
             naming::gid_type,
-            hpx::util::tuple<bool, std::size_t, lcos::local::detail::condition_variable>
+            hpx::tuple<bool, std::size_t, lcos::local::detail::condition_variable>
         > migration_table_type;
 
     std::string instance_name_;
@@ -296,7 +299,7 @@ public:
         );
 
     std::vector<std::int64_t> decrement_credit(
-        std::vector<hpx::util::tuple<std::int64_t, naming::gid_type,
+        std::vector<hpx::tuple<std::int64_t, naming::gid_type,
             naming::gid_type>> const& requests);
 
     std::pair<naming::gid_type, naming::gid_type> allocate(std::uint64_t count);
@@ -469,7 +472,7 @@ HPX_REGISTER_ACTION_DECLARATION(
 
 HPX_REGISTER_BASE_LCO_WITH_VALUE_DECLARATION(
     hpx::naming::address, naming_address)
-typedef hpx::util::tuple<
+typedef hpx::tuple<
         hpx::naming::gid_type, hpx::agas::gva, hpx::naming::gid_type
     > gva_tuple_type;
 HPX_REGISTER_BASE_LCO_WITH_VALUE_DECLARATION(

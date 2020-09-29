@@ -10,7 +10,7 @@
 #include <hpx/hpx.hpp>
 #include <hpx/hpx_init.hpp>
 #include <hpx/include/parallel_sort.hpp>
-#include <hpx/include/iostreams.hpp>
+#include <hpx/iostream.hpp>
 
 #include <cstddef>
 #include <vector>
@@ -47,7 +47,7 @@ int hpx_main()
         print_sequence(keys, values);
 
         hpx::parallel::sort_by_key(
-            hpx::parallel::execution::par,
+            hpx::execution::par,
             keys.begin(),
             keys.end(),
             values.begin());

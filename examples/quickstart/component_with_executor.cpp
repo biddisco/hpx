@@ -5,9 +5,9 @@
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include <hpx/hpx_main.hpp>
-#include <hpx/include/components.hpp>
+#include <hpx/iostream.hpp>
 #include <hpx/include/actions.hpp>
-#include <hpx/include/iostreams.hpp>
+#include <hpx/include/components.hpp>
 #include <hpx/include/parallel_executors.hpp>
 
 #include <utility>
@@ -16,10 +16,10 @@
 // Define a base component which exposes the required interface
 struct hello_world_server
   : hpx::components::executor_component<
-        hpx::parallel::execution::parallel_executor,
+        hpx::execution::parallel_executor,
         hpx::components::component_base<hello_world_server> >
 {
-    typedef hpx::parallel::execution::parallel_executor executor_type;
+    typedef hpx::execution::parallel_executor executor_type;
     typedef hpx::components::executor_component<
             executor_type, hpx::components::component_base<hello_world_server>
         > base_type;

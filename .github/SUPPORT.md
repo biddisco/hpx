@@ -12,7 +12,7 @@ get support for using HPX.
 
 ### Documentation
 
-* [User Documentation](https://stellar-group.github.io/hpx-docs/latest/html/index.html)
+* [User Documentation](https://hpx-docs.stellar-group.org/latest/html/index.html)
 
 
 ### Real-time Chat
@@ -21,7 +21,7 @@ get support for using HPX.
   to get in contact with us as most of the developers are available on this
   channel. Check out the [channel archives](http://irclog.cct.lsu.edu/ste~b~~b~ar)
   for past conversations.
-* #hpx on [matrix.org](https://riot.im/app/#/room/#hpx:matrix.org): this channel
+* #hpx on [matrix.org](https://matrix.to/#/#hpx:matrix.org): this channel
   is bridged to the IRC channel.
 * Slack ([registration](https://cpplang.now.sh/)): The
   [`#hpx`](https://cpplang.slack.com/messages/C68QLPZB3) channel is another

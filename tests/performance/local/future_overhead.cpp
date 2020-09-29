@@ -6,25 +6,26 @@
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
 //  file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <hpx/modules/format.hpp>
+#include <hpx/config.hpp>
+#if defined(HPX_HAVE_DISTRIBUTED_RUNTIME)
+#include <hpx/actions_base/plain_action.hpp>
+#include <hpx/runtime/actions/continuation.hpp>
+#endif
+#include <hpx/async_combinators/wait_each.hpp>
+#include <hpx/execution_base/this_thread.hpp>
+#include <hpx/executors/limiting_executor.hpp>
 #include <hpx/hpx_init.hpp>
 #include <hpx/include/apply.hpp>
 #include <hpx/include/async.hpp>
-#include <hpx/include/iostreams.hpp>
+#include <hpx/include/parallel_execution.hpp>
 #include <hpx/include/parallel_executors.hpp>
 #include <hpx/include/parallel_for_loop.hpp>
 #include <hpx/include/threads.hpp>
-#include <hpx/async_combinators/wait_each.hpp>
-#include <hpx/runtime/actions/continuation.hpp>
-#include <hpx/runtime/actions/plain_action.hpp>
+#include <hpx/modules/format.hpp>
+#include <hpx/modules/synchronization.hpp>
 #include <hpx/modules/testing.hpp>
 #include <hpx/modules/timing.hpp>
 #include <hpx/threading_base/annotated_function.hpp>
-#include <hpx/execution_base/this_thread.hpp>
-
-#include <hpx/include/parallel_execution.hpp>
-#include <hpx/thread_executors/limiting_executor.hpp>
-#include <hpx/modules/synchronization.hpp>
 
 #include <array>
 #include <atomic>
@@ -44,18 +45,12 @@ using hpx::program_options::variables_map;
 using hpx::finalize;
 using hpx::init;
 
-using hpx::find_here;
-using hpx::naming::id_type;
-
 using hpx::apply;
 using hpx::async;
 using hpx::future;
 using hpx::lcos::wait_each;
 
 using hpx::util::high_resolution_timer;
-
-using hpx::cout;
-using hpx::flush;
 
 // global vars we stick here to make printouts easy for plotting
 static std::string queuing = "default";
@@ -90,7 +85,7 @@ void print_stats(const char* title, const char* wait, const char* exec,
     //hpx::util::print_cdash_timing(title, duration);
 }
 
-const char* exec_name(hpx::parallel::execution::parallel_executor const& exec)
+const char* exec_name(hpx::execution::parallel_executor const& exec)
 {
     return "parallel_executor";
 }
@@ -99,12 +94,6 @@ const char* exec_name(
     hpx::parallel::execution::parallel_executor_aggregated const& exec)
 {
     return "parallel_executor_aggregated";
-}
-
-const char* exec_name(
-    hpx::parallel::execution::thread_pool_executor const& exec)
-{
-    return "thread_pool_executor";
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -131,8 +120,6 @@ double null_function() noexcept
     return 0.0;
 }
 
-HPX_PLAIN_ACTION(null_function, null_action)
-
 struct scratcher
 {
     void operator()(future<double> r) const
@@ -141,10 +128,13 @@ struct scratcher
     }
 };
 
+#if defined(HPX_HAVE_DISTRIBUTED_RUNTIME)
+HPX_PLAIN_ACTION(null_function, null_action)
+
 // Time async action execution using wait each on futures vector
 void measure_action_futures_wait_each(std::uint64_t count, bool csv)
 {
-    const id_type here = find_here();
+    const hpx::naming::id_type here = hpx::find_here();
     std::vector<future<double>> futures;
     futures.reserve(count);
 
@@ -162,7 +152,7 @@ void measure_action_futures_wait_each(std::uint64_t count, bool csv)
 // Time async action execution using wait each on futures vector
 void measure_action_futures_wait_all(std::uint64_t count, bool csv)
 {
-    const id_type here = find_here();
+    const hpx::naming::id_type here = hpx::find_here();
     std::vector<future<double>> futures;
     futures.reserve(count);
 
@@ -176,6 +166,7 @@ void measure_action_futures_wait_all(std::uint64_t count, bool csv)
     const double duration = walltime.elapsed();
     print_stats("action", "WaitAll", "no-executor", count, duration, csv);
 }
+#endif
 
 // Time async execution using wait each on futures vector
 template <typename Executor>
@@ -242,7 +233,8 @@ void measure_function_futures_thread_count(
 
     if (sanity_check != 0)
     {
-        auto count = this_pool->get_thread_count_unknown(std::size_t(-1), false);
+        auto count =
+            this_pool->get_thread_count_unknown(std::size_t(-1), false);
         throw std::runtime_error(
             "This test is faulty " + std::to_string(count));
     }
@@ -254,7 +246,6 @@ template <typename Executor>
 void measure_function_futures_limiting_executor(
     std::uint64_t count, bool csv, Executor exec)
 {
-    using namespace hpx::parallel::execution;
     std::uint64_t const num_threads = hpx::get_num_worker_threads();
     std::uint64_t const tasks = num_threads * 2000;
     std::atomic<std::uint64_t> sanity_check(count);
@@ -278,15 +269,15 @@ void measure_function_futures_limiting_executor(
 
     // test a parallel algorithm on custom pool with high priority
     auto const chunk_size = count / (num_threads * 2);
-    hpx::parallel::execution::static_chunk_size fixed(chunk_size);
+    hpx::execution::static_chunk_size fixed(chunk_size);
 
     // start the clock
     high_resolution_timer walltime;
     {
-        hpx::threads::executors::limiting_executor<Executor> signal_exec(
+        hpx::execution::experimental::limiting_executor<Executor> signal_exec(
             exec, tasks, tasks + 1000);
-        hpx::parallel::for_loop(hpx::parallel::execution::par.with(fixed), 0,
-            count, [&](std::uint64_t) {
+        hpx::for_loop(hpx::execution::par.with(fixed), 0, count,
+            [&](std::uint64_t) {
                 hpx::apply(signal_exec, [&]() {
                     null_function();
                     sanity_check--;
@@ -352,9 +343,9 @@ void measure_function_futures_for_loop(std::uint64_t count, bool csv,
 {
     // start the clock
     high_resolution_timer walltime;
-    hpx::parallel::for_loop(hpx::parallel::execution::par.on(exec).with(
-                                hpx::parallel::execution::static_chunk_size(1),
-                                unlimited_number_of_chunks()),
+    hpx::for_loop(hpx::execution::par.on(exec).with(
+                      hpx::execution::static_chunk_size(1),
+                      unlimited_number_of_chunks()),
         0, count, [](std::uint64_t) { null_function(); });
 
     // stop the clock
@@ -375,7 +366,8 @@ void measure_function_futures_register_work(std::uint64_t count, bool csv)
             hpx::threads::make_thread_function_nullary([&l]() {
                 null_function();
                 l.count_down(1);
-            }), "null_function");
+            }),
+            "null_function");
         hpx::threads::register_work(data);
     }
     l.wait();
@@ -466,8 +458,7 @@ void measure_function_futures_create_thread_hierarchical_placement(
                 hpx::threads::thread_init_data init(
                     hpx::threads::thread_function_type(thread_func), desc, prio,
                     hint, stack_size, hpx::threads::pending, false, sched);
-                sched->create_thread(
-                    init, nullptr, ec);
+                sched->create_thread(init, nullptr, ec);
             }
         };
         auto const thread_spawn_func =
@@ -505,7 +496,7 @@ void measure_function_futures_apply_hierarchical_placement(
         auto const hint =
             hpx::threads::thread_schedule_hint(static_cast<std::int16_t>(t));
         auto spawn_func = [&func, hint, t, count, num_threads]() {
-            auto exec = hpx::parallel::execution::parallel_executor(hint);
+            auto exec = hpx::execution::parallel_executor(hint);
             std::uint64_t const count_start = t * count / num_threads;
             std::uint64_t const count_end = (t + 1) * count / num_threads;
 
@@ -515,7 +506,7 @@ void measure_function_futures_apply_hierarchical_placement(
             }
         };
 
-        auto exec = hpx::parallel::execution::parallel_executor(hint);
+        auto exec = hpx::execution::parallel_executor(hint);
         hpx::apply(exec, spawn_func);
     }
     l.wait();
@@ -553,10 +544,9 @@ int hpx_main(variables_map& vm)
         if (HPX_UNLIKELY(0 == count))
             throw std::logic_error("error: count of 0 futures specified\n");
 
-        hpx::parallel::execution::parallel_executor par;
+        hpx::execution::parallel_executor par;
         hpx::parallel::execution::parallel_executor_aggregated par_agg;
-        hpx::parallel::execution::thread_pool_executor tpe;
-        hpx::parallel::execution::thread_pool_executor tpe_nostack(
+        hpx::parallel::execution::parallel_executor par_nostack(
             hpx::threads::thread_priority_default,
             hpx::threads::thread_stacksize_nostack);
 
@@ -567,22 +557,19 @@ int hpx_main(variables_map& vm)
                 count, csv);
             if (test_all)
             {
-                measure_function_futures_limiting_executor(count, csv, tpe);
+                measure_function_futures_limiting_executor(count, csv, par);
+#if defined(HPX_HAVE_DISTRIBUTED_RUNTIME)
                 measure_action_futures_wait_each(count, csv);
                 measure_action_futures_wait_all(count, csv);
+#endif
                 measure_function_futures_wait_each(count, csv, par);
-                measure_function_futures_wait_each(count, csv, tpe);
                 measure_function_futures_wait_all(count, csv, par);
-                measure_function_futures_wait_all(count, csv, tpe);
                 measure_function_futures_thread_count(count, csv, par);
-                measure_function_futures_thread_count(count, csv, tpe);
                 measure_function_futures_sliding_semaphore(count, csv, par);
-                measure_function_futures_sliding_semaphore(count, csv, tpe);
                 measure_function_futures_for_loop(count, csv, par);
                 measure_function_futures_for_loop(count, csv, par_agg);
-                measure_function_futures_for_loop(count, csv, tpe);
                 measure_function_futures_for_loop(
-                    count, csv, tpe_nostack, "thread_pool_executor_nostack");
+                    count, csv, par_nostack, "parallel_executor_nostack");
                 measure_function_futures_register_work(count, csv);
                 measure_function_futures_create_thread(count, csv);
                 measure_function_futures_apply_hierarchical_placement(
