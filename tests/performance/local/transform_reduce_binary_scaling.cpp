@@ -9,7 +9,7 @@
 
 #include <hpx/modules/timing.hpp>
 #include <hpx/include/parallel_transform_reduce.hpp>
-#include <hpx/include/iostreams.hpp>
+#include <hpx/iostream.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -42,7 +42,7 @@ float measure_inner_product(ExPolicy && policy,
     std::vector<float> const& data1, std::vector<float> const& data2)
 {
     return
-        hpx::parallel::transform_reduce(
+        hpx::transform_reduce(
             policy,
             std::begin(data1),
             std::end(data1),
@@ -91,13 +91,13 @@ int hpx_main(hpx::program_options::variables_map& vm)
     else
     {
         // warm up caches
-        measure_inner_product(hpx::parallel::execution::par, data1, data2);
+        measure_inner_product(hpx::execution::par, data1, data2);
 
         // do measurements
         std::uint64_t tr_time_datapar = measure_inner_product(
-            test_count, hpx::parallel::execution::datapar, data1, data2);
+            test_count, hpx::execution::datapar, data1, data2);
         std::uint64_t tr_time_par = measure_inner_product(
-            test_count, hpx::parallel::execution::par, data1, data2);
+            test_count, hpx::execution::par, data1, data2);
 
         if (csvoutput)
         {

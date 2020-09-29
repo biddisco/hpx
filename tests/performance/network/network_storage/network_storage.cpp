@@ -10,6 +10,7 @@
 #include <hpx/include/actions.hpp>
 #include <hpx/components/iostreams/standard_streams.hpp>
 #include <hpx/synchronization/detail/sliding_semaphore.hpp>
+#include <hpx/modules/serialization.hpp>
 #include <hpx/modules/testing.hpp>
 #include <hpx/execution_base/this_thread.hpp>
 #include <hpx/synchronization/barrier.hpp>
@@ -17,6 +18,10 @@
 #include <hpx/runtime/parcelset/rma/rma_object.hpp>
 #include <hpx/runtime/parcelset/rma/allocator.hpp>
 #include <hpx/threading_base/print.hpp>
+
+#if !defined(HPX_HAVE_CXX17_SHARED_PTR_ARRAY)
+#include <boost/shared_array.hpp>
+#endif
 
 #include <algorithm>
 #include <array>
@@ -41,7 +46,7 @@
 #include <simple_profiler.hpp>
 
 
-static constexpr int debug_threshold = 9;
+static constexpr int debug_threshold = 0;
 
 template <int Level>
 struct check_level : std::integral_constant<bool, Level <= debug_threshold> {};
@@ -366,7 +371,11 @@ namespace Storage {
     async_mem_result_type CopyToStorage(general_buffer_type const& srcbuffer,
         uint32_t address, uint64_t length)
     {
+#if defined(HPX_HAVE_CXX17_SHARED_PTR_ARRAY)
+        std::shared_ptr<char[]> src = srcbuffer.data_array();
+#else
         boost::shared_array<char> src = srcbuffer.data_array();
+#endif
         return copy_to_local_storage(src.get(), address, length);
     }
 
@@ -384,6 +393,10 @@ namespace Storage {
         //
         // The memory must be freed after final use.
         std::allocator<char> local_allocator;
+#if defined(HPX_HAVE_CXX17_SHARED_PTR_ARRAY)
+        std::shared_ptr<char[]> local_buffer(local_allocator.allocate(length),
+            [](char*) { nws_deb<6>.debug("Not deleting memory"); });
+#else
         boost::shared_array<char> local_buffer(local_allocator.allocate(length),
             [length](char*p){
                 nws_deb<6>.debug("Not deleting boost::shared_array"
@@ -391,6 +404,7 @@ namespace Storage {
                                  , "Size", hpx::debug::hex<8>(length));
             }
         );
+#endif
 
         // allow the storage class to asynchronously copy the data into buffer
 #ifdef ASYNC_MEMORY

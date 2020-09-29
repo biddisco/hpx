@@ -9,7 +9,7 @@
 // asynchronous work.
 
 #include <hpx/hpx_init.hpp>
-#include <hpx/include/iostreams.hpp>
+#include <hpx/iostream.hpp>
 #include <hpx/modules/timing.hpp>
 
 #include <chrono>

@@ -11,6 +11,7 @@
 // config
 #include <hpx/config.hpp>
 // util
+#include <hpx/datastructures/tuple.hpp>
 #include <hpx/synchronization/condition_variable.hpp>
 #include <hpx/threading_base/thread_data.hpp>
 #include <hpx/command_line_handling/command_line_handling.hpp>

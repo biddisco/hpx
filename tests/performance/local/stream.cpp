@@ -20,7 +20,7 @@
 #include <hpx/hpx.hpp>
 #include <hpx/hpx_init.hpp>
 #include <hpx/include/compute.hpp>
-#include <hpx/include/iostreams.hpp>
+#include <hpx/iostream.hpp>
 #include <hpx/include/parallel_copy.hpp>
 #include <hpx/include/parallel_executor_parameters.hpp>
 #include <hpx/include/parallel_executors.hpp>
@@ -94,12 +94,12 @@ void check_results(std::size_t iterations, Vector const& a_res,
     std::vector<STREAM_TYPE> b(b_res.size());
     std::vector<STREAM_TYPE> c(c_res.size());
 
-    hpx::parallel::copy(
-        hpx::parallel::execution::par, a_res.begin(), a_res.end(), a.begin());
-    hpx::parallel::copy(
-        hpx::parallel::execution::par, b_res.begin(), b_res.end(), b.begin());
-    hpx::parallel::copy(
-        hpx::parallel::execution::par, c_res.begin(), c_res.end(), c.begin());
+    hpx::copy(
+        hpx::execution::par, a_res.begin(), a_res.end(), a.begin());
+    hpx::copy(
+        hpx::execution::par, b_res.begin(), b_res.end(), b.begin());
+    hpx::copy(
+        hpx::execution::par, c_res.begin(), c_res.end(), c.begin());
 
     STREAM_TYPE aj, bj, cj, scalar;
     STREAM_TYPE aSumErr, bSumErr, cSumErr;
@@ -171,7 +171,8 @@ void check_results(std::size_t iterations, Vector const& a_res,
                 {
                     printf("         array a: index: %ld, expected: %e, "
                            "observed: %e, relative error: %e\n",
-                        j, aj, a[j], std::abs((aj - a[j]) / aAvgErr));
+                        (unsigned long) j, aj, a[j],
+                        (double) std::abs((aj - a[j]) / aAvgErr));
                 }
 #endif
             }
@@ -197,7 +198,8 @@ void check_results(std::size_t iterations, Vector const& a_res,
                 {
                     printf("         array b: index: %ld, expected: %e, "
                            "observed: %e, relative error: %e\n",
-                        j, bj, b[j], std::abs((bj - b[j]) / bAvgErr));
+                        (unsigned long) j, bj, b[j],
+                        (double) std::abs((bj - b[j]) / bAvgErr));
                 }
 #endif
             }
@@ -223,7 +225,8 @@ void check_results(std::size_t iterations, Vector const& a_res,
                 {
                     printf("         array c: index: %ld, expected: %e, "
                            "observed: %e, relative error: %e\n",
-                        j, cj, c[j], std::abs((cj - c[j]) / cAvgErr));
+                        (unsigned long) j, cj, c[j],
+                        (double) std::abs((cj - c[j]) / cAvgErr));
                 }
 #endif
             }
@@ -240,8 +243,9 @@ void check_results(std::size_t iterations, Vector const& a_res,
     printf("Results Validation Verbose Results: \n");
     printf("    Expected a(1), b(1), c(1): %f %f %f \n", aj, bj, cj);
     printf("    Observed a(1), b(1), c(1): %f %f %f \n", a[1], b[1], c[1]);
-    printf("    Rel Errors on a, b, c:     %e %e %e \n", std::abs(aAvgErr / aj),
-        std::abs(bAvgErr / bj), std::abs(cAvgErr / cj));
+    printf("    Rel Errors on a, b, c:     %e %e %e \n",
+        (double) std::abs(aAvgErr / aj), (double) std::abs(bAvgErr / bj),
+        (double) std::abs(cAvgErr / cj));
 #endif
 }
 
@@ -315,9 +319,9 @@ std::vector<std::vector<double>> run_benchmark(std::size_t iterations,
     vector_type c(size, alloc);
 
     // Initialize arrays
-    hpx::parallel::fill(policy, a.begin(), a.end(), 1.0);
-    hpx::parallel::fill(policy, b.begin(), b.end(), 2.0);
-    hpx::parallel::fill(policy, c.begin(), c.end(), 0.0);
+    hpx::fill(policy, a.begin(), a.end(), 1.0);
+    hpx::fill(policy, b.begin(), b.end(), 2.0);
+    hpx::fill(policy, c.begin(), c.end(), 0.0);
 
     // Check clock ticks ...
     double t = mysecond();
@@ -362,7 +366,7 @@ std::vector<std::vector<double>> run_benchmark(std::size_t iterations,
     {
         // Copy
         timing[0][iteration] = mysecond();
-        hpx::parallel::copy(policy, a.begin(), a.end(), c.begin());
+        hpx::copy(policy, a.begin(), a.end(), c.begin());
         timing[0][iteration] = mysecond() - timing[0][iteration];
 
         // Scale
@@ -445,18 +449,18 @@ int hpx_main(hpx::program_options::variables_map& vm)
     if (use_accel)
     {
 #if defined(HPX_HAVE_CUDA)
-        using executor_type = hpx::compute::cuda::concurrent_executor<>;
-        using allocator_type = hpx::compute::cuda::allocator<STREAM_TYPE>;
+        using executor_type = hpx::cuda::experimental::concurrent_executor<>;
+        using allocator_type = hpx::cuda::experimental::allocator<STREAM_TYPE>;
 
         // Get the cuda targets we want to run on
-        hpx::cuda::target target;
+        hpx::cuda::experimental::target target;
 
         // Get the host targets we want to run on
         auto host_targets = hpx::compute::host::get_local_targets();
 
         allocator_type alloc(target);
         executor_type exec(target, host_targets);
-        auto policy = hpx::parallel::execution::par.on(exec);
+        auto policy = hpx::execution::par.on(exec);
 
 #else
 #error "The STREAM benchmark currently requires CUDA to run on an accelerator"
@@ -473,7 +477,7 @@ int hpx_main(hpx::program_options::variables_map& vm)
         {
             // Default parallel policy with serial allocator.
             timing = run_benchmark<>(iterations, vector_size,
-                std::allocator<STREAM_TYPE>{}, hpx::parallel::execution::par);
+                std::allocator<STREAM_TYPE>{}, hpx::execution::par);
         }
         else if (executor == 1)
         {
@@ -485,7 +489,7 @@ int hpx_main(hpx::program_options::variables_map& vm)
             auto numa_nodes = hpx::compute::host::numa_domains();
             allocator_type alloc(numa_nodes);
             executor_type exec(numa_nodes);
-            auto policy = hpx::parallel::execution::par.on(exec);
+            auto policy = hpx::execution::par.on(exec);
 
             timing = run_benchmark<>(
                 iterations, vector_size, std::move(alloc), std::move(policy));
@@ -493,21 +497,7 @@ int hpx_main(hpx::program_options::variables_map& vm)
         else if (executor == 2)
         {
             // Default parallel policy and allocator with default parallel policy.
-            auto policy = hpx::parallel::execution::par;
-            hpx::compute::host::detail::policy_allocator<STREAM_TYPE,
-                decltype(policy)>
-                alloc(policy);
-
-            timing = run_benchmark<>(
-                iterations, vector_size, std::move(alloc), std::move(policy));
-        }
-        else if (executor == 3)
-        {
-            // Thread pool executor and allocator with thread pool executor.
-            using executor_type =
-                hpx::parallel::execution::thread_pool_executor;
-
-            auto policy = hpx::parallel::execution::par.on(executor_type());
+            auto policy = hpx::execution::par;
             hpx::compute::host::detail::policy_allocator<STREAM_TYPE,
                 decltype(policy)>
                 alloc(policy);
@@ -518,7 +508,7 @@ int hpx_main(hpx::program_options::variables_map& vm)
         else
         {
             HPX_THROW_EXCEPTION(hpx::commandline_option_error, "hpx_main",
-                "Invalid executor id given (0-3 allowed");
+                "Invalid executor id given (0-2 allowed");
         }
     }
     time_total = mysecond() - time_total;
@@ -597,8 +587,8 @@ int main(int argc, char* argv[])
              hpx::program_options::value<std::size_t>()->default_value(0),
             "size of vector (default: 1024)")
         (   "executor",
-            hpx::program_options::value<std::size_t>()->default_value(3),
-            "executor to use (0-3) (default: 3, thread_pool_executor)")
+            hpx::program_options::value<std::size_t>()->default_value(2),
+            "executor to use (0-2) (default: 2, parallel_executor)")
 
 #if defined(HPX_HAVE_COMPUTE)
         (   "use-accelerator",

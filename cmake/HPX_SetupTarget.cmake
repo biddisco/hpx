@@ -19,9 +19,10 @@ function(hpx_setup_target target)
       INSTALL_HEADERS
       INTERNAL_FLAGS
       NOLIBS
-      PLUGIN
       NONAMEPREFIX
       NOTLLKEYWORD
+      PLUGIN
+      UNITY_BUILD
   )
   set(one_value_args
       TYPE
@@ -154,10 +155,7 @@ function(hpx_setup_target target)
 
   if("${_type}" STREQUAL "LIBRARY" AND target_PLUGIN)
     set(plugin_name "HPX_PLUGIN_NAME=hpx_${name}")
-    target_link_libraries(
-      ${target} ${__tll_private} $<TARGET_NAME_IF_EXISTS:plugin>
-      $<TARGET_NAME_IF_EXISTS:HPX::plugin>
-    )
+    target_link_libraries(${target} ${__tll_private} HPX::plugin)
   endif()
 
   if("${_type}" STREQUAL "COMPONENT")
@@ -165,17 +163,15 @@ function(hpx_setup_target target)
       ${target} PRIVATE "HPX_COMPONENT_NAME=hpx_${name}"
                         "HPX_COMPONENT_STRING=\"hpx_${name}\""
     )
-    target_link_libraries(
-      ${target} ${__tll_private} $<TARGET_NAME_IF_EXISTS:component>
-      $<TARGET_NAME_IF_EXISTS:HPX::component>
-    )
+    target_link_libraries(${target} ${__tll_private} HPX::component)
   endif()
 
   if(NOT target_NOLIBS)
-    target_link_libraries(
-      ${target} ${__tll_public} $<TARGET_NAME_IF_EXISTS:hpx>
-      $<TARGET_NAME_IF_EXISTS:HPX::hpx>
-    )
+    set(_wrap_main_deps)
+    if("${_type}" STREQUAL "EXECUTABLE")
+      set(_wrap_main_deps HPX::wrap_main)
+    endif()
+    target_link_libraries(${target} ${__tll_public} HPX::hpx ${_wrap_main_deps})
     hpx_handle_component_dependencies(target_COMPONENT_DEPENDENCIES)
     target_link_libraries(
       ${target} ${__tll_public} ${target_COMPONENT_DEPENDENCIES}
@@ -186,6 +182,10 @@ function(hpx_setup_target target)
 
   if(target_INTERNAL_FLAGS AND TARGET hpx_private_flags)
     target_link_libraries(${target} ${__tll_private} hpx_private_flags)
+  endif()
+
+  if(target_UNITY_BUILD)
+    set_target_properties(${target} PROPERTIES UNITY_BUILD ON)
   endif()
 
   get_target_property(target_EXCLUDE_FROM_ALL ${target} EXCLUDE_FROM_ALL)

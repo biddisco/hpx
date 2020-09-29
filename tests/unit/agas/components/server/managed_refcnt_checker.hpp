@@ -8,11 +8,11 @@
 
 #pragma once
 
-#include <vector>
-
-#include <hpx/hpx.hpp>
+#include <hpx/modules/actions.hpp>
+#include <hpx/modules/actions_base.hpp>
 #include <hpx/runtime/components/server/managed_component_base.hpp>
-#include <hpx/runtime/actions/component_action.hpp>
+
+#include <vector>
 
 namespace hpx { namespace test { namespace server
 {

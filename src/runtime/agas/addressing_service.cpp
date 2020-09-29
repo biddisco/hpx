@@ -10,24 +10,24 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <hpx/config.hpp>
-#include <hpx/async_distributed/apply.hpp>
+#include <hpx/actions_base/traits/action_priority.hpp>
 #include <hpx/assert.hpp>
-#include <hpx/modules/async_distributed.hpp>
+#include <hpx/async_base/launch_policy.hpp>
+#include <hpx/async_combinators/wait_all.hpp>
+#include <hpx/async_combinators/when_all.hpp>
+#include <hpx/async_distributed/apply.hpp>
 #include <hpx/execution_base/register_locks.hpp>
-#include <hpx/modules/errors.hpp>
-#include <hpx/modules/execution.hpp>
-#include <hpx/modules/format.hpp>
 #include <hpx/functional/bind.hpp>
 #include <hpx/functional/bind_back.hpp>
 #include <hpx/functional/bind_front.hpp>
-#include <hpx/async_combinators/wait_all.hpp>
-#include <hpx/async_combinators/when_all.hpp>
+#include <hpx/modules/async_distributed.hpp>
+#include <hpx/modules/errors.hpp>
+#include <hpx/modules/execution.hpp>
+#include <hpx/modules/format.hpp>
 #include <hpx/modules/logging.hpp>
 #include <hpx/performance_counters/counter_creators.hpp>
 #include <hpx/performance_counters/counters.hpp>
 #include <hpx/performance_counters/manage_counter_type.hpp>
-#include <hpx/runtime_local/runtime_local.hpp>
-#include <hpx/runtime_distributed.hpp>
 #include <hpx/runtime/agas/addressing_service.hpp>
 #include <hpx/runtime/agas/big_boot_barrier.hpp>
 #include <hpx/runtime/agas/component_namespace.hpp>
@@ -41,21 +41,21 @@
 #include <hpx/runtime/agas/server/primary_namespace.hpp>
 #include <hpx/runtime/agas/server/symbol_namespace.hpp>
 #include <hpx/runtime/agas/symbol_namespace.hpp>
-#include <hpx/runtime/find_localities.hpp>
 #include <hpx/runtime/find_here.hpp>
-#include <hpx/runtime/runtime_fwd.hpp>
-#include <hpx/async_base/launch_policy.hpp>
+#include <hpx/runtime/find_localities.hpp>
 #include <hpx/runtime/naming/split_gid.hpp>
+#include <hpx/runtime/runtime_fwd.hpp>
+#include <hpx/runtime_configuration/runtime_configuration.hpp>
+#include <hpx/runtime_distributed.hpp>
+#include <hpx/runtime_local/runtime_local.hpp>
 #include <hpx/serialization/serialize.hpp>
 #include <hpx/serialization/vector.hpp>
 #include <hpx/thread_support/unlock_guard.hpp>
-#include <hpx/traits/action_priority.hpp>
 #include <hpx/traits/action_was_object_migrated.hpp>
 #include <hpx/traits/component_supports_migration.hpp>
 #include <hpx/type_support/unused.hpp>
 #include <hpx/util/get_entry_as.hpp>
 #include <hpx/util/insert_checked.hpp>
-#include <hpx/runtime_configuration/runtime_configuration.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -261,16 +261,19 @@ void addressing_service::launch_bootstrap(
     gva primary_gva(here,
         hpx::components::component_agas_primary_namespace, 1U,
             primary_ns_.ptr());
+    (void) primary_gid;
 
     naming::id_type const component_gid = component_ns_->gid();
     gva component_gva(here,
          hpx::components::component_agas_component_namespace, 1U,
             component_ns_->ptr());
+    (void) component_gid;
 
     naming::id_type const symbol_gid = symbol_ns_.gid();
     gva symbol_gva(here,
         hpx::components::component_agas_symbol_namespace, 1U,
             symbol_ns_.ptr());
+    (void) symbol_gid;
 
     rtd.get_config().parse("assigned locality",
         hpx::util::format("hpx.locality!={1}",
@@ -331,16 +334,19 @@ void addressing_service::launch_bootstrap(
     gva primary_gva(here,
         hpx::components::component_agas_primary_namespace, 1U,
             primary_ns_.ptr());
+    (void) primary_gid;
 
     naming::id_type const component_gid = component_ns_->gid();
     gva component_gva(here,
          hpx::components::component_agas_component_namespace, 1U,
             component_ns_->ptr());
+    (void) component_gid;
 
     naming::id_type const symbol_gid = symbol_ns_.gid();
     gva symbol_gva(here,
         hpx::components::component_agas_symbol_namespace, 1U,
             symbol_ns_.ptr());
+    (void) symbol_gid;
 
     rtd.get_config().parse("assigned locality",
         hpx::util::format("hpx.locality!={1}",
@@ -1130,7 +1136,7 @@ bool addressing_service::resolve_full_local(
     try {
         auto rep = primary_ns_.resolve_gid(id);
 
-        using hpx::util::get;
+        using hpx::get;
 
         if (get<0>(rep) == naming::invalid_gid || get<2>(rep) == naming::invalid_gid)
             return false;
@@ -1316,7 +1322,7 @@ naming::address addressing_service::resolve_full_postproc(
     naming::gid_type const& id, future<primary_namespace::resolved_type> f
     )
 {
-    using hpx::util::get;
+    using hpx::get;
 
     naming::address addr;
 
@@ -1393,7 +1399,7 @@ bool addressing_service::resolve_full_local(
     locals.resize(count);
 
     try {
-        using hpx::util::get;
+        using hpx::get;
 
         // special cases
         for (std::size_t i = 0; i != count; ++i)
@@ -2607,7 +2613,7 @@ void addressing_service::send_refcnt_requests_non_blocking(
             std::map<
                 naming::id_type,
                 std::vector<
-                    hpx::util::tuple<std::int64_t, naming::gid_type, naming::gid_type>
+                    hpx::tuple<std::int64_t, naming::gid_type, naming::gid_type>
                 >
             >
             requests_type;
@@ -2623,7 +2629,7 @@ void addressing_service::send_refcnt_requests_non_blocking(
                 primary_namespace::get_service_instance(raw)
               , naming::id_type::unmanaged);
 
-            requests[target].push_back(hpx::util::make_tuple(e.second, raw, raw));
+            requests[target].push_back(hpx::make_tuple(e.second, raw, raw));
         }
 
         // send requests to all locality
@@ -2680,7 +2686,7 @@ addressing_service::send_refcnt_requests_async(
         std::map<
             naming::id_type,
             std::vector<
-                hpx::util::tuple<std::int64_t, naming::gid_type, naming::gid_type>
+                hpx::tuple<std::int64_t, naming::gid_type, naming::gid_type>
             >
         >
         requests_type;
@@ -2697,7 +2703,7 @@ addressing_service::send_refcnt_requests_async(
             primary_namespace::get_service_instance(raw)
           , naming::id_type::unmanaged);
 
-        requests[target].push_back(hpx::util::make_tuple(e.second, raw, raw));
+        requests[target].push_back(hpx::make_tuple(e.second, raw, raw));
     }
 
     // send requests to all locality

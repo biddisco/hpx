@@ -12,7 +12,7 @@
 #include <hpx/assert.hpp>
 #include <hpx/lcos/base_lco_with_value.hpp>
 #include <hpx/futures/detail/future_data.hpp>
-#include <hpx/memory/intrusive_ptr.hpp>
+#include <hpx/modules/memory.hpp>
 #include <hpx/runtime/components/component_type.hpp>
 #include <hpx/runtime/components/server/component_heap.hpp>
 #include <hpx/runtime/components/server/managed_component_base.hpp>
@@ -139,6 +139,7 @@ namespace lcos {
             void set_back_ptr(components::managed_component<promise_lco>* bp)
             {
                 HPX_ASSERT(bp);
+                HPX_UNUSED(bp);
             }
         };
 
@@ -175,6 +176,7 @@ namespace lcos {
             void set_back_ptr(components::managed_component<promise_lco>* bp)
             {
                 HPX_ASSERT(bp);
+                HPX_UNUSED(bp);
             }
         };
     }

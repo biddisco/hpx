@@ -8,18 +8,18 @@
 #include <hpx/config.hpp>
 
 #if defined(HPX_HAVE_NETWORKING)
+#include <hpx/actions/base_action.hpp>
+#include <hpx/actions_base/detail/action_factory.hpp>
 #include <hpx/assert.hpp>
 #include <hpx/async_distributed/applier/applier.hpp>
 #include <hpx/modules/itt_notify.hpp>
-#include <hpx/runtime_local/runtime_local.hpp>
-#include <hpx/runtime/actions/base_action.hpp>
-#include <hpx/runtime/actions/detail/action_factory.hpp>
 #include <hpx/runtime/agas/addressing_service.hpp>
 #include <hpx/runtime/components/component_type.hpp>
 #include <hpx/runtime/parcelset/detail/parcel_route_handler.hpp>
 #include <hpx/runtime/parcelset/parcel.hpp>
 #include <hpx/runtime/parcelset/parcelhandler.hpp>
 #include <hpx/runtime/serialization/detail/preprocess_gid_types.hpp>
+#include <hpx/runtime_local/runtime_local.hpp>
 #include <hpx/serialization/access.hpp>
 #include <hpx/serialization/detail/polymorphic_id_factory.hpp>
 #include <hpx/serialization/input_archive.hpp>
@@ -330,6 +330,7 @@ namespace hpx { namespace parcelset
 
     void parcel::set_split_gids(parcel::split_gids_type&& split_gids)
     {
+        HPX_ASSERT(split_gids_.empty());
         split_gids_ = std::move(split_gids);
     }
 

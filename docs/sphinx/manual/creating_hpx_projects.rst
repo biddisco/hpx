@@ -236,11 +236,13 @@ Additionally, if you wish to require |hpx| for your project, replace the
 
 You can check if |hpx| was successfully found with the ``HPX_FOUND`` CMake variable.
 
-Using |hpx| targets
--------------------
+.. _using_hpx_cmake_targets:
+
+Using |cmake| targets
+---------------------
 
 The recommended way of setting up your targets to use |hpx| is to link to the
-``HPX::hpx`` target:
+``HPX::hpx`` |cmake| target:
 
 .. code-block:: cmake
 
@@ -253,9 +255,15 @@ This requires that you have already created the target like this:
    add_library(hello_world_component SHARED hello_world_component.cpp)
    target_include_directories(hello_world_component PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-When you link your library to ``HPX::hpx`` you will be able use |hpx|
-functionality in your library. To create a component, however, requires setting
-two additional compile definitions:
+When you link your library to the ``HPX::hpx`` |cmake| target, you will be able
+use |hpx| functionality in your library. To use ``main()`` as the implicit entry
+point in your application you must additionally link your application to the
+|cmake| target ``HPX::wrap_main``. This target is automatically linked to
+executables if you are using the macros described below
+(:ref:`using_hpx_cmake_macros`). See :ref:`minimal` for more information on
+implicitly using ``main()`` as the entry point.
+
+Creating a component requires setting two additional compile definitions:
 
 .. code-block:: cmake
 
@@ -285,6 +293,8 @@ or output directory of your plugin you need to tell your executable where to
 find it at runtime. You can do this either by setting the environment variable
 ``HPX_COMPONENT_PATHS`` or the ini setting ``hpx.component_paths`` (see
 :option:`--hpx:ini`) to the directory containing your plugin.
+
+.. _using_hpx_cmake_macros:
 
 Using macros to create new targets
 ----------------------------------
@@ -361,6 +371,34 @@ variable to point to the installation of |hpx|.
    in your targets. The |hpx| include directories are available with the
    ``HPX_INCLUDE_DIRS`` CMake variable.
 
+.. _hpxcxx_documentation:
+
+Using the |hpx| compiler wrapper ``hpxcxx``
+-------------------------------------------
+
+The ``hpxcxx`` compiler wrapper helps to compile a |hpx| component, application,
+or object file, based on the arguments passed to it.
+
+.. code-block:: bash
+
+   hpxcxx [--exe=<APPLICATION_NAME> | --comp=<COMPONENT_NAME> | -c] FLAGS FILES
+
+The ``hpxcxx`` command **requires** that either an application or a component is
+built or ``-c`` flag is specified. If the build is against a debug build, the
+``-g`` is to be specified while building.
+
+Optional ``FLAGS``
+..................
+
+* ``-l <LIBRARY> | -l<LIBRARY>``: Links ``<LIBRARY>`` to the build
+* ``-g``: Specifies that the application or component build is against a debug
+  build
+* ``-rd``: Sets ``release-with-debug-info`` option
+* ``-mr``: Sets ``minsize-release`` option
+
+All other flags (like ``-o OUTPUT_FILE``) are directly passed to the underlying
+C++ compiler.
+ 
 .. _cmake_integrate_hpx:
 
 Using macros to set up existing targets to use |hpx|
@@ -410,7 +448,7 @@ to the section on :ref:`comps`.
 .. _makefile:
 
 Using |hpx| with Makefile
-=======================
+=========================
 
 A basic project building with |hpx| is through creating makefiles. The process
 of creating one can get complex depending upon the use of cmake parameter

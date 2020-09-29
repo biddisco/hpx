@@ -8,15 +8,16 @@
 
 #include <hpx/config.hpp>
 #include <hpx/assert.hpp>
+#include <hpx/components_base/traits/is_component.hpp>
+#include <hpx/functional/unique_function.hpp>
+#include <hpx/modules/errors.hpp>
 #include <hpx/runtime/components/component_type.hpp>
 #include <hpx/runtime/components/server/create_component_fwd.hpp>
 #include <hpx/runtime/components_fwd.hpp>
 #include <hpx/runtime/naming/address.hpp>
 #include <hpx/runtime/naming/name.hpp>
 #include <hpx/runtime_fwd.hpp>
-#include <hpx/modules/errors.hpp>
-#include <hpx/traits/is_component.hpp>
-#include <hpx/functional/unique_function.hpp>
+#include <hpx/type_support/unused.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -180,18 +181,12 @@ namespace hpx { namespace components
                 static_cast<Component const&>(*this).get_base_gid());
         }
 
-#if defined(HPX_HAVE_COMPONENT_GET_GID_COMPATIBILITY)
-        HPX_DEPRECATED(HPX_DEPRECATED_MSG)
-        naming::id_type get_gid() const
-        {
-            return get_id();
-        }
-#endif
     protected:
         naming::gid_type get_base_gid(
             naming::gid_type const& assign_gid = naming::invalid_gid) const
         {
             HPX_ASSERT(!assign_gid);        // migration is not supported here
+            HPX_UNUSED(assign_gid);
             return this->detail::base_component::get_base_gid(
                 static_cast<Component const&>(*this).get_current_address());
         }

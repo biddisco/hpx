@@ -75,25 +75,13 @@ add_parcelport(
   # do we need to declare any headers? HEADERS FIXME : Could this be private
   DEPENDENCIES
     ${_libfabric_libraries}
-    hpx_config
-    hpx_allocator_support
-    hpx_assertion
-    hpx_cache
-    hpx_concurrency
-    hpx_coroutines
-    hpx_errors
-    hpx_execution
-    hpx_hardware
-    hpx_include
-    hpx_memory
     hpx_performance_counters
-    hpx_plugin
     hpx_program_options
-    hpx_serialization
-    hpx_static_reinit
+    hpx_runtime_local
+    hpx_include
     hpx_threadmanager
-    hpx_timing
-    hpx_topology
+      hpx_parallelism
+      hpx_core
   INCLUDE_DIRS ${_libfabric_include_dirs} ${PROJECT_SOURCE_DIR}
                ${PROJECT_BINARY_DIR}
   FOLDER "Core/Plugins/Parcelport/libfabric"

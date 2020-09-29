@@ -6,9 +6,9 @@
 
 #include <hpx/hpx_init.hpp>
 #include <hpx/hpx.hpp>
-#include <hpx/include/parallel_numeric.hpp>
-#include <hpx/include/parallel_algorithm.hpp>
-#include <hpx/include/iostreams.hpp>
+#include <hpx/numeric.hpp>
+#include <hpx/algorithm.hpp>
+#include <hpx/iostream.hpp>
 #include <hpx/modules/iterator_support.hpp>
 
 #include <algorithm>
@@ -26,8 +26,8 @@ int hpx_main()
     std::fill(std::begin(yvalues), std::end(yvalues), 1.0);
 
     double result =
-        hpx::parallel::transform_reduce(
-            hpx::parallel::execution::par,
+        hpx::transform_reduce(
+            hpx::execution::par,
             hpx::util::counting_iterator<size_t>(0),
             hpx::util::counting_iterator<size_t>(10007),
             0.0,

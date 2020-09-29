@@ -7,7 +7,7 @@
 #include <hpx/hpx_init.hpp>
 #include <hpx/include/performance_counters.hpp>
 #include <hpx/program_options.hpp>
-#include <hpx/testing.hpp>
+#include <hpx/modules/testing.hpp>
 //
 #include <hpx/runtime/basename_registration.hpp>
 #include <hpx/runtime/parcelset/rma/rma_object.hpp>

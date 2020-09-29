@@ -17,9 +17,6 @@ set(doxygen_dependencies
     "${PROJECT_SOURCE_DIR}/hpx/runtime/get_locality_name.hpp"
     "${PROJECT_SOURCE_DIR}/hpx/runtime/set_parcel_write_handler.hpp"
     "${PROJECT_SOURCE_DIR}/hpx/runtime/trigger_lco.hpp"
-    "${PROJECT_SOURCE_DIR}/hpx/runtime/actions/basic_action.hpp"
-    "${PROJECT_SOURCE_DIR}/hpx/runtime/actions/component_action.hpp"
-    "${PROJECT_SOURCE_DIR}/hpx/runtime/actions/plain_action.hpp"
     "${PROJECT_SOURCE_DIR}/hpx/runtime/components/binpacking_distribution_policy.hpp"
     "${PROJECT_SOURCE_DIR}/hpx/runtime/components/colocating_distribution_policy.hpp"
     "${PROJECT_SOURCE_DIR}/hpx/runtime/components/component_factory.hpp"
@@ -42,6 +39,9 @@ set(doxygen_definition_list
     "DOXYGEN:=1"
     "BOOST_SYSTEM_NOEXCEPT="
     "HPX_EXCEPTION_EXPORT="
+    "HPX_CORE_EXPORT="
+    "HPX_PARALLELISM_EXPORT="
+    "HPX_FULL_EXPORT="
     "HPX_EXPORT="
     "HPX_ALWAYS_EXPORT="
     "extern="
@@ -222,12 +222,22 @@ file(
   GLOB_RECURSE sphinx_libs_source_files
   LIST_DIRECTORIES false
   RELATIVE "${PROJECT_SOURCE_DIR}/libs"
-  "${PROJECT_SOURCE_DIR}/libs/*/docs/*"
+  "${PROJECT_SOURCE_DIR}/libs/*/*/docs/*"
 )
 
-set(sphinx_libs_source_files "all_modules.rst" "index.rst" "overview.rst"
-                             ${sphinx_libs_source_files}
+list(
+  APPEND
+  sphinx_libs_source_files
+  "index.rst"
+  "overview.rst"
+  "core/modules.rst"
+  "full/modules.rst"
+  "parallelism/modules.rst"
 )
+
+foreach(lib ${HPX_LIBS})
+  list(APPEND sphinx_libs_source_files "${lib}/modules.rst")
+endforeach()
 
 foreach(sphinx_source_file ${sphinx_libs_source_files})
   add_custom_command(

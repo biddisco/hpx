@@ -85,11 +85,11 @@ index is not specified, |hpx| will assume a default of ``-1``.
 .. _example:
 
 Two counter name examples
--------------------
+-------------------------
 
 This section gives examples of both simple counter names and aggregate
 counter names. For more information on simple and aggregate counter
-names, please see :ref:`performance_counter_instances`. 
+names, please see :ref:`performance_counter_instances`.
 
 An example of a well-formed (and meaningful) simple counter name would be:
 
@@ -140,7 +140,7 @@ registration database, which can be used to retrieve the meta data related
 to a counter type and to create counter instances based on a given counter
 instance name.
 
-.. _instances:
+.. _performance_counter_instances:
 
 Performance counter instances
 -----------------------------
@@ -375,7 +375,7 @@ the actual counter value and an optional unit of measure for the counter value.
 
 .. note::
 
-   The command line option ``--hpx:print-counter-types` will append a seventh
+   The command line option ``--hpx:print-counter-types`` will append a seventh
    field to the generated output. This field will hold an abbreviated counter
    type.
 
@@ -563,7 +563,8 @@ functions of the created client component instance should be called::
         "/threads{locality#0/total}/count/cumulative");
     hpx::cout << count.get_value<int>().get() << hpx::endl;
 
-For more information about the client component type, see |:cpp:class:`hpx::performance_counters::performance_counter` 
+For more information about the client component type, see
+:cpp:class:`hpx::performance_counters::performance_counter`
 
 .. note::
 
@@ -704,7 +705,7 @@ performance counters which support:
 
 Every full performance counter will implement a predefined interface:
 
-.. literalinclude:: ../../libs/performance_counters/include/hpx/performance_counters/performance_counter.hpp
+.. literalinclude:: ../../libs/full/performance_counters/include/hpx/performance_counters/performance_counter.hpp
    :language: c++
 
 In order to implement a full performance counter, you have to create an |hpx|
@@ -718,7 +719,7 @@ The base class is defined in the header file [hpx_link
 hpx/performance_counters/base_performance_counter.hpp..hpx/performance_counters/base_performance_counter.hpp]
 as:
 
-.. literalinclude:: ../../libs/performance_counters/include/hpx/performance_counters/base_performance_counter.hpp
+.. literalinclude:: ../../libs/full/performance_counters/include/hpx/performance_counters/base_performance_counter.hpp
    :language: c++
 
 The single template parameter is expected to receive the type of the
@@ -805,7 +806,7 @@ system and application performance.
        where:
 
        ``<agas_service_category>`` is one of the following: ``primary``,
-           ``locality``, ``component`` or ``symbol``
+       ``locality``, ``component`` or ``symbol``
 
      * ``<agas_instance>/total``
 
@@ -868,7 +869,7 @@ system and application performance.
        where:
 
        ``<agas_service_category>`` is one of the following: ``primary``,
-       ``locality``, ``component`` or ``symbol``.
+       ``locality``, ``component`` or ``symbol``
      * ``<agas_instance>/total``
 
        where:
@@ -901,7 +902,7 @@ system and application performance.
        where:
 
        ``<cache_statistics>`` is one of the following: ``cache/evictions``,
-       ``cache/hits``, ``cache/inserts``, ``cache/misses``
+       ``cache/hits``, ``cache/insertions``, ``cache/misses``
      * ``locality#*/total``
 
        where:
@@ -1143,7 +1144,7 @@ system and application performance.
        where:
 
        ``<cache_statistics>`` is one of the following: ``cache/insertions``,
-       ``cache/evictions``, ``cache/hits``, ``cache/misses`` ``cache/misses``
+       ``cache/evictions``, ``cache/hits``, ``cache/misses``
 
        `<connection_type`` is one of the following: ``tcp``, ``mpi``
      * ``locality#*/total``

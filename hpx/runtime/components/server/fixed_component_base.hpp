@@ -11,15 +11,15 @@
 #include <hpx/assert.hpp>
 #include <hpx/async_distributed/applier/applier.hpp>
 #include <hpx/async_distributed/applier/bind_naming_wrappers.hpp>
+#include <hpx/components_base/traits/is_component.hpp>
+#include <hpx/functional/unique_function.hpp>
+#include <hpx/modules/errors.hpp>
 #include <hpx/runtime/components/component_type.hpp>
 #include <hpx/runtime/components/server/create_component_fwd.hpp>
 #include <hpx/runtime/components_fwd.hpp>
 #include <hpx/runtime/naming/address.hpp>
 #include <hpx/runtime/naming/name.hpp>
 #include <hpx/runtime_fwd.hpp>
-#include <hpx/modules/errors.hpp>
-#include <hpx/traits/is_component.hpp>
-#include <hpx/functional/unique_function.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -142,14 +142,6 @@ public:
             naming::id_type::unmanaged);
     }
 
-#if defined(HPX_HAVE_COMPONENT_GET_GID_COMPATIBILITY)
-    HPX_DEPRECATED(HPX_DEPRECATED_MSG)
-    naming::id_type get_gid() const
-    {
-        return get_unmanaged_id();
-    }
-#endif
-
     void set_locality_id(std::uint32_t locality_id, error_code& ec = throws)
     {
         if (gid_) {
@@ -200,11 +192,11 @@ namespace detail
     struct fixed_heap
     {
 #if defined(HPX_DISABLE_ASSERTS) || defined(BOOST_DISABLE_ASSERTS) || defined(NDEBUG)
-        static constexpr void* alloc(std::size_t count)
+        static constexpr void* alloc(std::size_t /*count*/)
         {
             return nullptr;
         }
-        static constexpr void free(void* p, std::size_t count)
+        static constexpr void free(void* /*p*/, std::size_t /*count*/)
         {
         }
 #else

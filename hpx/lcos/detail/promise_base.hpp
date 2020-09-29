@@ -14,8 +14,8 @@
 #include <hpx/functional/unique_function.hpp>
 #include <hpx/futures/detail/future_data.hpp>
 #include <hpx/lcos/detail/promise_lco.hpp>
-#include <hpx/lcos_local/promise.hpp>
-#include <hpx/memory/intrusive_ptr.hpp>
+#include <hpx/modules/futures.hpp>
+#include <hpx/modules/memory.hpp>
 #include <hpx/runtime/components/server/component_heap.hpp>
 #include <hpx/runtime/components/server/managed_component_base.hpp>
 #include <hpx/runtime/naming/address.hpp>
@@ -56,17 +56,26 @@ namespace lcos {
             void do_run()
             {
                 if (!f_)
-                    return;         // do nothing if no deferred task is given
+                    return;    // do nothing if no deferred task is given
+
+                std::exception_ptr p;
 
                 try
                 {
-                    f_();           // trigger action
-                    this->wait();   // wait for value to come back
+                    f_();            // trigger action
+                    this->wait();    // wait for value to come back
+                    return;
                 }
                 catch (...)
                 {
-                    this->set_exception(std::current_exception());
+                    p = std::current_exception();
                 }
+
+                // The exception is set outside the catch block since
+                // set_exception may yield. Ending the catch block on a
+                // different worker thread than where it was started may lead
+                // to segfaults.
+                this->set_exception(std::move(p));
             }
 
             util::unique_function_nonser<void()> f_;
@@ -85,7 +94,7 @@ namespace lcos {
               : alloc_(alloc)
             {}
 
-            promise_data_allocator(init_no_addref no_addref, in_place in_place,
+            promise_data_allocator(init_no_addref no_addref, in_place,
                     other_allocator const& alloc)
               : promise_data<Result>(no_addref), alloc_(alloc)
             {}
@@ -269,14 +278,6 @@ namespace lcos {
             {
                 return get_id(false, ec);
             }
-
-#if defined(HPX_HAVE_COMPONENT_GET_GID_COMPATIBILITY)
-            HPX_DEPRECATED(HPX_DEPRECATED_MSG)
-            naming::id_type get_gid(error_code& ec = throws) const
-            {
-                return get_id(false, ec);
-            }
-#endif
 
             naming::address resolve(error_code& ec = throws) const
             {

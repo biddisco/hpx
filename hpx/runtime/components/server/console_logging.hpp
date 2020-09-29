@@ -8,9 +8,12 @@
 #pragma once
 
 #include <hpx/config.hpp>
+#include <hpx/actions/base_action.hpp>
+#include <hpx/actions/transfer_action.hpp>
+#include <hpx/actions/transfer_continuation_action.hpp>
+#include <hpx/actions_base/plain_action.hpp>
 #include <hpx/datastructures/tuple.hpp>
 #include <hpx/modules/logging.hpp>
-#include <hpx/runtime/actions/plain_action.hpp>
 #include <hpx/runtime/components/component_type.hpp>
 #include <hpx/serialization/vector.hpp>
 
@@ -22,7 +25,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 namespace hpx { namespace components
 {
-    typedef hpx::util::tuple<
+    typedef hpx::tuple<
         logging_destination, std::size_t, std::string
     > message_type;
 
@@ -66,8 +69,8 @@ namespace hpx { namespace components { namespace server
     public:
         template <typename T>
         static util::unused_type
-        execute_function(naming::address::address_type lva,
-            naming::address::component_type comptype, T&& v)
+        execute_function(naming::address_type lva,
+            naming::component_type comptype, T&& v)
         {
             try {
                 // call the function, ignoring the return value
