@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <iomanip>
 #include <iostream>
 #include <vector>
 
@@ -116,7 +117,7 @@ void run_benchmark(hpx::program_options::variables_map& vm)
             window_size = WINDOW_SIZE_LARGE;
         }
 
-        hpx::util::high_resolution_timer t;
+        hpx::chrono::high_resolution_timer t;
 
         for (std::size_t i = 0; i < loop + skip; ++i)
         {

@@ -17,9 +17,11 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <iomanip>
 #include <iterator>
 #include <memory>
 #include <numeric>
+#include <random>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -245,13 +247,13 @@ std::uint64_t averageout_parallel_foreach(
     std::iota(
         std::begin(data_representation), std::end(data_representation), gen());
 
-    std::uint64_t start = hpx::util::high_resolution_clock::now();
+    std::uint64_t start = hpx::chrono::high_resolution_clock::now();
 
     // average out 100 executions to avoid varying results
     for (auto i = 0; i < test_count; i++)
         measure_parallel_foreach(data_representation, exec);
 
-    return (hpx::util::high_resolution_clock::now() - start) / test_count;
+    return (hpx::chrono::high_resolution_clock::now() - start) / test_count;
 }
 
 template <typename Executor>
@@ -265,18 +267,18 @@ std::uint64_t averageout_task_foreach(std::size_t vector_size, Executor&& exec)
 
     if (num_overlapping_loops <= 0)
     {
-        std::uint64_t start = hpx::util::high_resolution_clock::now();
+        std::uint64_t start = hpx::chrono::high_resolution_clock::now();
 
         for (auto i = 0; i < test_count; i++)
             measure_task_foreach(data_representation, exec).wait();
 
-        return (hpx::util::high_resolution_clock::now() - start) / test_count;
+        return (hpx::chrono::high_resolution_clock::now() - start) / test_count;
     }
 
     std::vector<hpx::shared_future<void>> tests;
     tests.resize(num_overlapping_loops);
 
-    std::uint64_t start = hpx::util::high_resolution_clock::now();
+    std::uint64_t start = hpx::chrono::high_resolution_clock::now();
 
     for (auto i = 0; i < test_count; i++)
     {
@@ -288,7 +290,7 @@ std::uint64_t averageout_task_foreach(std::size_t vector_size, Executor&& exec)
     }
 
     hpx::wait_all(tests);
-    return (hpx::util::high_resolution_clock::now() - start) / test_count;
+    return (hpx::chrono::high_resolution_clock::now() - start) / test_count;
 }
 
 std::uint64_t averageout_sequential_foreach(std::size_t vector_size)
@@ -297,13 +299,13 @@ std::uint64_t averageout_sequential_foreach(std::size_t vector_size)
     std::iota(
         std::begin(data_representation), std::end(data_representation), gen());
 
-    std::uint64_t start = hpx::util::high_resolution_clock::now();
+    std::uint64_t start = hpx::chrono::high_resolution_clock::now();
 
     // average out 100 executions to avoid varying results
     for (auto i = 0; i < test_count; i++)
         measure_sequential_foreach(data_representation);
 
-    return (hpx::util::high_resolution_clock::now() - start) / test_count;
+    return (hpx::chrono::high_resolution_clock::now() - start) / test_count;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -315,13 +317,13 @@ std::uint64_t averageout_parallel_forloop(
     std::iota(
         std::begin(data_representation), std::end(data_representation), gen());
 
-    std::uint64_t start = hpx::util::high_resolution_clock::now();
+    std::uint64_t start = hpx::chrono::high_resolution_clock::now();
 
     // average out 100 executions to avoid varying results
     for (auto i = 0; i < test_count; i++)
         measure_parallel_forloop(data_representation, exec);
 
-    return (hpx::util::high_resolution_clock::now() - start) / test_count;
+    return (hpx::chrono::high_resolution_clock::now() - start) / test_count;
 }
 
 template <typename Executor>
@@ -335,18 +337,18 @@ std::uint64_t averageout_task_forloop(std::size_t vector_size, Executor&& exec)
 
     if (num_overlapping_loops <= 0)
     {
-        std::uint64_t start = hpx::util::high_resolution_clock::now();
+        std::uint64_t start = hpx::chrono::high_resolution_clock::now();
 
         for (auto i = 0; i < test_count; i++)
             measure_task_forloop(data_representation, exec).wait();
 
-        return (hpx::util::high_resolution_clock::now() - start) / test_count;
+        return (hpx::chrono::high_resolution_clock::now() - start) / test_count;
     }
 
     std::vector<hpx::shared_future<void>> tests;
     tests.resize(num_overlapping_loops);
 
-    std::uint64_t start = hpx::util::high_resolution_clock::now();
+    std::uint64_t start = hpx::chrono::high_resolution_clock::now();
 
     for (auto i = 0; i < test_count; i++)
     {
@@ -358,7 +360,7 @@ std::uint64_t averageout_task_forloop(std::size_t vector_size, Executor&& exec)
     }
 
     hpx::wait_all(tests);
-    return (hpx::util::high_resolution_clock::now() - start) / test_count;
+    return (hpx::chrono::high_resolution_clock::now() - start) / test_count;
 }
 
 std::uint64_t averageout_sequential_forloop(std::size_t vector_size)
@@ -367,13 +369,13 @@ std::uint64_t averageout_sequential_forloop(std::size_t vector_size)
     std::iota(
         std::begin(data_representation), std::end(data_representation), gen());
 
-    std::uint64_t start = hpx::util::high_resolution_clock::now();
+    std::uint64_t start = hpx::chrono::high_resolution_clock::now();
 
     // average out 100 executions to avoid varying results
     for (auto i = 0; i < test_count; i++)
         measure_sequential_forloop(data_representation);
 
-    return (hpx::util::high_resolution_clock::now() - start) / test_count;
+    return (hpx::chrono::high_resolution_clock::now() - start) / test_count;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

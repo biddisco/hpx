@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <iomanip>
 #include <iostream>
 #include <numeric>
 #include <vector>
@@ -82,7 +83,7 @@ double ireceive(
     char* aligned_send_buffer = align_buffer(send_buffer, align_size);
     std::memset(aligned_send_buffer, 'a', size);
 
-    hpx::util::high_resolution_timer t;
+    hpx::chrono::high_resolution_timer t;
 
     isend_action send;
     for (int i = 0; i != loop + skip; ++i)

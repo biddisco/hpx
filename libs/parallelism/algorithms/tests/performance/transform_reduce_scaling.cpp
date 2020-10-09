@@ -15,7 +15,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <iomanip>
 #include <iterator>
+#include <random>
 #include <stdexcept>
 #include <string>
 #include <vector>

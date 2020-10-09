@@ -605,7 +605,7 @@ void test_write(
 //    b1.wait(hpx::launch::async).get();
     nws_deb<1>.debug("Passed Barrier at start of write on rank " , rank);
     //
-    hpx::util::high_resolution_timer timerWrite;
+    hpx::chrono::high_resolution_timer timerWrite;
     hpx::util::simple_profiler level1("Write function", rank==0 && !options.warmup);
     //
     // used to track callbacks to free buffers for async_cb
@@ -785,7 +785,7 @@ void test_read(
     // this is mostly the same as the put loop, except that the received future
     // is not an int, but a transfer buffer which we have to copy out of.
     //
-    hpx::util::high_resolution_timer timerRead;
+    hpx::chrono::high_resolution_timer timerRead;
     //
     in_flight = 0;
     if (rank==0) std::cout << "Iteration ";
@@ -804,10 +804,10 @@ void test_read(
         //
         // Start main message sending loop
         //
-        std::vector<int> done(num_transfer_slots, 0);
-        for (uint32_t slot=0; slot<num_transfer_slots; slot++) {
-            hpx::util::high_resolution_timer looptimer;
-            uint32_t send_rank;
+        //
+        for (uint64_t i = 0; i < num_transfer_slots; i++) {
+            hpx::chrono::high_resolution_timer looptimer;
+            uint64_t send_rank;
             if (options.distribution==0) {
               // pick a random locality to send to
               send_rank = random_rank(gen);

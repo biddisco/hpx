@@ -33,7 +33,7 @@ namespace libfabric
     // The main message send routine
     void sender::async_write_impl(unsigned int flags)
     {
-        buffer_.data_point_.time_ = util::high_resolution_clock::now();
+        buffer_.data_point_.time_ = hpx::chrono::high_resolution_clock::now();
         HPX_ASSERT(message_region_ == nullptr);
         HPX_ASSERT(completion_count_ == 0);
         // increment counter of total messages sent
@@ -288,7 +288,7 @@ namespace libfabric
         }
         rma_regions_.clear();
         buffer_.data_point_.time_ =
-            util::high_resolution_clock::now() - buffer_.data_point_.time_;
+            hpx::chrono::high_resolution_clock::now() - buffer_.data_point_.time_;
         parcelport_->add_sent_data(buffer_.data_point_);
         send_deb.debug("Sender " , hpx::debug::ptr(this)
             , "calling postprocess_handler");

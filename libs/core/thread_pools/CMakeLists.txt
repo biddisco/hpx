@@ -15,9 +15,12 @@ set(thread_pools_headers
     hpx/thread_pools/scheduling_loop.hpp
 )
 
-set(thread_pools_compat_headers hpx/runtime/threads/thread_pools.hpp
-                                hpx/runtime/threads/scoped_background_timer.hpp
+# cmake-format: off
+set(thread_pools_compat_headers
+    hpx/runtime/threads/thread_pools.hpp => hpx/modules/thread_pools.hpp
+    hpx/runtime/threads/scoped_background_timer.hpp => hpx/modules/thread_pools.hpp
 )
+# cmake-format: on
 
 set(thread_pools_sources scheduled_thread_pool.cpp)
 
@@ -30,7 +33,13 @@ add_hpx_module(
   SOURCES ${thread_pools_sources}
   HEADERS ${thread_pools_headers}
   COMPAT_HEADERS ${thread_pools_compat_headers}
-  MODULE_DEPENDENCIES hpx_assertion hpx_config hpx_errors hpx_itt_notify
-                      hpx_logging hpx_schedulers
+  MODULE_DEPENDENCIES
+    hpx_assertion
+    hpx_config
+    hpx_debugging
+    hpx_errors
+    hpx_itt_notify
+    hpx_logging
+    hpx_schedulers
   CMAKE_SUBDIRS examples tests
 )

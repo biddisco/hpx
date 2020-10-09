@@ -1,4 +1,4 @@
-//  Copyright (c) 2017 Hartmut Kaiser
+//  Copyright (c) 2017-2020 Hartmut Kaiser
 //
 //  SPDX-License-Identifier: BSL-1.0
 //  Distributed under the Boost Software License, Version 1.0. (See accompanying
@@ -110,7 +110,7 @@ namespace hpx { namespace parallel { namespace execution {
         };
 
         template <>
-        struct sync_execute_at_helper<sequenced_execution_tag>
+        struct sync_execute_at_helper<hpx::execution::sequenced_execution_tag>
         {
             template <typename Executor, typename F, typename... Ts>
             static auto call(hpx::traits::detail::wrap_int, Executor&& exec,
@@ -199,7 +199,7 @@ namespace hpx { namespace parallel { namespace execution {
         };
 
         template <>
-        struct async_execute_at_helper<sequenced_execution_tag>
+        struct async_execute_at_helper<hpx::execution::sequenced_execution_tag>
         {
             template <typename Executor, typename F, typename... Ts>
             static auto call(hpx::traits::detail::wrap_int, Executor&& exec,
@@ -281,7 +281,7 @@ namespace hpx { namespace parallel { namespace execution {
         };
 
         template <>
-        struct post_at_helper<sequenced_execution_tag>
+        struct post_at_helper<hpx::execution::sequenced_execution_tag>
         {
             template <typename Executor, typename F, typename... Ts>
             static void call(hpx::traits::detail::wrap_int, Executor&& exec,
@@ -331,13 +331,13 @@ namespace hpx { namespace parallel { namespace execution {
         typedef typename hpx::traits::executor_parameters_type<
             base_executor_type>::type parameters_type;
 
-        timed_executor(hpx::util::steady_time_point const& abs_time)
+        timed_executor(hpx::chrono::steady_time_point const& abs_time)
           : exec_(BaseExecutor())
           , execute_at_(abs_time.value())
         {
         }
 
-        timed_executor(hpx::util::steady_duration const& rel_time)
+        timed_executor(hpx::chrono::steady_duration const& rel_time)
           : exec_(BaseExecutor())
           , execute_at_(rel_time.from_now())
         {
@@ -345,7 +345,7 @@ namespace hpx { namespace parallel { namespace execution {
 
         template <typename Executor>
         timed_executor(
-            Executor&& exec, hpx::util::steady_time_point const& abs_time)
+            Executor&& exec, hpx::chrono::steady_time_point const& abs_time)
           : exec_(std::forward<Executor>(exec))
           , execute_at_(abs_time.value())
         {
@@ -353,7 +353,7 @@ namespace hpx { namespace parallel { namespace execution {
 
         template <typename Executor>
         timed_executor(
-            Executor&& exec, hpx::util::steady_duration const& rel_time)
+            Executor&& exec, hpx::chrono::steady_duration const& rel_time)
           : exec_(std::forward<Executor>(exec))
           , execute_at_(rel_time.from_now())
         {

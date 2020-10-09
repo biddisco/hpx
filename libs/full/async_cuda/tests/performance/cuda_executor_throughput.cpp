@@ -47,6 +47,7 @@
 #include <cmath>
 #include <cstddef>
 #include <iostream>
+#include <random>
 #include <sstream>
 #include <utility>
 #include <vector>
@@ -123,7 +124,7 @@ void matrixMultiply(
                              const std::string& msg, std::size_t n_iters) {
         // time many cuda kernels spawned one after each other when they complete
         hpx::future<void> f;
-        hpx::util::high_resolution_timer t1;
+        hpx::chrono::high_resolution_timer t1;
         for (std::size_t j = 0; j < n_iters; j++)
         {
             f = hpx::async(exec, cublasSgemm, CUBLAS_OP_N, CUBLAS_OP_N,

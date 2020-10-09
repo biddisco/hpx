@@ -12,12 +12,16 @@ set(debugging_headers
     hpx/debugging/print.hpp
 )
 
+# cmake-format: off
 set(debugging_compat_headers
-    hpx/debugging.hpp hpx/util/backtrace.hpp hpx/util/backtrace/backtrace.hpp
-    hpx/util/debug/demangle_helper.hpp
+    hpx/debugging.hpp => hpx/modules/debugging.hpp
+    hpx/util/backtrace.hpp => hpx/modules/debugging.hpp
+    hpx/util/backtrace/backtrace.hpp => hpx/modules/debugging.hpp
+    hpx/util/debug/demangle_helper.hpp => hpx/modules/debugging.hpp
 )
+# cmake-format: on
 
-set(debugging_sources attach_debugger.cpp backtrace.cpp)
+set(debugging_sources attach_debugger.cpp backtrace.cpp print.cpp)
 
 include(HPX_AddModule)
 add_hpx_module(
