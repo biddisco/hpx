@@ -68,6 +68,12 @@ namespace hpx { namespace debug {
             std::ostream&, std::uint64_t const&, int);
 
         template HPX_CORE_EXPORT void print_dec(
+            std::ostream&, bool const&, int);
+
+        template HPX_CORE_EXPORT void print_dec(
+            std::ostream&, unsigned int const&, int);
+
+        template HPX_CORE_EXPORT void print_dec(
             std::ostream&, std::atomic<int> const&, int);
     }    // namespace detail
 
@@ -106,6 +112,8 @@ namespace hpx { namespace debug {
             std::ostream&, std::thread::id, int);
         template HPX_CORE_EXPORT void print_hex(
             std::ostream&, unsigned long, int);
+        template HPX_CORE_EXPORT void print_hex(
+            std::ostream&, unsigned int, int);
 
         template <typename Int>
         HPX_CORE_EXPORT void print_ptr(std::ostream& os, Int v, int N)
@@ -137,6 +145,9 @@ namespace hpx { namespace debug {
 
         template HPX_CORE_EXPORT void print_bin(
             std::ostream&, std::uint64_t, int);
+
+        template HPX_CORE_EXPORT void print_bin(
+            std::ostream&, unsigned char, int);
 
 #if defined(__APPLE__)
         // Explicit instantiation necessary to solve undefined symbol for MacOS
