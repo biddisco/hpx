@@ -353,8 +353,8 @@ namespace hpx { namespace debug {
             tempstream << prefix;
             generate_prefix(tempstream);
             ((tempstream << args << " "), ...);
-            tempstream << std::endl;
-            std::cout << tempstream.str();
+            tempstream << "\n";
+            std::cout << tempstream.str() << std::flush;
         }
 #else
         template <typename... Args>
@@ -366,8 +366,8 @@ namespace hpx { namespace debug {
             tempstream << prefix;
             generate_prefix(tempstream);
             variadic_print(tempstream, args...);
-            tempstream << std::endl;
-            std::cout << tempstream.str();
+            tempstream << "\n";
+            std::cout << tempstream.str() << std::flush;
         }
 #endif
 
