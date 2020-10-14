@@ -78,6 +78,12 @@
 
 using namespace hpx::parcelset::policies;
 
+namespace hpx { namespace debug { namespace detail {
+    template <>
+    HPX_CORE_EXPORT void print_dec<hpx::parcelset::performance_counter<unsigned int, false, void>>(std::ostream& os, hpx::parcelset::performance_counter<unsigned int, false, void> const& v, int)
+        {}
+}}}
+
 namespace hpx {
 namespace parcelset {
 namespace policies {

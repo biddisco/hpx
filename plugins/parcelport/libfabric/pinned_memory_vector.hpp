@@ -15,7 +15,13 @@
 #include <functional>
 #include <cstddef>
 #include <utility>
-//
+
+#include <hpx/debugging/print.hpp>
+namespace hpx {
+    // cppcheck-suppress ConfigurationNotChecked
+    static hpx::debug::enable_print<false> pmv_deb("PINNEDV");
+}   // namespace hpx
+
 namespace hpx {
 namespace parcelset {
 namespace policies {
@@ -55,11 +61,11 @@ namespace libfabric
         pinned_memory_vector(allocator_type* alloc) :
         m_array_(0), m_size_(0), m_cb_(0), m_alloc_(alloc), m_region_(0)
         {
-            LOG_TRACE_MSG("pinned_memory_vector alloc "
-                << "size " << hexuint32(m_size_)
-                << "array " << hpx::debug::ptr(m_array_)
-                << "region " << hpx::debug::ptr(m_region_)
-                << "alloc " << hpx::debug::ptr(m_alloc_));
+            pmv_deb.trace(debug::str<>("alloc")
+                , "size", hpx::debug::hex<4>(m_size_)
+                , "array", hpx::debug::ptr(m_array_)
+                , "region", hpx::debug::ptr(m_region_)
+                , "alloc", hpx::debug::ptr(m_alloc_));
         }
 
         // construct from existing memory chunk, provide allocator, deleter etc
@@ -67,11 +73,11 @@ namespace libfabric
             allocator_type* alloc, region_type *r) :
                 m_array_(p), m_size_(s), m_cb_(cb), m_alloc_(alloc), m_region_(r)
         {
-            LOG_TRACE_MSG("pinned_memory_vector exist "
-                << "size " << hexuint32(m_size_)
-                << "array " << hpx::debug::ptr(m_array_)
-                << "region " << hpx::debug::ptr(m_region_)
-                << "alloc " << hpx::debug::ptr(m_alloc_));
+            pmv_deb.trace(debug::str<>("existing mem")
+                , "size", hpx::debug::hex<4>(m_size_)
+                , "array", hpx::debug::ptr(m_array_)
+                , "region", hpx::debug::ptr(m_region_)
+                , "alloc", hpx::debug::ptr(m_alloc_));
         }
 
         // move constructor,
@@ -80,11 +86,11 @@ namespace libfabric
             m_cb_(std::move(other.m_cb_)), m_alloc_(other.m_alloc_),
             m_region_(other.m_region_)
         {
-            LOG_TRACE_MSG("pinned_memory_vector moved "
-                << "size " << hexuint32(m_size_)
-                << "array " << hpx::debug::ptr(m_array_)
-                << "region " << hpx::debug::ptr(m_region_)
-                << "alloc " << hpx::debug::ptr(m_alloc_));
+            pmv_deb.trace(debug::str<>("move")
+                , "size", hpx::debug::hex<4>(m_size_)
+                , "array", hpx::debug::ptr(m_array_)
+                , "region", hpx::debug::ptr(m_region_)
+                , "alloc", hpx::debug::ptr(m_alloc_));
             other.m_size_ = 0;
             other.m_array_ = 0;
             other.m_cb_ = nullptr;
@@ -94,11 +100,11 @@ namespace libfabric
 
         ~pinned_memory_vector() {
             if (m_array_ && m_cb_) {
-                LOG_TRACE_MSG("pinned_memory_vector delete "
-                    << "size " << hexuint32(m_size_)
-                    << "array " << hpx::debug::ptr(m_array_)
-                    << "region " << hpx::debug::ptr(m_region_)
-                    << "alloc " << hpx::debug::ptr(m_alloc_));
+                pmv_deb.trace(debug::str<>("delete")
+                    , "size", hpx::debug::hex<4>(m_size_)
+                    , "array", hpx::debug::ptr(m_array_)
+                    , "region", hpx::debug::ptr(m_region_)
+                    , "alloc", hpx::debug::ptr(m_alloc_));
                 m_cb_();
             }
         }
@@ -111,11 +117,11 @@ namespace libfabric
             m_cb_     = other.m_cb_;
             m_alloc_  = other.m_alloc_;
             m_region_ = other.m_region_;
-            LOG_TRACE_MSG("pinned_memory_vector assigned/moved "
-                << "size " << hexuint32(m_size_)
-                << "array " << hpx::debug::ptr(m_array_)
-                << "region " << hpx::debug::ptr(m_region_)
-                << "alloc " << hpx::debug::ptr(m_alloc_));
+            pmv_deb.trace(debug::str<>("move assign")
+                , "size", hpx::debug::hex<4>(m_size_)
+                , "array", hpx::debug::ptr(m_array_)
+                , "region", hpx::debug::ptr(m_region_)
+                , "alloc", hpx::debug::ptr(m_alloc_));
             other.m_size_   = 0;
             other.m_array_  = 0;
             other.m_cb_     = nullptr;
@@ -171,22 +177,20 @@ namespace libfabric
         }
 
         inline void resize(std::size_t s) {
-            LOG_TRACE_MSG("pinned_memory_vector "
-                << "size " << hexuint32(m_size_)
-                << "array " << hpx::debug::ptr(m_array_)
-                << "region " << hpx::debug::ptr(m_region_)
-                << "alloc " << hpx::debug::ptr(m_alloc_)
-                << "resizing from " << hpx::debug::hex<6>(m_size_)
-                    << " to " << hpx::debug::hex<6>(s));
+            pmv_deb.trace(debug::str<>("resize")
+                , "diff", hpx::debug::hex<4>(s-m_size_)
+                , "resizing from", hpx::debug::hex<4>(m_size_)
+                , " to", hpx::debug::hex<4>(s)
+                , "array", hpx::debug::ptr(m_array_)
+                , "region", hpx::debug::ptr(m_region_)
+                , "alloc", hpx::debug::ptr(m_alloc_));
 
             if (m_region_) {
-                LOG_TRACE_MSG("Region in resize " << *m_region_);
-
                 if (s > m_region_->get_size()) {
-                    LOG_ERROR_MSG(
-                        "Resizing from " << hpx::debug::hex<6>(m_region_->get_size())
-                        << " to " << hpx::debug::hex<6>(s)
-                        << *m_region_);
+                    pmv_deb.error(debug::str<>("resize")
+                        , "resizing from", hpx::debug::hex<4>(m_region_->get_size())
+                        , "to", hpx::debug::hex<4>(s)
+                        , *m_region_);
                     throw std::runtime_error(
                         "pinned_memory_vector should never be resized once an "
                         "allocation has been assigned");
@@ -201,15 +205,19 @@ namespace libfabric
         }
 
         void reserve(std::size_t s) {
-            LOG_TRACE_MSG("pinned_memory_vector "
-                << "size " << hexuint32(m_size_)
-                << "array " << hpx::debug::ptr(m_array_)
-                << "region " << hpx::debug::ptr(m_region_)
-                << "alloc " << hpx::debug::ptr(m_alloc_)
-                << "reserving from " << m_size_ << " to " << s);
+            pmv_deb.trace(debug::str<>("reserve")                
+                , "reserving from", hpx::debug::hex<4>(m_size_)
+                , "to", hpx::debug::hex<4>(s)                , "size", hpx::debug::hex<4>(m_size_)
+                , "array", hpx::debug::ptr(m_array_)
+                , "region", hpx::debug::ptr(m_region_)
+                , "alloc", hpx::debug::ptr(m_alloc_));
             if (m_array_ || m_region_) {
+                pmv_deb.error(debug::str<>("reserve")
+                    , "resizing from", hpx::debug::hex<4>(m_region_->get_size())
+                    , "to", hpx::debug::hex<4>(s)
+                    , *m_region_);
                 throw std::runtime_error(
-                    "pinned_memory_vector should never be resized once an "
+                    "pinned_memory_vector should never be reserved once an "
                     "allocation has been assigned");
             }
             m_region_ = m_alloc_->allocate_region(s);

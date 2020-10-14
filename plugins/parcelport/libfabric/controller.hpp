@@ -539,6 +539,9 @@ namespace libfabric
         {
             FUNC_START_DEBUG_MSG;
             //
+#ifdef HPX_DEBUG
+            std::cout.rdbuf()->pubsetbuf(0, 0);
+#endif
 #ifdef HPX_PARCELPORT_LIBFABRIC_ENDPOINT_RDM
             bind_endpoint_to_queues(ep_active_);
 #else
