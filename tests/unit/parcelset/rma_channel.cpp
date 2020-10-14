@@ -12,6 +12,8 @@
 #include <hpx/runtime/basename_registration.hpp>
 #include <hpx/runtime/parcelset/rma/rma_object.hpp>
 //
+#include "rma_communicator.hpp"
+//
 #include <cstddef>
 #include <iostream>
 #include <string>
@@ -23,43 +25,40 @@
 ///////////////////////////////////////////////////////////////////////////////
 using namespace hpx::parcelset::policies;
 using namespace hpx::parcelset::rma;
-//
+
+// For this example declare some arbitrary data structure we wish to use for RMA
 struct dummy_data {
-    std::array<char,16384> data;
+    std::array<char, 16384> data;
     //
     dummy_data() {};
 };
-//
+
+// Create some boiler-plate template code that marks the struct as RMA eligible
+// this isn't needed for POD types, but since we created a struct, we need it
 HPX_IS_RMA_ELIGIBLE(dummy_data);
-//
-const int up = 0;
-const int down = 1;
-//
-std::array<rma_object<dummy_data>, 2> a_recv;
-std::array<rma_object<dummy_data>, 2> a_send;
-//
+
+using communication_type = dummy_data;
+// normally needed in a header file?
+HPX_REGISTER_CHANNEL_DECLARATION(communication_type);
+// normally needed in a cpp file
+HPX_REGISTER_CHANNEL(communication_type, rma_communication);
+
+// send data to up and recev it from down
 void test_rdma_1(hpx::id_type loc)
 {
-    static const char* up_name = "/rdma/up/";
-    static const char* down_name = "/rdma/down/";
-    HPX_UNUSED(up_name);
-    HPX_UNUSED(down_name);
-
-    //
     std::size_t rank = hpx::get_locality_id();
-    std::size_t  num = hpx::get_num_localities(hpx::launch::sync);
-    //
-    if (rank > 0)
-    {
-        //a_recv[up] = hpx::find_from_basename<rma_object<dummy_data>>(down_name, rank - 1);
-        a_send[up] = hpx::parcelset::rma::make_rma_object<dummy_data>();
-        //hpx::register_with_basename(down_name, a_send[up], rank);
-    }
-    if (rank < num - 1)
-    {
-        //a_recv[down] = hpx::find_from_basename<channel_type>(up_name, rank + 1);
-        //a_send[down] = hpx::rma::make_rma_object<dummy_data>();
-        //hpx::register_with_basename(up_name, a_send[down], rank);
+    std::size_t size = hpx::get_num_localities(hpx::launch::sync);
+
+    // this rank create a communicator using a dummy data struct
+    using comm_type = communicator<communication_type>;
+    comm_type comm(rank, size);
+
+    communication_type test_data;
+    const int iterations = 256;
+    for (int i=0; i<iterations; i++) {
+        for (int n=0; n<1; ++n) {
+            comm.send[comm_type::neighbour::left].set(test_data, 0);
+        }
     }
 }
 

@@ -15,7 +15,7 @@ set(tests
 set(put_parcels_PARAMETERS LOCALITIES 2)
 set(put_parcels_FLAGS DEPENDENCIES iostreams_component)
 set(set_parcel_write_handler_PARAMETERS LOCALITIES 2)
-set(rma_test_PARAMETERS LOCALITIES 2)
+set(rma_channel_PARAMETERS LOCALITIES 2 THREADS_PER_LOCALITY 4)
 
 if(HPX_WITH_PARCEL_COALESCING)
   set(tests ${tests} put_parcels_with_coalescing)
