@@ -72,6 +72,8 @@ namespace hpx { namespace debug {
 
         template HPX_CORE_EXPORT void print_dec(
             std::ostream&, unsigned int const&, int);
+        template HPX_CORE_EXPORT void print_dec(
+            std::ostream&, unsigned short const&, int);
 
         template HPX_CORE_EXPORT void print_dec(
             std::ostream&, std::atomic<int> const&, int);
